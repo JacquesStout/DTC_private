@@ -1,5 +1,5 @@
-from transform_handler import img_transform_exec, get_flip_bvecs
-from file_tools import mkcdir
+from nifti_handlers.transform_handler import img_transform_exec, get_flip_bvecs
+from file_manager.file_tools import mkcdir
 import os, socket, glob
 
 subjects_list = ['C_20220124_004', 'C_20220124_005', 'C_20220124_006', 'C_20220124_007']

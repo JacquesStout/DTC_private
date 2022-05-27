@@ -1,5 +1,5 @@
-from transform_handler import img_transform_exec
-from file_tools import mkcdir
+from nifti_handlers.transform_handler import img_transform_exec
+from file_manager.file_tools import mkcdir
 import os, socket, glob
 
 subjects_list = ["N58214", "N58215",

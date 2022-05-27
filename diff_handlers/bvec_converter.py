@@ -1,5 +1,5 @@
 import os, glob
-from nifti_handler import fix_bvals_bvecs
+from nifti_handlers.nifti_handler import fix_bvals_bvecs
 
 path = '/mnt/paros_MRI/jacques/APOE/DWI_allsubj_RAS'
 #path = '/Users/jas/jacques/APOE_testing/bvalues_test'

@@ -22,10 +22,10 @@ from gc import get_referents
 import smtplib
 from nibabel.tmpdirs import InTemporaryDirectory
 import os, re, sys, io, struct, socket, datetime
-from file_tools import largerfile
+from file_manager.file_tools import largerfile
 from email.mime.text import MIMEText
 import glob
-from computer_nav import make_temppath
+from file_manager.computer_nav import make_temppath
 """"
 from dipy.tracking.utils import unique_rows
 
@@ -61,7 +61,7 @@ from dipy.tracking.streamline import Streamlines
 import matplotlib.pyplot as plt
 
 #from dipy.denoise.localpca import mppca
-from denoise_processes import mppca
+from diff_handlers.denoise_processes import mppca
 from dipy.denoise.gibbs import gibbs_removal
 
 from random import randint
@@ -75,10 +75,10 @@ from dipy.viz import window, actor, colormap as cmap
 import dipy.core.optimize as opt
 from functools import wraps
 
-from figures_handler import denoise_fig, show_bundles, window_show_test, LifEcreate_fig
-from tract_eval import bundle_coherence, LiFEvaluation
-from dif_to_trk import QCSA_tractmake
-#from diff_preprocessing import make_tensorfit
+from visualization_tools.figures_handler import denoise_fig, show_bundles, window_show_test, LifEcreate_fig
+from tract_manager.tract_eval import bundle_coherence, LiFEvaluation
+from tract_manager.dif_to_trk import QCSA_tractmake
+#from diff_handlers.diff_preprocessing import make_tensorfit
 """
 
 

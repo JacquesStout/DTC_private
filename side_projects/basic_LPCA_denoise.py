@@ -32,7 +32,7 @@ from dipy.io.gradients import read_bvals_bvecs
 from dipy.core.gradients import gradient_table
 
 #from dipy.denoise.localpca import localpca
-from denoise_processes import localpca, mppca
+from diff_handlers.denoise_processes import localpca, mppca
 from dipy.denoise.pca_noise_estimate import pca_noise_estimate
 import os
 from time import time
@@ -66,7 +66,7 @@ bval_or_bvec_or_btable=sys.argv[3]
 outpath=sys.argv[4]
 """
 
-def basic_LPCA_denoise_func(id,fdwi,bval_or_bvec_or_btable,outpath, processes=1, denoise="LPCA", verbose=False):
+def gunnies.basic_LPCA_denoise_func(id,fdwi,bval_or_bvec_or_btable,outpath, processes=1, denoise="LPCA", verbose=False):
 
     np.seterr(divide='ignore', invalid='ignore')
 

@@ -1,6 +1,6 @@
 import os, glob
-from file_tools import mkcdir
-from transform_handler import recenter_nii_save_test, affine_superpose, get_affine_transform_test
+from file_manager.file_tools import mkcdir
+from nifti_handlers.transform_handler import recenter_nii_save_test, affine_superpose, get_affine_transform_test
 
 mainpath = '/Volumes/Data/Badea/Lab/human/AMD/'
 ref_subj_folder = os.path.join(mainpath,'ref_subj')
