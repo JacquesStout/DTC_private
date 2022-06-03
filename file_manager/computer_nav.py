@@ -11,12 +11,12 @@ def get_mainpaths(remote=False, project='any',username=None,password=None):
     project_rename = {'Chavez':'21.chavez.01','AD_Decode':'AD_Decode','APOE':'APOE','AMD':'AMD'}
     samos = False
     if 'samos' in computer_name:
-        inpath = '/mnt/paros_MRI/jacques/'
-        outpath = '/mnt/paros_MRI/jacques/'
-        atlas_folder = '/mnt/paros_MRI/jacques/atlases/'
+        inpath = '/mnt/paros_WORK/jacques/'
+        outpath = '/mnt/paros_WORK/jacques/'
+        atlas_folder = '/mnt/paros_WORK/jacques/atlases/'
         remote=False
 
-        #ROI_legends = "/mnt/paros_MRI/jacques/atlases/IITmean_RPI/IITmean_RPI_index.xlsx"
+        #ROI_legends = "/mnt/paros_WORK/jacques/atlases/IITmean_RPI/IITmean_RPI_index.xlsx"
     elif 'santorini' in computer_name or 'hydra' in computer_name:
         # mainpath = '/Users/alex/jacques/'
         inpath = '/Volumes/Data/Badea/Lab/human/'
@@ -34,9 +34,9 @@ def get_mainpaths(remote=False, project='any',username=None,password=None):
     sftp = None
     if remote:
         if not 'samos' in computer_name:
-            inpath = 'samos.dhe.duke.edu:/mnt/paros_MRI/jacques/'
-            if project == 'Chavez':
-                inpath = 'samos.dhe.duke.edu:/mnt/paros_DB/Projects/'
+            inpath = 'samos.dhe.duke.edu:/mnt/paros_WORK/jacques/'
+            #if project == 'Chavez':
+            #    inpath = 'samos.dhe.duke.edu:/mnt/paros_DB/Projects/'
             if "@" in inpath:
                 inpath = inpath.split("@")
                 username = inpath[0]

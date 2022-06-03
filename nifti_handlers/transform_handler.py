@@ -8,7 +8,7 @@ from dipy.io.image import load_nifti, save_nifti
 from dipy.io.utils import create_tractogram_header
 from tract_manager.tract_save import save_trk_heavy_duty
 from shutil import copy as copyfile
-from nifti_handlers.nifti_handler import extract_nii_info
+from nifti_handlers.nifti_handler import *
 from tract_manager.streamline_nocheck import load_trk
 from dipy.tracking.streamline import transform_streamlines
 import shutil

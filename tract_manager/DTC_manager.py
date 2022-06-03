@@ -988,7 +988,7 @@ def get_diffusionattributes(diffpath, outpath, subject, str_identifier, vol_b0, 
     MK = dki_fit.mk(0, 3)
     """
 
-def diff_handlers.diff_preprocessing(diffpath,outpath,subject, bvec_orient, denoise="none",savefa="yes",processes=1, createmask = True, vol_b0 = None, verbose = False):
+def diff_preprocessing(diffpath,outpath,subject, bvec_orient, denoise="none",savefa="yes",processes=1, createmask = True, vol_b0 = None, verbose = False):
 
     diff_fpath = getdiffpath(diffpath, subject, verbose)
 

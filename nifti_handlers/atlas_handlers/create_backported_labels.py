@@ -1,9 +1,9 @@
 
-from transform_handler import img_transform_exec, space_transpose, header_superpose
+from nifti_handlers.transform_handler import img_transform_exec, space_transpose, header_superpose
 import os, re, sys, io, struct, socket, datetime
 from pathlib import Path
 import os
-from file_tools import mkcdir, check_files
+from file_manager.file_tools import mkcdir, check_files
 import glob
 import warnings
 import shutil

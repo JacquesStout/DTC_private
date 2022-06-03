@@ -674,7 +674,7 @@ def build_argparser():
     return p
 """
 
-def file_manager.trktotck(trk_path, overwrite=False):
+def trktotck(trk_path, overwrite=False):
 
     import warnings
     try:

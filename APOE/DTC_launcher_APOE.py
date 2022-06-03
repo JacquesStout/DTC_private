@@ -7,22 +7,16 @@ Wenlin make some changes to track on the whole brain
 Wenlin add for loop to run all the animals 2018-20-25
 """
 
-import numpy as np
-import glob
-from diff_handlers.bvec_handler import orient_to_str
-from tract_manager import create_tracts, diff_handlers.diff_preprocessing, tract_connectome_analysis, get_diffusionattributes
+
+from tract_manager.DTC_manager import create_tracts, tract_connectome_analysis
 from file_manager.Daemonprocess import MyPool
 import multiprocessing as mp
 import os
 from file_manager.file_tools import mkcdir, getfromfile
 from time import time
 from file_manager.argument_tools import parse_arguments
-import sys
-import socket
-import random
 from file_manager.computer_nav import get_mainpaths, get_atlas, glob_remote
-
-import sys, getopt, glob
+import sys
 
 remote=True
 project='APOE'
@@ -94,8 +88,10 @@ symmetric = False
 inclusive = True
 denoise='none'
 savefa= True
+
 make_tracts = True
 make_connectomes = False
+
 reference_weighting = None
 volume_weighting = True
 #classifier types => ["FA", "binary"]

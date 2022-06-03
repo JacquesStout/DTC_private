@@ -7,7 +7,8 @@ from diff_handlers.bvec_handler import fix_bvals_bvecs, checkbxh, reorient_bvecs
 import pathlib
 from file_manager.BIAC_tools import send_mail
 from dipy.core.gradients import gradient_table
-from diff_handlers.diff_preprocessing import make_tensorfit
+#from diff_handlers.diff_preprocessing import make_tensorfit
+from diff_handlers.diff_preprocessing import *
 from dipy.io.image import load_nifti
 import shutil
 from nifti_handlers.atlas_handlers.convert_atlas_mask import convert_labelmask, atlas_converter
