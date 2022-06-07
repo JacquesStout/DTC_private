@@ -1,13 +1,12 @@
 import numpy as np
-from tract_manager import create_tracts
 import multiprocessing as mp
-from file_manager.Daemonprocess import MyPool
+#from file_manager.Daemonprocess import MyPool
 import glob
 import os, sys
 from diff_handlers.bvec_handler import writebfiles, extractbvals, extractbvals_research, rewrite_subject_bvalues, fix_bvals_bvecs
 from time import time
 import shutil
-from diffusion_preprocessing import launch_preprocessing
+from diff_handlers.diff_preprocessing import launch_preprocessing
 from file_manager.file_tools import mkcdir, largerfile
 import shutil
 from file_manager.argument_tools import parse_arguments
@@ -26,17 +25,21 @@ SAMBA_inputs_folder = "/Volumes/Data/Badea/Lab/19abb14/"
 shortcuts_all_folder = "/Volumes/Data/Badea/Lab/mouse/APOE_symlink_pool_allfiles/"
 shortcuts_all_folder = None
 
-subjects = ["N58214","N58215","N58216","N58217","N58218","N58219","N58221","N58222","N58223","N58224","N58225","N58226","N58228",
-            "N58229","N58230","N58231","N58232","N58633","N58634","N58635","N58636","N58649","N58650","N58651","N58653","N58654"]
-
-subjects = ['N57462']
-
+subjects = ['N58214','N58215','N58216','N58217','N58218','N58219','N58221','N58222','N58223','N58224','N58225','N58226','N58228','N58229','N58230','N58231','N58232','N58633','N58634','N58635','N58636','N58650','N58649','N58651','N58653','N58654']
+subjects = subjects[12:]
 #atlas = "/Volumes/Data/Badea/Lab/atlases/chass_symmetric3/chass_symmetric3_DWI.nii.gz"
 
-removed_list = ['N58610', 'N58612', 'N58613','N58732']
+#removed_list = ['N58610', 'N58612', 'N58613','N58732']
+removed_list = []
 for remove in removed_list:
     if remove in subjects:
         subjects.remove(remove)
+
+
+subjects_folders = glob.glob(os.path.join(diffpath,'diffusion*/'))
+#subjects = []
+#for subject_folder in subjects_folders:
+#    subjects.append(subject_folder.split('diffusion')[1][:6])
 
 print(subjects)
 
@@ -56,7 +59,7 @@ transpose=None
 overwrite=False
 ref="coreg"
 #btables=["extract","copy","None"]
-btables=""
+btables="extract"
 
 
 #Neither copy nor extract are fully functioning right now, for now the bvec extractor from extractdiffdirs works
@@ -66,11 +69,11 @@ btables=""
 if btables=="extract":
     for subject in subjects:
         #outpathsubj = "/Volumes/dusom_dibs_ad_decode/all_staff/APOE_temp/diffusion_prep_58214/"
-        outpathsubj = outpath + "_" + subject
         writeformat="tab"
         writeformat="dsi"
-        overwrite=True
-        fbvals, fbvecs = extractbvals(diffpath, subject, outpath=outpath, writeformat=writeformat, overwrite=overwrite) #extractbvals_research
+        subjectpath = glob.glob(os.path.join(os.path.join(diffpath, "diffusion*"+subject+"*")))[0]
+        subject_outpath = os.path.join(outpath, 'diffusion_prep_' + proc_subjn + subject)
+        fbvals, fbvecs = extractbvals(subjectpath, subject, outpath=subject_outpath, writeformat=writeformat, overwrite=overwrite) #extractbvals_research
         #fbvals, fbvecs = rewrite_subject_bvalues(diffpath, subject, outpath=outpath, writeformat=writeformat, overwrite=overwrite)
 elif btables=="copy":
     for subject in subjects:
@@ -115,8 +118,8 @@ else:
             print(f'already did subject {subject}')
         elif os.path.exists(os.path.join('/Volumes/Badea/Lab/APOE_symlink_pool/', f'{subject}_subjspace_coreg.nii.gz')) and not overwrite:
             print(f'Could not find subject {subject} in main diffusion folder but result was found in SAMBA prep folder')
-        elif os.path.exists(os.path.join('/Volumes/Data/Badea/Lab/mouse/VBM_20APOE01_chass_symmetric3_allAPOE-work/dwi/SyN_0p5_3_0p5_dwi/dwiMDT_NoNameYet_n32_i5/reg_images/',f'{subject}_rd_to_MDT.nii.gz')) and not overwrite:
-            print(f'Could not find subject {subject} in main diff folder OR samba init but was in results of SAMBA')
+        #elif os.path.exists(os.path.join('/Volumes/Data/Badea/Lab/mouse/VBM_20APOE01_chass_symmetric3_allAPOE-work/dwi/SyN_0p5_3_0p5_dwi/dwiMDT_NoNameYet_n32_i5/reg_images/',f'{subject}_rd_to_MDT.nii.gz')) and not overwrite:
+        #    print(f'Could not find subject {subject} in main diff folder OR samba init but was in results of SAMBA')
         else:
             launch_preprocessing(proc_subjn + subject, max_file, outpath, cleanup, nominal_bval, SAMBA_inputs_folder,
                                  shortcuts_all_folder, gunniespath, function_processes, masking, ref, transpose,

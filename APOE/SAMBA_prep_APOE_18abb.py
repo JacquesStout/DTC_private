@@ -62,10 +62,7 @@ subjects = []
 for subject_folder in subjects_folders:
     subjects.append(subject_folder.split('diffusion')[1][:6])
 
-
-
 subjects = sorted(subjects)
-subjects = subjects[76:]
 #subjects.reverse()
 #subjects = subjects[:8]
 
@@ -186,78 +183,3 @@ else:
                                  shortcuts_all_folder, gunniespath, function_processes, masking, ref, transpose,
                                  overwrite, denoise, recenter, verbose)
         #results.append(launch_preprocessing(subject, max_file, outpath))
-
-"""
-
-(subj, raw_nii, outpath, cleanup=False, nominal_bval=4000, SAMBA_inputs_folder=None,
-                         shortcuts_all_folder = None, gunniespath="~/gunnies/", processes=1, masking="bet", ref=None,
-                         transpose=None, overwrite=False, denoise='None', recenter=0, verbose=False)
-
-subjectlist = ["58215","58216","58217","58218","58219","58221","58222","58223","58224","58225","58226","58228","58229","58230","58231","58232","58633","58634","58635","58636","58649","58650","58651","58653","58654"]
-for subj in subjectlist:
-    fbvals_new = fbvals.replace("58214", subj)
-    shutil.copyfile(fbvals, fbvals_new)
-    fbvecs_new = fbvals.replace("58214", subj)
-    shutil.copyfile(fbvals, fbvals_new)
-
-
-makebtables=False
-if makebtables:
-    for subject in subjects:
-        #outpathsubj = "/Volumes/dusom_dibs_ad_decode/all_staff/APOE_temp/diffusion_prep_58214/"
-        outpathsubj = "/Volumes/dusom_dibs_ad_decode/all_staff/APOE_temp/diffusion_prep_locale/diffusion_prep_"+subject
-        mkcdir(outpath)
-        writeformat="tab"
-        writeformat="dsi"
-        overwrite=True
-        fbvals, fbvecs = extractbvals(dwipath, subject, outpath=outpath, writeformat=writeformat, overwrite=overwrite)
-        #fbvals, fbvecs = rewrite_subject_bvalues(dwipath, subject, outpath=outpath, writeformat=writeformat, overwrite=overwrite)
-
-quickfix = False
-if quickfix:
-    bval_file="/Volumes/dusom_dibs_ad_decode/all_staff/APOE_temp/research/diffusionN58302dsi_studio/N58302_bvals.txt"
-    bvec_file="/Volumes/dusom_dibs_ad_decode/all_staff/APOE_temp/research/diffusionN58302dsi_studio/N58302_bvecs.txt"
-    bval_file, bvec_file = fix_bvals_bvecs(bval_file, bvec_file, outpath= outpath, identifier="", format="dsi")
-
-bval_file="/Volumes/dusom_dibs_ad_decode/all_staff/APOE_temp/diffusion_prep_locale/N58302_bvals.txt"
-bvec_file="/Volumes/dusom_dibs_ad_decode/all_staff/APOE_temp/research/diffusionN58302dsi_studio/N58302_bvecs.txt"
-proc_name ="diffusion_prep_"
-
-results=[]
-copybtables=False
-if copybtables:
-    for subject in subjects:
-        subjectpath = os.path.join(outpath, proc_name + subject)
-        mkcdir(subjectpath)
-        #subjectpath = glob.glob(os.path.join(os.path.join(outpath, "*" + subject + "*")))
-        #subjectpath = subjectpath[0]
-        new_bval_file=os.path.join(subjectpath, subject+"_bvals.txt")
-        new_bvec_file=os.path.join(subjectpath, subject+"_bvecs.txt")
-        if not os.path.exists(new_bval_file):
-            shutil.copyfile(bval_file,new_bval_file)
-        if not os.path.exists(new_bvec_file):
-            shutil.copyfile(bvec_file,new_bvec_file)
-            
-            
-
-quickfix = True
-if quickfix:
-    bval_file="/Volumes/Data/Badea/ADdecode.01/Analysis/DWI/01912_bvals.txt"
-    bvec_file="/Volumes/Data/Badea/ADdecode.01/Analysis/DWI/01912_bvec.txt"
-    bval_file, bvec_file = fix_bvals_bvecs(bval_file, bvec_file, outpath= outpath, identifier="", format="dsi")
-    results=[]
-    copybtables=True
-    if copybtables:
-        for subject in subjects:
-            subjectpath = os.path.join(outpath, proc_name + subject)
-            mkcdir(subjectpath)
-            #subjectpath = glob.glob(os.path.join(os.path.join(outpath, "*" + subject + "*")))
-            #subjectpath = subjectpath[0]
-            new_bval_file=os.path.join(subjectpath, subject+"_bvals.txt")
-            new_bvec_file=os.path.join(subjectpath, subject+"_bvecs.txt")
-            if not os.path.exists(new_bval_file):
-                shutil.copyfile(bval_file,new_bval_file)
-            if not os.path.exists(new_bvec_file):
-                shutil.copyfile(bvec_file,new_bvec_file)
-
-"""

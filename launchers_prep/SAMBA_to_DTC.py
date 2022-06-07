@@ -21,8 +21,8 @@ verbose = True
 mainpath = "/Volumes/Data/Badea/Lab/"
 #mainpath = "/mnt/munin6/Badea/Lab/"
 SAMBA_headfile_dir = os.path.join(mainpath, "samba_startup_cache")
-file_ids = ["coreg", "subjspace_fa", "subjspace_b0", "bval", "bvec", "subjspace_mask", "reference", "subjspace_dwi", "relative_orientation"]
-file_ids = ['coreg']
+file_ids = ["subjspace_coreg","coreg", "subjspace_fa", "subjspace_b0", "bval", "bvec", "subjspace_mask", "reference", "subjspace_dwi", "relative_orientation"]
+#file_ids = ['subjspace_mask']
 #if project == 'AMD':
 #    file_ids = ["relative_orientation"]
 
@@ -161,7 +161,6 @@ elif project == "APOE":
     #DTC_labels_folder = "samos.dhe.duke.edu:/mnt/paros_MRI/jacques/APOE/DWI_allsubj/"
     DTC_DWI_folder = "DWI_allsubj/"
     DTC_labels_folder = "DWI_allsubj/"
-
     SAMBA_label_folder = os.path.join(SAMBA_mainpath, SAMBA_projectname + "-results", "connectomics")
     SAMBA_work_folder = os.path.join(SAMBA_mainpath, SAMBA_projectname + "-work")
     orient_string = os.path.join(SAMBA_prep_folder, "relative_orientation.txt")
@@ -179,7 +178,9 @@ elif project == "APOE":
 
     subjects = ['N58952', 'N59022', 'N59026', 'N59033', 'N59035', 'N59039', 'N59041', 'N59065', 'N59066', 'N59072', 'N59076', 'N59080', 'N59097', 'N59099', 'N59109', 'N59116', 'N59118', 'N59120']
     subjects = ['N58214','N58215','N58216','N58217','N58218','N58219','N58221','N58222','N58223','N58224','N58225','N58226','N58228','N58229','N58230','N58231','N58232','N58633','N58634','N58635','N58636','N58650','N58649','N58651','N58653','N58654']
+    subjects = subjects[12:]
     removed_list = ['N58610', 'N58613', 'N58732']
+    removed_list = []
     for remove in removed_list:
         if remove in subjects:
             subjects.remove(remove)
@@ -310,7 +311,7 @@ for filename in os.listdir(SAMBA_prep_folder):
                             sftp.put(filepath, filenewpath)
                         except:
                             print('test')
-                            os.remove(filepath)
+                            #os.remove(filepath)
                 else:
                     shutil.copy(filepath, filenewpath)
 

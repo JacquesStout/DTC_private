@@ -519,7 +519,6 @@ def find_bval_bvecs(subjectpath, subject="",outpath=None):
     bxhs=glob.glob(os.path.join(subjectpath, "*.bxh*"))
     fbvals_txt = glob.glob(os.path.join(subjectpath,"*bvals.txt"))
     if np.size(fbtable)>0:
-        raise Exception('Not implemented, need to add the saving option if you need this')
         bvals_all=[]
         bvecs_all=[]
         fbtable=fbtable[0]
@@ -533,7 +532,10 @@ def find_bval_bvecs(subjectpath, subject="",outpath=None):
         #return np.array(bvals), np.array(bvecs)
         bvals_all = np.array(bvals_all)
         bvecs_all = np.array(bvecs_all)
-        #(bvals, outpath, subject, writeformat = "line", overwrite=False)
+        fbvals = os.path.join(outpath,f'{subject}_bvals.txt')
+        fbvecs = os.path.join(outpath,f'{subject}_bvecs.txt')
+        writebval(bvals_all, fbvals, subject=subject, writeformat = "line", overwrite=False)
+        writebvec(bvecs_all, fbvecs, subject=subject, writeformat = "line", overwrite=False)
     elif np.size(finputbvals) > 0 and np.size(finputbvecs) > 0:
         fbvals = finputbvals[0]
         fbvecs = finputbvecs[0]

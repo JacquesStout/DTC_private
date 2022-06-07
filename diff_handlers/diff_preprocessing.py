@@ -358,10 +358,11 @@ def launch_preprocessing(subj, raw_nii, outpath, cleanup=False, nominal_bval=400
                     median_radius = int(masking.split('_')[1])
                 else:
                     median_radius = 4
-                median_mask_make(b0_dwi, tmp, outpathmask=tmp_mask, median_radius = median_radius, numpass=median_radius)
+                median_mask_make(raw_dwi, tmp, numpass=7, outpathmask=tmp_mask)
+                #median_mask_make(b0_dwi, tmp, outpathmask=tmp_mask, median_radius = median_radius, numpass=median_radius)
                 #median_mask_make(b0_dwi, tmp, outpathmask='/Users/jas/jacques/Chavez_test_temp/b0_test.nii.gz', median_radius = median_radius, numpass=median_radius)
                 #median_mask_make(raw_dwi, tmp, outpathmask='/Users/jas/jacques/Chavez_test_temp/007_mask_rad7.nii.gz',
-                #                 median_radius=7, numpass=7)
+                #                 median_radius=4, numpass=7)
             elif masking=="bet":
                 tmp=tmp_mask.replace("_mask", "")
                 bet_cmd = f"bet {raw_dwi} {tmp} -m -n -R"
@@ -455,7 +456,8 @@ def launch_preprocessing(subj, raw_nii, outpath, cleanup=False, nominal_bval=400
     # Generate tmp B0:
     tmp_b0_out=os.path.join(work_dir,f'{subj}_tmp_b0{ext}')
     b0_out = os.path.join(work_dir, f'{subj}_b0{ext}')
-    if (not os.path.exists(b0_out) and not os.path.exists(tmp_b0_out)) or overwrite:
+    #if (not os.path.exists(b0_out) and not os.path.exists(tmp_b0_out)) or overwrite:
+    if not os.path.exists(tmp_b0_out) or overwrite:
         cmd=f'select_dwi_vols {coreg_nii} {bvals} {tmp_b0_out} 0  -m;'
         os.system(cmd)
     #overwrite=False
@@ -513,7 +515,8 @@ def launch_preprocessing(subj, raw_nii, outpath, cleanup=False, nominal_bval=400
         final_file=os.path.join(work_dir,f'{subj}_{contrast}{ext}')
         if ((not os.path.exists(tmp2_file) and not os.path.exists(final_file)) or overwrite):
             if not os.path.exists(tmp_file):
-                raise Exception("Tmp file was not created, need to rerun previous processes")
+                txt = f"Tmp file was not created for subject {subj}, need to rerun previous processes"
+                raise Exception(txt)
             else:
                 header_superpose(reference, tmp_file, outpath=tmp2_file)
 
@@ -637,7 +640,7 @@ def launch_preprocessing(subj, raw_nii, outpath, cleanup=False, nominal_bval=400
             if not os.path.exists(subj_file) or overwrite:
                 if not os.path.exists(subj_file_tmp):
                     if orientation_out != orientation_in:
-                        print('TRYING TO REORIENT...b0 and dwi and mask')
+                        print('TRYING TO REORIENT.ReineR..b0 and dwi and mask')
                         if os.path.exists(real_file) and (not os.path.exists(subj_file) or overwrite):
                             img_transform_exec(real_file, orientation_out, orientation_in, subj_file_tmp)
                     else:
