@@ -100,8 +100,8 @@ inclusive = False
 denoise='none'
 savefa= True
 
-make_tracts = True
-make_connectomes = False
+make_tracts = False
+make_connectomes = True
 
 reference_weighting = None
 volume_weighting = True

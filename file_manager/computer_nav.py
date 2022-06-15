@@ -10,29 +10,30 @@ def get_mainpaths(remote=False, project='any',username=None,password=None):
     computer_name = socket.gethostname()
     project_rename = {'Chavez':'21.chavez.01','AD_Decode':'AD_Decode','APOE':'APOE','AMD':'AMD'}
     samos = False
-    if 'samos' in computer_name:
-        inpath = '/mnt/paros_WORK/jacques/'
-        outpath = '/mnt/paros_WORK/jacques/'
-        atlas_folder = '/mnt/paros_WORK/jacques/atlases/'
-        remote=False
-
-        #ROI_legends = "/mnt/paros_WORK/jacques/atlases/IITmean_RPI/IITmean_RPI_index.xlsx"
-    elif 'santorini' in computer_name or 'hydra' in computer_name:
-        # mainpath = '/Users/alex/jacques/'
-        inpath = '/Volumes/Data/Badea/Lab/human/'
-        outpath = '/Volumes/Data/Badea/Lab/human/'
-        atlas_folder = '/Volumes/Data/Badea/Lab/atlases/'
-        #ROI_legends = "/Volumes/Data/Badea/ADdecode.01/Analysis/atlases/IITmean_RPI/IITmean_RPI_index.xlsx"
-    elif 'blade' in computer_name:
-        inpath = '/mnt/munin6/Badea/Lab/human/'
-        outpath = '/mnt/munin6/Badea/Lab/human/'
-        atlas_folder = '/mnt/munin6/Badea/Lab/atlases/'
-       # ROI_legends = "/mnt/munin6/Badea/Lab/atlases/IITmean_RPI/IITmean_RPI_index.xlsx"
-    else:
-        raise Exception('No other computer name yet')
-
     sftp = None
-    if remote:
+
+    if not remote:
+        if 'samos' in computer_name:
+            inpath = '/mnt/paros_WORK/jacques/'
+            outpath = '/mnt/paros_WORK/jacques/'
+            atlas_folder = '/mnt/paros_WORK/jacques/atlases/'
+            remote=False
+
+            #ROI_legends = "/mnt/paros_WORK/jacques/atlases/IITmean_RPI/IITmean_RPI_index.xlsx"
+        elif 'santorini' in computer_name or 'hydra' in computer_name:
+            # mainpath = '/Users/alex/jacques/'
+            inpath = '/Volumes/Data/Badea/Lab/human/'
+            outpath = '/Volumes/Data/Badea/Lab/human/'
+            atlas_folder = '/Volumes/Data/Badea/Lab/atlases/'
+            #ROI_legends = "/Volumes/Data/Badea/ADdecode.01/Analysis/atlases/IITmean_RPI/IITmean_RPI_index.xlsx"
+        elif 'blade' in computer_name:
+            inpath = '/mnt/munin6/Badea/Lab/human/'
+            outpath = '/mnt/munin6/Badea/Lab/human/'
+            atlas_folder = '/mnt/munin6/Badea/Lab/atlases/'
+           # ROI_legends = "/mnt/munin6/Badea/Lab/atlases/IITmean_RPI/IITmean_RPI_index.xlsx"
+        else:
+            raise Exception('No other computer name yet')
+    else:
         if not 'samos' in computer_name:
             inpath = 'samos.dhe.duke.edu:/mnt/paros_WORK/jacques/'
             #if project == 'Chavez':
@@ -54,9 +55,11 @@ def get_mainpaths(remote=False, project='any',username=None,password=None):
             ssh.load_host_keys(os.path.expanduser(os.path.join("~", ".ssh", "known_hosts")))
             ssh.connect(server, username=username, password=password)
             sftp = ssh.open_sftp()
-        elif ':' in inpath:
-            inpath = inpath.split(":")[1]
+        else:
+            inpath = '/mnt/paros_WORK/jacques/'
+            atlas_folder = '/mnt/paros_WORK/jacques/atlases/'
         outpath=inpath
+        atlas_folder = '/mnt/paros_WORK/atlases/'
     if project == 'AD_Decode' or project == 'Chavez':
         outpath = os.path.join(outpath, project_rename[project], 'Analysis')
         inpath = os.path.join(inpath, project_rename[project], 'Analysis')
@@ -94,7 +97,7 @@ def get_atlas(atlas_folder, atlas_type):
 
 
 def make_temppath(path):
-    return f'{os.path.join(os.path.expanduser("~"), os.path.basename(path))}'
+    return f'{os.path.join(os.path.expanduser("~"), os.path.basename(path).split(".")[0]+"_temp."+ ".".join(os.path.basename(path).split(".")[1:]))}'
 
 
 def load_nifti_remote(niipath, sftp=None):

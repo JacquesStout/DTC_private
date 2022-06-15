@@ -484,7 +484,7 @@ def tract_connectome_analysis(diffpath, trkpath, str_identifier, outpath, subjec
     print("Mask shape is " + str(np.shape(labelmask)))
     cutoff = 2
 
-    converter_lr, converter_comb, index_to_struct_lr, index_to_struct_comb = atlas_converter(ROI_excel)
+    converter_lr, converter_comb, index_to_struct_lr, index_to_struct_comb = atlas_converter(ROI_excel,sftp)
 
 
     print('what is the labeltype: ')

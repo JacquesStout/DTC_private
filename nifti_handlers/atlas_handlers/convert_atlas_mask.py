@@ -1,12 +1,20 @@
-
+import os
 import pandas as pd
 import numpy as np
 from dipy.io.image import load_nifti, save_nifti
-from file_manager.computer_nav import load_nifti_remote, make_temppath
+from file_manager.computer_nav import load_nifti_remote, make_temppath, checkfile_exists_remote
 
-def atlas_converter(ROI_excel):
 
-    df = pd.read_excel(ROI_excel, sheet_name='Sheet1')
+def atlas_converter(ROI_excel,sftp):
+
+    if not os.path.exists(ROI_excel):
+        if checkfile_exists_remote(ROI_excel,sftp):
+            temp_ROI_excel = make_temppath(ROI_excel)
+            sftp.get(ROI_excel, temp_ROI_excel)
+            df = pd.read_excel(temp_ROI_excel, sheet_name='Sheet1')
+            os.remove(temp_ROI_excel)
+    else:
+        df = pd.read_excel(ROI_excel, sheet_name='Sheet1')
     df['Structure'] = df['Structure'].str.lower()
     index1=df['index']
     index2=df['index2']
@@ -34,6 +42,7 @@ def atlas_converter(ROI_excel):
     if 0 not in converter_comb:
         converter_comb[0] = 0
     return converter_lr, converter_comb, index_to_struct_lr, index_to_struct_comb
+
 
 def IIT_converter(ROI_excel):
 
@@ -87,6 +96,7 @@ def convert_labelmask(atlas, converter, atlas_outpath = None, affine_labels=None
         save_nifti(atlas_outpath, labels_new, affine_labels)
 
     return(labels_new)
+
 
 def run_onall():
 
