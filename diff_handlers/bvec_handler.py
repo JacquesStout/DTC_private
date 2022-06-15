@@ -400,7 +400,7 @@ def extractbvec_fromheader(source_file,fileoutpath=None,save=None,verbose=True):
         File_object.write(bvals)
         File_object.close()
 
-        if 'bvecs' in locals():
+        if 'bvecs' in locals() and np.size(bvecs)>0:
             bvecs_file=fileoutpath+"_bvecs.txt"
             File_object = open(bvecs_file,"w")
             for bvec in bvecs:
@@ -518,7 +518,13 @@ def find_bval_bvecs(subjectpath, subject="",outpath=None):
     finputbvecs=glob.glob(os.path.join(subjectpath, "*input_gradient_matrix*"))
     bxhs=glob.glob(os.path.join(subjectpath, "*.bxh*"))
     fbvals_txt = glob.glob(os.path.join(subjectpath,"*bvals.txt"))
-    if np.size(fbtable)>0:
+    headfile = glob.glob(os.path.join(subjectpath,"archived*.headfile"))
+
+    if np.size(headfile)>0:
+        fbvals, fbvecs, _, _, _, _ = extractbvec_fromheader(headfile[0],
+                                                            fileoutpath=os.path.join(outpath, subject),
+                                                            save="all")
+    elif np.size(fbtable)>0:
         bvals_all=[]
         bvecs_all=[]
         fbtable=fbtable[0]
@@ -535,7 +541,7 @@ def find_bval_bvecs(subjectpath, subject="",outpath=None):
         fbvals = os.path.join(outpath,f'{subject}_bvals.txt')
         fbvecs = os.path.join(outpath,f'{subject}_bvecs.txt')
         writebval(bvals_all, fbvals, subject=subject, writeformat = "line", overwrite=False)
-        writebvec(bvecs_all, fbvecs, subject=subject, writeformat = "line", overwrite=False)
+        writebvec(bvecs_all, fbvecs, subject=subject, writeformat = "classic", overwrite=False)
     elif np.size(finputbvals) > 0 and np.size(finputbvecs) > 0:
         fbvals = finputbvals[0]
         fbvecs = finputbvecs[0]
@@ -615,7 +621,11 @@ def writebvec(bvecs, outpath, subject=None, writeformat = "line", overwrite=Fals
                     File_object.write(str(bvec)+" ")
             File_object.close()
         #shutil.copyfile(bvecs[0], bvec_file)
-        
+    elif writeformat=="classic":
+        File_object = open(bvec_file, "w")
+        for bvec in bvecs:
+            File_object.write(str(bvec[0]) + " " + str(bvec[1]) + " " + str(bvec[2]) + "\n")
+        File_object.close()
     return bvec_file
 
 

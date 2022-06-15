@@ -26,7 +26,7 @@ shortcuts_all_folder = "/Volumes/Data/Badea/Lab/mouse/APOE_symlink_pool_allfiles
 shortcuts_all_folder = None
 
 subjects = ['N58214','N58215','N58216','N58217','N58218','N58219','N58221','N58222','N58223','N58224','N58225','N58226','N58228','N58229','N58230','N58231','N58232','N58633','N58634','N58635','N58636','N58650','N58649','N58651','N58653','N58654']
-subjects = subjects[12:]
+subjects = subjects[:]
 #atlas = "/Volumes/Data/Badea/Lab/atlases/chass_symmetric3/chass_symmetric3_DWI.nii.gz"
 
 #removed_list = ['N58610', 'N58612', 'N58613','N58732']
@@ -37,13 +37,20 @@ for remove in removed_list:
 
 
 subjects_folders = glob.glob(os.path.join(diffpath,'diffusion*/'))
-#subjects = []
-#for subject_folder in subjects_folders:
-#    subjects.append(subject_folder.split('diffusion')[1][:6])
+subjects = []
+for subject_folder in subjects_folders:
+    subjects.append(subject_folder.split('diffusion')[1][:6])
+
+
+removed_list = ['N58794','N58514','N58305','N58613','N58346','N58344','N58788']
+for remove in removed_list:
+    if remove in subjects:
+        subjects.remove(remove)
 
 print(subjects)
 
-subject_processes, function_processes = parse_arguments(sys.argv, subjects)
+
+subject_processes, function_processes, firstsubj, lastsubj = parse_arguments(sys.argv, subjects)
 
 proc_subjn=""
 denoise="None"

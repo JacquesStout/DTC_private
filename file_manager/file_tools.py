@@ -12,6 +12,7 @@ from pathlib import Path
 import warnings
 import subprocess, pipes
 from scipy.io import loadmat
+import getpass
 from file_manager.computer_nav import checkfile_exists_remote, glob_remote
 
 def mkcdir(folderpaths, sftp=None):
@@ -105,7 +106,8 @@ def getfromfile(path):
                     password = password.strip()
     else:
         txt = f'could not find connection parameters at {path}'
-        warnings.warn(txt)
+        username = input("Username:")
+        password = getpass.getpass("Password for " + username + ":")
     return username, password
 
 def check_files(files,sftp=None):

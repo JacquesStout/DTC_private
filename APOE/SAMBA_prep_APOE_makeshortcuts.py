@@ -1,17 +1,10 @@
 import numpy as np
-from tract_manager import create_tracts
 import multiprocessing as mp
 from file_manager.Daemonprocess import MyPool
 import glob
 import os
-from diff_handlers.bvec_handler import extractbvals, extractbvals_research, rewrite_subject_bvalues, fix_bvals_bvecs
-from time import time
-import shutil
-from diffusion_preprocessing import launch_preprocessing
 from file_manager.file_tools import mkcdir, largerfile
-from nifti_handlers.transform_handler import get_transpose
-import shutil
-from diff_handlers.bvec_handler import orient_to_str
+from diff_handlers.diff_preprocessing import launch_preprocessing
 
 #gunniespath = "/mnt/clustertmp/common/rja20_dev/gunnies/"
 #gunniespath = "/Users/alex/bass/gitfolder/wuconnectomes/gunnies/"

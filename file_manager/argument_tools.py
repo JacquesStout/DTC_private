@@ -37,15 +37,27 @@ def parse_arguments(sys_argv, subjects):
         else:
             subjects = subjects[0:end]
     """
+
     if np.size(sys_argv) > 1:
-        max_processors = int(sys_argv[1])
+        firstsubj = int(sys_argv[1])-1
+        if np.size(sys_argv) > 2:
+            lastsubj = int(sys_argv[2])
+        else:
+            lastsubj = firstsubj+1
+    else:
+        firstsubj = 0
+        lastsubj = -1
+
+    if np.size(sys_argv) > 3:
+        max_processors = int(sys_argv[3])
     else:
         max_processors = 1
 
-    if np.size(sys_argv) > 2:
-        subject_processes = int(sys_argv[2])
+    if np.size(sys_argv) > 4:
+        subject_processes = int(sys_argv[4])
     else:
         subject_processes = np.size(subjects)
+
 
     if mp.cpu_count() < max_processors:
         max_processors = mp.cpu_count()
@@ -54,7 +66,7 @@ def parse_arguments(sys_argv, subjects):
 
     function_processes = np.int(max_processors / subject_processes)
 
-    return subject_processes, function_processes
+    return subject_processes, function_processes, firstsubj, lastsubj
 
 def parse_arguments_function(sys_argv):
 
