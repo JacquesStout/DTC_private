@@ -2,32 +2,28 @@ import os
 from nifti_handlers.transform_handler import get_affine_transform, get_flip_affine, header_superpose, recenter_nii_affine, \
     convert_ants_vals_to_affine, read_affine_txt, recenter_nii_save, add_translation, recenter_nii_save_test, \
     affine_superpose, get_affine_transform_test, recenter_affine_test
-import shutil
 import nibabel as nib
 import numpy as np
-from dipy.align.imaffine import (MutualInformationMetric, AffineRegistration,
-                                 transform_origins)
 from dipy.tracking.streamline import deform_streamlines, transform_streamlines
 from tract_manager.streamline_nocheck import load_trk, unload_trk
-from dipy.io.utils import create_tractogram_header
-from tract_manager.tract_save import save_trk_heavy_duty, make_tractogram_object, save_trk_header
+from tract_manager.tract_save import save_trk_header
 from scipy.io import loadmat
 from nifti_handlers.nifti_handler import extract_nii_info
 import socket
 from file_manager.file_tools import mkcdir
 from tract_manager.tract_handler import gettrkpath
-from tract_manager import get_str_identifier
+from tract_manager.DTC_manager  import get_str_identifier, check_dif_ratio
 from file_manager.file_tools import mkcdir, check_files
-from tract_manager import check_dif_ratio
+import glob, warnings
+import shutil
+from dipy.io.utils import create_tractogram_header
+from dipy.viz import regtools
 from dipy.tracking._utils import (_mapping_to_voxel, _to_voxel_coordinates)
 from nibabel.streamlines import ArraySequence
-import glob, warnings
-from dipy.viz import regtools
-
 from dipy.align.imaffine import (transform_centers_of_mass,
                                  AffineMap,
                                  MutualInformationMetric,
-                                 AffineRegistration)
+                                 AffineRegistration, transform_origins)
 
 def _to_streamlines_coordinates(inds, lin_T, offset):
     """Applies a mapping from streamline coordinates to voxel_coordinates,
@@ -85,6 +81,7 @@ for subject in subjects_all:
 
 #removed_list = ['S02804', 'S02817', 'S02898', 'S02871', 'S02877','S03045', 'S02939', 'S02840']
 
+"""
 subjects = ['S01912', 'S02110', 'S02224', 'S02227', 'S02230', 'S02231', 'S02266', 'S02289', 'S02320', 'S02361',
             'S02363', 'S02373', 'S02386', 'S02390', 'S02402', 'S02410', 'S02421', 'S02424', 'S02446', 'S02451',
             'S02469', 'S02473', 'S02485', 'S02491', 'S02490', 'S02506', 'S02523', 'S02524', 'S02535', 'S02654',
@@ -96,6 +93,9 @@ subjects = ['S01912', 'S02110', 'S02224', 'S02227', 'S02230', 'S02231', 'S02266'
 
 #removed_list = ['S02771',"S03343", "S03350", "S03378", "S03391", "S03394","S03225", "S03293", "S03308", "S02842", "S02804"]
 removed_list = ["S02654"]
+"""
+subjects = ['S02110']
+removed_list = []
 for remove in removed_list:
     if remove in subjects:
         subjects.remove(remove)
@@ -111,7 +111,7 @@ save_temp_files = False
 recenter = 1
 contrast = 'fa'
 prune = True
-nii_test_files = False
+nii_test_files = True
 
 native_ref = ''
 
@@ -367,7 +367,7 @@ for subj in subjects:
         if (not os.path.exists(trk_MDT_space_test) or overwrite):
             save_trk_header(filepath=trk_MDT_space_test, streamlines=mni_streamlines_true, header=header,
                     affine=np.eye(4), fix_streamlines=False, verbose=verbose)
-        """
+
         ############ TEST ZONE FOR WARPING, REMOVE AFTER #########
 
         warp, warp_affine, vox_size, header_warp, ref_info = extract_nii_info(runno_to_MDT)
@@ -393,5 +393,6 @@ for subj in subjects:
         if (not os.path.exists(trk_MDT_space) or overwrite):
             save_trk_header(filepath=trk_MDT_space, streamlines=streamlines_post_warp, header=header,
                     affine=np.eye(4), fix_streamlines=False, verbose=verbose)
+        """
     else:
         print(f'{trk_MDT_space} already exists')

@@ -123,8 +123,7 @@ def create_backport_labels(subject, mainpath, project_name, prep_folder, atlas_l
             if exists[i] is False:
                 print(f'could not find {listfiles[i]}')
                 filenotfound = listfiles[i]
-        raise FileNotFoundError(
-            errno.ENOENT, os.strerror(errno.ENOENT), filenotfound)
+        return subject
 
     preprocess_ref = os.path.join(work_dir,"preprocess",f"{subject}_fa_masked.nii.gz")
     preprocess_labels = os.path.join(dirty_dir,f"{subject}_preprocess_labels.nii.gz")
@@ -241,6 +240,7 @@ def create_backport_labels(subject, mainpath, project_name, prep_folder, atlas_l
 
         if not os.path.exists(bvec_copy):
             shutil.copy(bvecs, bvec_copy)
+    return None
 
 
 def create_backport_labels_2022preaprilChavez_backup(subject, mainpath, project_name, prep_folder, atlas_labels, headfile=None, overwrite=False, verbose=True):

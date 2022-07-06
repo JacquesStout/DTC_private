@@ -518,7 +518,7 @@ def find_bval_bvecs(subjectpath, subject="",outpath=None):
     finputbvecs=glob.glob(os.path.join(subjectpath, "*input_gradient_matrix*"))
     bxhs=glob.glob(os.path.join(subjectpath, "*.bxh*"))
     fbvals_txt = glob.glob(os.path.join(subjectpath,"*bvals.txt"))
-    headfile = glob.glob(os.path.join(subjectpath,"archived*.headfile"))
+    headfile = glob.glob(os.path.join(subjectpath,"*studio.headfile"))
 
     if np.size(headfile)>0:
         fbvals, fbvecs, _, _, _, _ = extractbvec_fromheader(headfile[0],

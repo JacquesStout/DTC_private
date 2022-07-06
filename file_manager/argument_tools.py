@@ -46,7 +46,7 @@ def parse_arguments(sys_argv, subjects):
             lastsubj = firstsubj+1
     else:
         firstsubj = 0
-        lastsubj = -1
+        lastsubj = np.size(subjects)
 
     if np.size(sys_argv) > 3:
         max_processors = int(sys_argv[3])

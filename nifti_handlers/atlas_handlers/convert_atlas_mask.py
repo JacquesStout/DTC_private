@@ -5,7 +5,7 @@ from dipy.io.image import load_nifti, save_nifti
 from file_manager.computer_nav import load_nifti_remote, make_temppath, checkfile_exists_remote
 
 
-def atlas_converter(ROI_excel,sftp):
+def atlas_converter(ROI_excel,sftp=None):
 
     if not os.path.exists(ROI_excel):
         if checkfile_exists_remote(ROI_excel,sftp):

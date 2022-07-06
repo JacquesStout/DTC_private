@@ -60,7 +60,8 @@ def get_mainpaths(remote=False, project='any',username=None,password=None):
             atlas_folder = '/mnt/paros_WORK/jacques/atlases/'
         outpath=inpath
         atlas_folder = '/mnt/paros_WORK/atlases/'
-    if project == 'AD_Decode' or project == 'Chavez':
+    #if project == 'AD_Decode' or project == 'Chavez':
+    if project == 'Chavez':
         outpath = os.path.join(outpath, project_rename[project], 'Analysis')
         inpath = os.path.join(inpath, project_rename[project], 'Analysis')
     else:
@@ -69,12 +70,22 @@ def get_mainpaths(remote=False, project='any',username=None,password=None):
 
     return inpath, outpath, atlas_folder, sftp
 
+def splitpath(path):
+    dirpath = os.path.dirname(path)
+    name = os.path.basename(path).split('.')[0]
+    if '.' in os.path.basename(path):
+        ext = '.' + '.'.join(os.path.basename('/dwiMDT_NoNameYet_n32_i5/stats_by_region/labels/transforms/chass_symmetric3_to_MDT_warp.nii.gz').split('.')[1:])
+    else:
+        ext = ''
+    return dirpath, name, ext
+
 def get_sftp(remote, username=None, password=None):
     computer_name = socket.gethostname()
     server='samos'
     if remote and not 'samos' in computer_name:
-        if username is None or password is None:
+        if username is None:
             username = input("Username:")
+        if password is None:
             password = getpass.getpass("Password for " + username + ":")
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -204,6 +215,20 @@ def loadmat_remote(matpath, sftp):
         os.remove(temp_path)
         raise Exception(e)
     return mymat
+
+def scp_multiple(list,outpath,sftp=None,overwrite=False):
+    for filepath in list:
+        newfilepath = os.path.join(outpath,os.path.basename(filepath))
+        if not overwrite and os.path.exists(newfilepath):
+            print(f'{newfilepath} already exists')
+        else:
+            print(f'Copying {filepath} to {newfilepath}')
+            if sftp is not None:
+                sftp.get(filepath,newfilepath)
+            else:
+                import shutil
+                shutil.copy(filepath, newfilepath)
+
 
 def glob_remote(path, sftp):
     match_files = []

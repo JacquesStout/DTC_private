@@ -65,7 +65,7 @@ print(subjects)
 #"02812", 02871 is a strange subject, to investigate
 #02842, 03028 has apparently a 92 stack ? to investigate
 
-subject_processes, function_processes = parse_arguments(sys.argv,subjects)
+subject_processes, function_processes, firstsubj, lastsubj = parse_arguments(sys.argv,subjects)
 
 proc_subjn="S"
 proc_name ="diffusion_prep_"+proc_subjn

@@ -1,16 +1,6 @@
-import os, re
-import warnings
-from file_manager.file_tools import splitpath, mkcdir
-import nibabel as nib
-import numpy as np
-from tract_manager.streamline_nocheck import load_trk, save_trk
-from dipy.io.image import load_nifti, save_nifti
-from dipy.io.utils import create_tractogram_header
-from tract_manager.tract_save import save_trk_heavy_duty
-from shutil import copy as copyfile
 from nifti_handlers.nifti_handler import *
 from tract_manager.streamline_nocheck import load_trk
-from dipy.tracking.streamline import transform_streamlines
+from file_manager.computer_nav import splitpath
 import shutil
 
 def header_superpose(target_path, origin_path, outpath=None, verbose=False):

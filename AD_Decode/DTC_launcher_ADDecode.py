@@ -2,7 +2,7 @@
 import numpy as np
 import glob
 from diff_handlers.bvec_handler import orient_to_str
-from tract_manager import create_tracts, tract_connectome_analysis, get_diffusionattributes
+from tract_manager.DTC_manager import create_tracts, tract_connectome_analysis, get_diffusionattributes
 from file_manager.Daemonprocess import MyPool
 import multiprocessing as mp
 import os
@@ -20,15 +20,11 @@ project='AD_Decode'
 computer_name = socket.gethostname()
 
 if remote:
-    if 'santorini' in computer_name:
-        username, passwd = getfromfile('/Users/jas/samos_connect.rtf')
-    elif 'hydra' in computer_name:
-        username, passwd = getfromfile('/Users/alex/jacques/samos_connect.rtf')
-    else:
-        username, passwd = None, None
+    username, passwd = getfromfile(os.path.join(os.environ['HOME'],'samos_connect.rtf'))
 else:
     username = None
     passwd = None
+
 inpath, outpath, atlas_folder, sftp = get_mainpaths(remote,project = project, username=username,password=passwd)
 atlas_legends = get_atlas(atlas_folder, 'IIT')
 
@@ -47,17 +43,15 @@ subjects = ['S01912', 'S02110', 'S02224', 'S02227', 'S02230', 'S02231', 'S02266'
         'S02939', 'S02954', 'S02967', 'S02987', 'S03010', 'S03017', 'S03028', 'S03033', 'S03034', 'S03045', 'S03048',
         'S03069', 'S03225', 'S03265', 'S03293', 'S03308', 'S03321', 'S03343', 'S03350', 'S03378', 'S03391', 'S03394']
 removed_list = ["S02745","S02230","S02490","S02523"]
-subjects = subjects[int(np.size(subjects)/2):]
 for remove in removed_list:
     if remove in subjects:
         subjects.remove(remove)
 
 subjects.sort()
-subjects.reverse()
-random.shuffle(subjects)
 
 print(subjects)
-subject_processes, function_processes = parse_arguments(sys.argv,subjects)
+subject_processes, function_processes, firstsubj, lastsubj = parse_arguments(sys.argv,subjects)
+subjects = subjects[firstsubj:lastsubj]
 #subject_processes=1
 #function_processes=10
 #mask types => ['FA', 'T1', 'subjspace']
@@ -81,8 +75,8 @@ savefa = True
 #reference_weighting = 'fa'
 reference_weighting = None
 volume_weighting = True
-make_tracts = False
-make_connectomes = True
+make_tracts = True
+make_connectomes = False
 
 classifiertype = "binary"
 brainmask = "subjspace"

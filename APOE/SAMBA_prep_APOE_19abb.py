@@ -14,7 +14,7 @@ from diff_handlers.bvec_handler import orient_to_str
 
 
 gunniespath = "/Users/jas/bass/gitfolder/gunnies/"
-diffpath = "/Volumes/dusom_civm-atlas/18.abb.11/research/"
+diffpath = "/Volumes/dusom_civm-atlas/19.abb.14/research/"
 outpath = "/Volumes/Data/Badea/Lab/mouse/APOE_series/diffusion_prep_locale/"
 
 SAMBA_inputs_folder = "/Volumes/Data/Badea/Lab/19abb14/"
@@ -27,12 +27,12 @@ for subject_folder in subjects_folders:
     subjects.append(subject_folder.split('diffusion')[1][:6])
 
 #removed_list = ['N58794','N58514','N58305','N58613','N58346','N58344','N58788']
+removed_list = []
 
 
-#subjects = ['N58794','N58514','N58305','N58613','N58346','N58344','N58788']
 subject_processes, function_processes, firstsubj, lastsubj = parse_arguments(sys.argv, subjects)
 
-removed_list = ['N58613']
+removed_list = []
 for remove in removed_list:
     if remove in subjects:
         subjects.remove(remove)
@@ -124,4 +124,3 @@ else:
             launch_preprocessing(proc_subjn + subject, max_file, outpath, cleanup, nominal_bval, SAMBA_inputs_folder,
                                  shortcuts_all_folder, gunniespath, function_processes, masking, ref, transpose,
                                  overwrite, denoise, recenter, verbose)
-

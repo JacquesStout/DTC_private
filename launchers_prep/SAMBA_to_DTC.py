@@ -14,7 +14,7 @@ from nifti_handlers.atlas_handlers.convert_atlas_mask import convert_labelmask, 
 #project = ["AD_Decode", "APOE"]
 #project = "APOE"
 #project = "AMD"
-project = 'APOE'
+project = 'AD_Decode'
 #project = 'AMD'
 #project = 'Chavez'
 verbose = True
@@ -126,6 +126,11 @@ elif project == "AD_Decode":
                 'S02373', 'S02386', 'S02390', 'S02402', 'S02410', 'S02421', 'S02424', 'S02446', 'S02451', 'S02469',
                 'S02473',
                 'S02485', 'S02491', 'S02490', 'S02506']
+    subjects_all = glob.glob(os.path.join(SAMBA_work_folder, 'preprocess','*_dwi_masked.nii.gz'))
+    subjects = []
+    for subject in subjects_all:
+        subject_name = os.path.basename(subject)
+        subjects.append(subject_name[:6])
     removed_list = ['S02230', 'S02490', 'S02745']
     for remove in removed_list:
         if remove in subjects:
@@ -179,10 +184,12 @@ elif project == "APOE":
         subject_name = os.path.basename(subject)
         subjects.append(subject_name[:6])
 
-    subjects = ['N58408', 'N59072', 'N58610', 'N58398', 'N58935', 'N58714', 'N58740', 'N58477', 'N59003', 'N58734', 'N58309', 'N58792', 'N58819', 'N58302', 'N59078', 'N59116', 'N58909', 'N58612', 'N59136', 'N59140', 'N58784', 'N58919', 'N58706', 'N58889', 'N58361', 'N58355', 'N59066', 'N58712', 'N58790', 'N59010', 'N58859', 'N58946', 'N58917', 'N58606', 'N58815', 'N59118', 'N58997', 'N58350', 'N59022', 'N58999', 'N59141', 'N58881', 'N59026', 'N58608', 'N58853', 'N58779', 'N58995', 'N58500', 'N58604', 'N58749', 'N58877', 'N58883', 'N58915', 'N59109', 'N59120', 'N58510', 'N58885', 'N58906', 'N59065', 'N58394', 'N58821', 'N58855', 'N58346', 'N58861', 'N59005', 'N58344', 'N58954', 'N59099', 'N58857', 'N58788', 'N58305', 'N58514', 'N58851', 'N59076', 'N59097', 'N58794', 'N58733', 'N58655', 'N58887', 'N58735', 'N58310', 'N59035', 'N58879', 'N58400', 'N59041', 'N58952', 'N58708', 'N58780', 'N58512', 'N58747', 'N58303', 'N58404', 'N58751', 'N58611', 'N58829', 'N58913', 'N58745', 'N58831', 'N58406', 'N58359', 'N58742', 'N58396', 'N58948', 'N58941', 'N59033', 'N58732', 'N58516', 'N59080', 'N58813', 'N59039']
+    subjects = ['N58408', 'N59072', 'N58610', 'N58398', 'N58935', 'N58714', 'N58740', 'N58477', 'N59003', 'N58734', 'N58309', 'N58792', 'N58819', 'N58302', 'N59078', 'N59116', 'N58909', 'N58612', 'N59136', 'N59140', 'N58784', 'N58919', 'N58706', 'N58889', 'N58361', 'N58355', 'N59066', 'N58712', 'N58790', 'N59010', 'N58859', 'N58946', 'N58917', 'N58606', 'N58815', 'N59118', 'N58997', 'N58350', 'N59022', 'N58999', 'N59141', 'N58881', 'N59026', 'N58608', 'N58853', 'N58779', 'N58995', 'N58500', 'N58604', 'N58749', 'N58877', 'N58883', 'N58915', 'N59109', 'N59120', 'N58510', 'N58885', 'N58906', 'N59065', 'N58394', 'N58821', 'N58855', 'N58346', 'N58861', 'N59005', 'N58344', 'N58954', 'N59099', 'N58857', 'N58788', 'N58305', 'N58514', 'N58851', 'N59076', 'N59097', 'N58794', 'N58733', 'N58655', 'N58887', 'N58735', 'N58310', 'N59035', 'N58879', 'N58400', 'N59041', 'N58952', 'N58708', 'N58780', 'N58512', 'N58747', 'N58303', 'N58404', 'N58751', 'N58611', 'N58829', 'N58913', 'N58745', 'N58831', 'N58406', 'N58359', 'N58742', 'N58396', 'N58948', 'N58941', 'N59033', 'N58732', 'N58516', 'N59080', 'N58813', 'N59039', 'N58402']
+    subjects = ['N58612','N59136','N59140','N58946','N59141','N58915','N59005','N58954','N58948']
     subjects = subjects[:]
-    removed_list = ['N58610', 'N58613', 'N58732']
-    removed_list = ['N58948','N59005','N58612','N58613','N59136','N59140','N58946','N59141','N58915','N58954']
+    #removed_list = ['N58610', 'N58613', 'N58732']
+    #removed_list = ['N58948','N59005','N58612','N58613','N59136','N59140','N58946','N59141','N58915','N58954']
+    removed_list = []
     for remove in removed_list:
         if remove in subjects:
             subjects.remove(remove)
@@ -272,10 +279,15 @@ mkcdir([DTC_DWI_folder,DTC_labels_folder,DTC_transforms],sftp)
 
 print(subjects)
 
+subjects_notdone = []
 for subject in subjects:
     labelspath_remote = os.path.join(DTC_labels_folder, f'{subject}_labels.nii.gz')
     #if not checkfile_exists_remote(labelspath_remote,sftp) or overwrite:
-    create_backport_labels(subject, SAMBA_mainpath, SAMBA_projectname, SAMBA_prep_folder, atlas_labels, headfile = SAMBA_headfile, overwrite=overwrite)
+    subject_notdone = create_backport_labels(subject, SAMBA_mainpath, SAMBA_projectname, SAMBA_prep_folder, atlas_labels, headfile = SAMBA_headfile, overwrite=overwrite)
+    if subject_notdone is not None:
+        subjects_notdone.append(subject_notdone)
+
+print(f'subjects not done by SAMBA: {subjects_notdone}')
 
 
 mkcdir([DTC_DWI_folder,DTC_labels_folder],sftp)
