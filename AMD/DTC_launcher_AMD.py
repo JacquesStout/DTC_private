@@ -15,7 +15,7 @@ import random
 remote=True
 project='AMD'
 if remote:
-    username, passwd = getfromfile('/Users/jas/samos_connect.rtf')
+    username, passwd = getfromfile(os.path.expanduser('~'),'remote_connect.rtf')
 else:
     username = None
     passwd = None
@@ -61,9 +61,6 @@ for bxhfile in subjbxh:
         dwipath = bxhfile.replace(".bxh", ".nii.gz")
         break
 """
-
-#outpath = "/Volumes/Data/Badea/ADdecode.01/Analysis/"
-#outpath = "/Users/alex/jacques/AMD_TRK_testing/"
 
 masktype = "FA"
 masktype = "T1"
@@ -140,7 +137,6 @@ else:
 trkpath = os.path.join(inpath, "TRK"+trk_folder_name)
 
 #atlas_legends = None
-#atlas_legends = "/Volumes/Data/Badea/Lab/atlases/IITmean_RPI/IITmean_RPI_index.xlsx"
 
 ratio = 1
 

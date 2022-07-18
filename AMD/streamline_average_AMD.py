@@ -55,12 +55,10 @@ project = 'AMD'
 huma_projects = ''
 hostname = socket.gethostname()
 
-
-samos = False
-if 'samos' in hostname:
+if 'os' in hostname:
     mainpath = '/mnt/paros_MRI/jacques/'
     ROI_legends = "/mnt/paros_MRI/jacques/atlases/IITmean_RPI/IITmean_RPI_index.xlsx"
-elif 'santorini' in hostname:
+elif 'rini' in hostname:
     mainpath = '/Users/alex/jacques/'
     mainpath = '/Volumes/Data/Badea/Lab/human/'
     ROI_legends = "/Volumes/Data/Badea/ADdecode.01/Analysis/atlases/IITmean_RPI/IITmean_RPI_index.xlsx"

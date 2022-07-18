@@ -20,7 +20,7 @@ from dipy.tracking.streamline import deform_streamlines
 from dipy.viz import has_fury
 
 
-outpath = "/Users/alex/jacques/registration_test/"
+outpath = os.path.join(os.path.expanduser('~'),"jacques/registration_test/")
 if not op.exists(outpath + 'lr-superiorfrontal.trk'):
     #from streamline_tools import *
     hardi_img, gtab, labels_img = read_stanford_labels()
@@ -44,7 +44,7 @@ from dipy.data.fetcher import (fetch_mni_template, read_mni_template)
 
 #fetch_mni_template()
 #img_t2_mni = read_mni_template("a", contrast="T2")
-img_t2_mni = nib.load("/Users/alex/jacques/registration_test/MNI_template.nii.gz")
+img_t2_mni = nib.load(os.path.join(os.path.expanduser('~'),"registration_test/MNI_template.nii.gz"))
 
 new_zooms = (2., 2., 2.)
 data2, affine2 = reslice(np.asarray(img_t2_mni.dataobj), img_t2_mni.affine,

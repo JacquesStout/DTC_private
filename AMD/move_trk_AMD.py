@@ -49,12 +49,13 @@ computer_name = socket.gethostname()
 
 username=None
 passwd = None
-if 'samos' not in computer_name:
+server = getremotehome('remotename')
+if server not in computer_name:
     remote=True
 else:
     remote=False
 if remote:
-    username, passwd = getfromfile('/Users/jas/samos_connect.rtf')
+    username, passwd = getfromfile('/Users/jas/remote_connect.rtf')
 inpath, outpath, _, sftp = get_mainpaths(remote,project = 'AMD', username=username,password=passwd)
 
 

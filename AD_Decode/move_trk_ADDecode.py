@@ -1,20 +1,20 @@
 import os
-from nifti_handlers.transform_handler import get_affine_transform, get_flip_affine, header_superpose, recenter_nii_affine, \
+from DTC.nifti_handlers.transform_handler import get_affine_transform, get_flip_affine, header_superpose, recenter_nii_affine, \
     convert_ants_vals_to_affine, read_affine_txt, recenter_nii_save, add_translation, recenter_nii_save_test, \
     affine_superpose, get_affine_transform_test, recenter_affine_test
 import nibabel as nib
 import numpy as np
 from dipy.tracking.streamline import deform_streamlines, transform_streamlines
-from tract_manager.streamline_nocheck import load_trk, unload_trk
-from tract_manager.tract_save import save_trk_header
+from DTC.tract_manager.streamline_nocheck import load_trk, unload_trk
+from DTC.tract_manager.tract_save import save_trk_header
 from scipy.io import loadmat
-from nifti_handlers.nifti_handler import extract_nii_info
 import socket
-from file_manager.file_tools import mkcdir
-from tract_manager.tract_handler import gettrkpath
-from tract_manager.DTC_manager  import get_str_identifier, check_dif_ratio
-from file_manager.file_tools import mkcdir, check_files
+from DTC.tract_manager.tract_handler import gettrkpath
+from DTC.tract_manager.DTC_manager  import get_str_identifier, check_dif_ratio
+from DTC.file_manager.file_tools import mkcdir, check_files
 import glob, warnings
+"""
+from DTC.nifti_handlers.nifti_handler import extract_nii_info
 import shutil
 from dipy.io.utils import create_tractogram_header
 from dipy.viz import regtools
@@ -24,6 +24,7 @@ from dipy.align.imaffine import (transform_centers_of_mass,
                                  AffineMap,
                                  MutualInformationMetric,
                                  AffineRegistration, transform_origins)
+"""
 
 def _to_streamlines_coordinates(inds, lin_T, offset):
     """Applies a mapping from streamline coordinates to voxel_coordinates,
@@ -94,7 +95,7 @@ subjects = ['S01912', 'S02110', 'S02224', 'S02227', 'S02230', 'S02231', 'S02266'
 #removed_list = ['S02771',"S03343", "S03350", "S03378", "S03391", "S03394","S03225", "S03293", "S03308", "S02842", "S02804"]
 removed_list = ["S02654"]
 """
-subjects = ['S02110']
+subjects = ['S02266']
 removed_list = []
 for remove in removed_list:
     if remove in subjects:
@@ -107,7 +108,7 @@ print(subjects)
 overwrite = False
 cleanup = False
 verbose = True
-save_temp_files = False
+save_temp_files = True
 recenter = 1
 contrast = 'fa'
 prune = True

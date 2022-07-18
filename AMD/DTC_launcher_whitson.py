@@ -62,8 +62,8 @@ l = ['H22102', 'H27841', 'H22101',
 print("Will go from subject "+ l[0] + " to subject "+l[-1])
 
 subject_processes, function_processes = parse_arguments(sys.argv, l)
-
-BIGGUS_DISKUS = "/Volumes/Data/Badea/Lab/mouse"
+computer_name = socket.gethostname().split('.')[0]
+BIGGUS_DISKUS = os.path.join(getremotehome(computer_name),"../mouse")
 dwipath = BIGGUS_DISKUS + "/VBM_19BrainChAMD01_IITmean_RPI_with_2yr-results/connectomics/"
 dwipath_preprocessed = BIGGUS_DISKUS + "/C57_JS/diff_whiston_preprocessed/"
 outtrkpath = BIGGUS_DISKUS + '/C57_JS/VBM_whiston_QA_new/'
@@ -71,7 +71,7 @@ figspath = BIGGUS_DISKUS + '/C57_JS/VBM_whiston_Figs_inclusive_new/'
 
 outpathpickle = figspath
 
-outpath = "/Volumes/Data/Badea/ADdecode.01/Analysis/"
+outpath = os.path.join(getremotehome(computer_name),"../../ADdecode.01/Analysis/")
 
 atlas_legends = BIGGUS_DISKUS + "/../atlases/IITmean_RPI/IITmean_RPI_lookup.xlsx"
 atlas_legends = BIGGUS_DISKUS + "/../atlases/IITmean_RPI/IITmean_RPI_index.xlsx"

@@ -1,8 +1,10 @@
 import os, glob
 from file_manager.file_tools import mkcdir
 from nifti_handlers.transform_handler import recenter_nii_save_test, affine_superpose, get_affine_transform_test
+import socket
 
-mainpath = '/Volumes/Data/Badea/Lab/human/AMD/'
+computer_name = socket.gethostname().split('.')[0]
+mainpath = os.path.join(getremotehome(computer_name),'AMD')
 ref_subj_folder = os.path.join(mainpath,'ref_subj')
 ref_MDT_folder = os.path.join(mainpath,'ref_MDT')
 #DWI_folder = os.path.join(mainpath,'MDT_to_subj_testzone')
@@ -14,7 +16,7 @@ ext='.nii.gz'
 
 
 files = glob.glob(os.path.join(ref_subj_folder, '*'))
-files = ['/Volumes/Data/Badea/Lab/human/AMD/ref_subj/H26578_subjspace_fa.nii.gz']
+files = [os.path.join(mainpath,'ref_subj/H26578_subjspace_fa.nii.gz')]
 recenter = True
 overwrite = True
 
@@ -73,7 +75,7 @@ for ref_file in files:
 
 
 files = glob.glob(os.path.join(ref_MDT_folder, '*'))
-files = ['/Volumes/Data/Badea/Lab/human/AMD/ref_MDT/H26578_fa_to_MDT.nii.gz']
+files = [os.path.join(mainpath,'AMD/ref_MDT/H26578_fa_to_MDT.nii.gz')]
 ext = '.nii.gz'
 
 for ref_file in files:
