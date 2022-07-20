@@ -5,7 +5,7 @@ Part of the DTC pipeline, mostly handles dwi files before calculating trk.
 Tries to create masks, determines the parameters of a denoising request, handles fa files, etc
 """
 
-"""
+
 import matplotlib.pyplot as plt
 from dipy.core.histeq import histeq
 import numpy as np
@@ -27,7 +27,7 @@ import warnings
 #from nifti_handlers.nifti_handler import getdwidata
 #from gunnies.basic_LPCA_denoise import basic_LPCA_denoise_func
 
-"""
+
 #from nifti_handlers.transform_handler import img_transform_exec, space_transpose, affine_superpose, header_superpose
 from DTC.nifti_handlers.transform_handler import *
 import subprocess
@@ -141,9 +141,9 @@ def dwi_to_mask_old(data, subject, affine, outpath, masking='median', makefig=Fa
             maskeddwi_nii = nib.Nifti1Image(b0_mask, affine, header)
             nib.save(maskeddwi_nii, maskeddwi_path)
     else:
-        mask = load_nifti(binarymask)
+        mask = load_nifti(binarymask_path)
         mask = mask[0]
-        b0_mask = load_nifti(maskeddwi)
+        b0_mask = load_nifti(maskeddwi_path)
         b0_mask = b0_mask[0]
 
     if makefig:
