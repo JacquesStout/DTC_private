@@ -370,6 +370,8 @@ def setup_view(trk_object, colors=None, world_coords=False, show=True, fname=Non
         if os.path.exists(ref):
             data, affine = load_nifti(ref)
             shape = data.shape
+            if np.size(shape)>3:
+                data = np.squeeze(data)[:,:,:,0]
             # data, affine = load_nifti('/Volumes/Data/Badea/Lab/mouse/VBM_19IntractEP01_IITmean_RPI-work/dwi/SyN_0p5_3_0p5_dwi/dwiMDT_NoNameYet_n7_i6/median_images/MDT_fa.nii.gz')
         else:
             txt = f'Was asked to find reference file for background at {ref} but path did not exist'
@@ -669,9 +671,10 @@ def setup_view(trk_object, colors=None, world_coords=False, show=True, fname=Non
             object_actor = actor.line(trk_object, objectvals, linewidth=0.1,
                                       lookup_colormap=colors)
         else:
-            object_actor = actor.line(trk_object)
-        scene.add(object_actor)
-        object_actors_toremove.append(object_actor)
+            trk_object = trk_object[0]
+            #object_actor = actor.line(trk_object)
+        #scene.add(object_actor)
+        #object_actors_toremove.append(object_actor)
 
     elif isinstance(trk_object[0], Streamlines):
         #if isinstance(colors, vtk.vtkLookupTable) and objectvals[0] is not None:

@@ -23,16 +23,17 @@ from mpl_toolkits.axes_grid1 import AxesGrid
 import matplotlib
 #import dipy.tracking.life as life
 from dipy.viz import colormap as cmap
-from file_manager.BIAC_tools import send_mail
+from DTC.file_manager.BIAC_tools import send_mail
 from dipy.reconst.shore import ShoreModel
 from dipy.io.image import load_nifti, save_nifti
 import os
 from dipy.segment.clustering import QuickBundles
+"""
 from dipy.segment.bundles import RecoBundles
 from itertools import combinations, groupby
 from dipy.data.fetcher import fetch_bundles_2_subjects, read_bundles_2_subjects
 from dipy.tracking.streamline import Streamlines
-
+"""
 
 def win_callback(obj, event):
     global size

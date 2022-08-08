@@ -55,14 +55,16 @@ def parse_arguments(sys_argv, subjects):
 
     if np.size(sys_argv) > 4:
         subject_processes = int(sys_argv[4])
-    else:
+    elif np.size(subjects)>0:
         subject_processes = np.size(subjects)
-
+    else:
+        raise Exception('Empty subjects')
 
     if mp.cpu_count() < max_processors:
         max_processors = mp.cpu_count()
     if max_processors < subject_processes:
         subject_processes = max_processors
+
 
     function_processes = np.int(max_processors / subject_processes)
 

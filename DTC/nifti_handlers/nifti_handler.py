@@ -15,6 +15,8 @@ import shutil
 from DTC.nifti_handlers.atlas_handlers.convert_atlas_mask import convert_labelmask, atlas_converter
 import errno
 from DTC.file_manager.computer_nav import load_nifti_remote, glob_remote, checkfile_exists_remote, read_bvals_bvecs_remote
+import numpy as np
+import nibabel as nib
 
 def getfa(mypath, subject, bvec_orient, verbose=None):
 
@@ -85,6 +87,7 @@ def getfa(mypath, subject, bvec_orient, verbose=None):
     return fa_data, affine, gtab, vox_size, hdr, header
     """
     return fa_data, affine, vox_size, hdr, header
+
 
 def get_reference_info(reference, affine = np.eye(4).astype(np.float32)):
     """ Will compare the spatial attribute of 2 references

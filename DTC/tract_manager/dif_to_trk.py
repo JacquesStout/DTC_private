@@ -19,12 +19,12 @@ from dipy.direction import peaks
 # We must import this explicitly, it is not imported by the top-level
 # multiprocessing module.
 from dipy.tracking import utils
-from file_manager.BIAC_tools import send_mail, isempty
-from tract_manager.tract_save import save_trk_heavy_duty
+from DTC.file_manager.BIAC_tools import send_mail, isempty
+from DTC.tract_manager.tract_save import save_trk_heavy_duty
 from dipy.io.utils import create_tractogram_header
 from dipy.io.streamline import load_trk
-import tract_manager.tract_save
-from tract_manager.tract_handler import get_trk_params, get_tract_params
+import DTC.tract_manager.tract_save
+from DTC.tract_manager.tract_handler import get_trk_params, get_tract_params
 import glob
 from dipy.tracking.stopping_criterion import BinaryStoppingCriterion, ThresholdStoppingCriterion
 from dipy.reconst.csdeconv import ConstrainedSphericalDeconvModel
@@ -36,7 +36,7 @@ from dipy.reconst.csdeconv import ConstrainedSphericalDeconvModel
 from dipy.io.image import load_nifti
 import matplotlib.pyplot as plt
 
-from tract_manager.tract_handler import target, prune_streamlines
+from DTC.tract_manager.tract_handler import target, prune_streamlines
 import nibabel as nib
 from dipy.tracking.streamline import Streamlines
 

@@ -16,26 +16,31 @@ import pickle
 from dipy.io.utils import create_tractogram_header
 # We must import this explicitly, it is not imported by the top-level
 # multiprocessing module.
-from dipy.tracking import utils
 import matplotlib.pyplot as plt
 from numpy import ravel_multi_index
 
-#import dipy.tracking.life as life
-#import JSdipy.tracking.life as life
+
 import dipy.core.optimize as opt
 
-from file_manager.BIAC_tools import send_mail, getsize
-from tract_manager.tract_save import save_trk_heavy_duty
-from visualization_tools.figures_handler import LifEcreate_fig
+from DTC.file_manager.BIAC_tools import send_mail, getsize
+from DTC.tract_manager.tract_save import save_trk_heavy_duty
+from DTC.visualization_tools.figures_handler import LifEcreate_fig
 from dipy.tracking._utils import (_mapping_to_voxel, _to_voxel_coordinates)
 from collections import defaultdict, OrderedDict
 
-from dipy.denoise.enhancement_kernel import EnhancementKernel
-from dipy.tracking.fbcmeasures import FBCMeasures
+
 from dipy.viz import window, actor
 from dipy.segment.clustering import QuickBundles
-from dipy.segment.bundles import RecoBundles
 from itertools import combinations, groupby
+
+"""
+from dipy.denoise.enhancement_kernel import EnhancementKernel
+from dipy.tracking.fbcmeasures import FBCMeasures
+from dipy.segment.bundles import RecoBundles
+#import dipy.tracking.life as life
+#import JSdipy.tracking.life as life
+from dipy.tracking import utils
+"""
 
 
 def ndbincount(x, weights=None, shape=None):

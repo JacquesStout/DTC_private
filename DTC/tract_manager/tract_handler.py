@@ -21,21 +21,296 @@ from dipy.tracking._utils import (_mapping_to_voxel, _to_voxel_coordinates)
 from time import time
 from functools import wraps
 import pandas as pd
-from file_manager.BIAC_tools import isempty, send_mail
+from DTC.file_manager.BIAC_tools import isempty, send_mail
 from dipy.tracking.streamline import Streamlines
 from dipy.io.utils import create_tractogram_header
-from tract_manager.tract_save import save_trk_heavy_duty
+from DTC.tract_manager.tract_save import save_trk_heavy_duty
 from dipy.io.streamline import load_trk
 from dipy.tracking.utils import length
 from dipy.viz import window, actor
 import glob
-import argparse
 import os, shutil
-from tract_manager.tract_save import save_trk_header
-from tract_manager.streamline_nocheck import load_trk as load_trk_spe
+from DTC.tract_manager.tract_save import save_trk_header
+from DTC.tract_manager.streamline_nocheck import load_trk as load_trk_spe
 import nibabel as nib
-from file_manager.computer_nav import glob_remote, load_trk_remote
-import fnmatch
+from DTC.file_manager.computer_nav import glob_remote, load_trk_remote
+from dipy.tracking.streamline import transform_streamlines
+from dipy.io.utils import get_reference_info
+from nibabel.streamlines.array_sequence import ArraySequence
+from dipy.io.stateful_tractogram import StatefulTractogram, Space
+from scipy.ndimage import map_coordinates
+
+
+def cut_invalid_streamlines(sft):
+    """ Cut streamlines so their longest segment are within the bounding box.
+    This function keeps the data_per_point and data_per_streamline.
+    Parameters
+    ----------
+    sft: StatefulTractogram
+        The sft to remove invalid points from.
+    Returns
+    -------
+    new_sft : StatefulTractogram
+        New object with the invalid points removed from each streamline.
+    cutting_counter : int
+        Number of streamlines that were cut.
+    """
+    if not len(sft):
+        return sft, 0
+
+    # Keep track of the streamlines' original space/origin
+    space = sft.space
+    origin = sft.origin
+
+    sft.to_vox()
+    sft.to_corner()
+
+    copy_sft = copy.deepcopy(sft)
+    epsilon = 0.001
+    indices_to_remove, _ = copy_sft.remove_invalid_streamlines()
+
+    new_streamlines = []
+    new_data_per_point = {}
+    new_data_per_streamline = {}
+    for key in sft.data_per_point.keys():
+        new_data_per_point[key] = []
+    for key in sft.data_per_streamline.keys():
+        new_data_per_streamline[key] = []
+
+    cutting_counter = 0
+    for ind in range(len(sft.streamlines)):
+        # No reason to try to cut if all points are within the volume
+        if ind in indices_to_remove:
+            best_pos = [0, 0]
+            cur_pos = [0, 0]
+            for pos, point in enumerate(sft.streamlines[ind]):
+                if (point < epsilon).any() or \
+                        (point >= sft.dimensions - epsilon).any():
+                    cur_pos = [pos + 1, pos + 1]
+                if cur_pos[1] - cur_pos[0] > best_pos[1] - best_pos[0]:
+                    best_pos = cur_pos
+                cur_pos[1] += 1
+
+            if not best_pos == [0, 0]:
+                new_streamlines.append(
+                    sft.streamlines[ind][best_pos[0]:best_pos[1] - 1])
+                cutting_counter += 1
+                for key in sft.data_per_streamline.keys():
+                    new_data_per_streamline[key].append(
+                        sft.data_per_streamline[key][ind])
+                for key in sft.data_per_point.keys():
+                    new_data_per_point[key].append(
+                        sft.data_per_point[key][ind][best_pos[0]:best_pos[1] - 1])
+            else:
+                logging.warning('Streamlines entirely out of the volume.')
+        else:
+            new_streamlines.append(sft.streamlines[ind])
+            for key in sft.data_per_streamline.keys():
+                new_data_per_streamline[key].append(
+                    sft.data_per_streamline[key][ind])
+            for key in sft.data_per_point.keys():
+                new_data_per_point[key].append(sft.data_per_point[key][ind])
+    new_sft = StatefulTractogram.from_sft(new_streamlines, sft,
+                                          data_per_streamline=new_data_per_streamline,
+                                          data_per_point=new_data_per_point)
+
+    # Move the streamlines back to the original space/origin
+    sft.to_space(space)
+    sft.to_origin(origin)
+
+    new_sft.to_space(space)
+    new_sft.to_origin(origin)
+
+    return new_sft, cutting_counter
+
+def transform_warp_sft(sft, linear_transfo, target, inverse=False,
+                       reverse_op=False, deformation_data=None,
+                       remove_invalid=True, cut_invalid=False):
+    """ Transform tractogram using a affine Subsequently apply a warp from
+    antsRegistration (optional).
+    Remove/Cut invalid streamlines to preserve sft validity.
+    Parameters
+    ----------
+    sft: StatefulTractogram
+        Stateful tractogram object containing the streamlines to transform.
+    linear_transfo: numpy.ndarray
+        Linear transformation matrix to apply to the tractogram.
+    target: Nifti filepath, image object, header
+        Final reference for the tractogram after registration.
+    inverse: boolean
+        Apply the inverse linear transformation.
+    reverse_op: boolean
+        Apply both transformation in the reverse order
+    deformation_data: np.ndarray
+        4D array containing a 3D displacement vector in each voxel.
+    remove_invalid: boolean
+        Remove the streamlines landing out of the bounding box.
+    cut_invalid: boolean
+        Cut invalid streamlines rather than removing them. Keep the longest
+        segment only.
+    Return
+    ----------
+    new_sft : StatefulTractogram
+    """
+
+    # Keep track of the streamlines' original space/origin
+    space = sft.space
+    origin = sft.origin
+    dtype = sft.streamlines._data.dtype
+
+    sft.to_rasmm()
+    sft.to_center()
+
+    lut_cmap = actor.colormap_lookup_table(
+        scale_range=(0.01, 0.5))
+    # setup_view(sft.streamlines, colors=lut_cmap, ref=deformation_data[:, :, :, 0], world_coords=False,
+    #                   objectvals=[None],
+    #                   colorbar=True, record=None, scene=None)
+    # runno_to_MDT = '/Users/jas/jacques/APOE_subj_to_MDT/Transforms/N58355_to_MDT_warp.nii.gz'
+    # show_template_bundles(sft.streamlines, runno_to_MDT, show=True)
+
+    if len(sft.streamlines) == 0:
+        return StatefulTractogram(sft.streamlines, target,
+                                  Space.RASMM)
+
+    if inverse:
+        linear_transfo = np.linalg.inv(linear_transfo)
+
+    if not reverse_op:
+        streamlines = transform_streamlines(sft.streamlines,
+                                            linear_transfo)
+    else:
+        streamlines = sft.streamlines
+
+    if deformation_data is not None:
+        if not reverse_op:
+            affine, _, _, _ = get_reference_info(target)
+        else:
+            affine = sft.affine
+
+        # Because of duplication, an iteration over chunks of points is
+        # necessary for a big dataset (especially if not compressed)
+        streamlines = ArraySequence(streamlines)
+        nb_points = len(streamlines._data)
+        cur_position = 0
+        chunk_size = 1000000
+        nb_iteration = int(np.ceil(nb_points / chunk_size))
+        inv_affine = np.linalg.inv(affine)
+
+        while nb_iteration > 0:
+            max_position = min(cur_position + chunk_size, nb_points)
+            points = streamlines._data[cur_position:max_position]
+
+            # To access the deformation information, we need to go in VOX space
+            # No need for corner shift since we are doing interpolation
+            cur_points_vox = np.array(transform_streamlines(points,
+                                                            inv_affine)).T
+
+            x_def = map_coordinates(np.squeeze(deformation_data[..., 0]),
+                                    cur_points_vox.tolist(), order=1)
+            y_def = map_coordinates(np.squeeze(deformation_data[..., 1]),
+                                    cur_points_vox.tolist(), order=1)
+            z_def = map_coordinates(np.squeeze(deformation_data[..., 2]),
+                                    cur_points_vox.tolist(), order=1)
+
+            # ITK is in LPS and nibabel is in RAS, a flip is necessary for ANTs
+            # final_points = np.array([-1*x_def, -1*y_def, z_def])
+            # No modif required
+            final_points = np.array([x_def, y_def, z_def])
+            final_points += np.array(points).T
+
+            streamlines._data[cur_position:max_position] = final_points.T
+            cur_position = max_position
+            nb_iteration -= 1
+
+    if reverse_op:
+        streamlines = transform_streamlines(streamlines,
+                                            linear_transfo)
+
+    streamlines._data = streamlines._data.astype(dtype)
+    new_sft = StatefulTractogram(streamlines, target, Space.RASMM,
+                                 data_per_point=sft.data_per_point,
+                                 data_per_streamline=sft.data_per_streamline)
+    if cut_invalid:
+        new_sft, _ = cut_invalid_streamlines(new_sft)
+    elif remove_invalid:
+        new_sft.remove_invalid_streamlines()
+
+    # Move the streamlines back to the original space/origin
+    sft.to_space(space)
+    sft.to_origin(origin)
+
+    new_sft.to_space(space)
+    new_sft.to_origin(origin)
+
+    return new_sft
+
+
+def transform_streamwarp(streamlines, target, deformation_data,
+                          reverse_op=False, streamlines_affine=np.eye(4)):
+
+    """ Transform streamlines by applying a warp from
+    antsRegistration.
+    Parameters
+    ----------
+    streamlines: Streamlines or ArraySequence object from a StatefulTractogram
+    target: Nifti filepath, image object, header
+        Final reference for the tractogram after registration.
+    deformation_data: np.ndarray
+        4D array containing a 3D displacement vector in each voxel.
+    remove_invalid: boolean
+        Remove the streamlines landing out of the bounding box.
+    cut_invalid: boolean
+        Cut invalid streamlines rather than removing them. Keep the longest
+        segment only.
+    Return
+    ----------
+    new_sft : StatefulTractogram
+    """
+
+    # dtype = streamlines._data.dtype
+
+    if not reverse_op:
+        affine, _, _, _ = get_reference_info(target)
+    else:
+        affine = streamlines_affine
+
+    # Because of duplication, an iteration over chunks of points is
+    # necessary for a big dataset (especially if not compressed)
+    streamlines = ArraySequence(streamlines)
+    nb_points = len(streamlines._data)
+    cur_position = 0
+    chunk_size = 1000000
+    nb_iteration = int(np.ceil(nb_points / chunk_size))
+    inv_affine = np.linalg.inv(affine)
+
+    while nb_iteration > 0:
+        max_position = min(cur_position + chunk_size, nb_points)
+        points = streamlines._data[cur_position:max_position]
+
+        # To access the deformation information, we need to go in VOX space
+        # No need for corner shift since we are doing interpolation
+        cur_points_vox = np.array(transform_streamlines(points,
+                                                        inv_affine)).T
+
+        x_def = map_coordinates(np.squeeze(deformation_data[..., 0]),
+                                cur_points_vox.tolist(), order=1)
+        y_def = map_coordinates(np.squeeze(deformation_data[..., 1]),
+                                cur_points_vox.tolist(), order=1)
+        z_def = map_coordinates(np.squeeze(deformation_data[..., 2]),
+                                cur_points_vox.tolist(), order=1)
+
+        # ITK is in LPS and nibabel is in RAS, a flip is necessary for ANTs
+        # final_points = np.array([-1*x_def, -1*y_def, z_def])
+        # No modif required
+        final_points = np.array([x_def, y_def, z_def])
+        final_points += np.array(points).T
+
+        streamlines._data[cur_position:max_position] = final_points.T
+        cur_position = max_position
+        nb_iteration -= 1
+
+    return streamlines
 
 
 def longstring(string,margin=0):

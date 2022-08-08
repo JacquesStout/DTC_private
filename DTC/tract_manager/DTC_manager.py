@@ -15,56 +15,81 @@ functions themselves. Essentially a 'transition file' between the launcher and t
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import nibabel as nib
-import numpy as np
+"""
 #from dipy.io.streamline import load_trk
-from tract_manager.streamline_nocheck import load_trk
 from os.path import splitext
 from dipy.tracking._utils import (_mapping_to_voxel, _to_voxel_coordinates)
-import pickle
 import pandas as pd
 import smtplib
-import pathlib
 from dipy.denoise.localpca import mppca
-from tract_manager.dif_to_trk import QCSA_tractmake
-from file_manager.file_tools import mkcdir
-import os, re, sys, io, struct, socket, datetime
+re, sys, io, struct, socket, datetime
 from email.mime.text import MIMEText
-import glob
-from diff_handlers.bvec_handler import extractbvals
 from dipy.tracking.utils import unique_rows
 from numpy import ravel_multi_index
-
-from collections import defaultdict, OrderedDict
-
-from time import time
-from dipy.io.image import load_nifti, save_nifti
 from dipy.io.gradients import read_bvals_bvecs
 from dipy.reconst.shm import CsaOdfModel
 from dipy.data import get_sphere
 from dipy.direction import peaks_from_model
-from tract_manager.tract_save import save_trk_heavy_duty
-from dipy.tracking.local_tracking import LocalTracking
-from dipy.direction import peaks
-from nibabel.streamlines import detect_format
-from dipy.io.utils import (create_tractogram_header)
+from DTC.tract_manager.tract_save import save_trk_heavy_duty
+from collections import defaultdict, OrderedDict
+from dipy.segment.mask import bounding_box
 from dipy.viz import window, actor
 from dipy.tracking.utils import connectivity_matrix
-from dipy.segment.mask import segment_from_cfa
-from dipy.segment.mask import bounding_box
-
 import multiprocessing
+from nibabel.streamlines import detect_format
+from mpl_toolkits.axes_grid1 import AxesGrid
+import matplotlib
+import matplotlib.pyplot as plt
+import xlsxwriter
+import DTC.tract_manager.tract_save
+#import dipy.reconst.dki as dki
+#from connectivity_own import connectivity_matrix_special
+"""
+
+import nibabel as nib
+import numpy as np
+from DTC.tract_manager.streamline_nocheck import load_trk
+import pickle
+import pathlib
+from DTC.tract_manager.dif_to_trk import QCSA_tractmake
+from DTC.file_manager.file_tools import mkcdir
+import os
+import glob
+from DTC.diff_handlers.bvec_handler import extractbvals
+from time import time
+from dipy.io.image import load_nifti, save_nifti
+from dipy.tracking.local_tracking import LocalTracking
+from dipy.direction import peaks
+from dipy.io.utils import (create_tractogram_header)
+from dipy.segment.mask import segment_from_cfa
+from dipy.reconst import shm
+from scipy.ndimage.morphology import binary_dilation
+from dipy.tracking import utils
+from dipy.tracking.stopping_criterion import BinaryStoppingCriterion, ThresholdStoppingCriterion
+from dipy.tracking.streamline import Streamlines
+from DTC.visualization_tools.figures_handler import shore_scalarmaps
+from DTC.tract_manager.tract_eval import bundle_coherence, LiFEvaluation
+from DTC.file_manager.BIAC_tools import send_mail, isempty
+from DTC.tract_manager.tract_handler import target, prune_streamlines, get_trk_params, get_tract_params, gettrkpath, reducetractnumber, reducetractnumber_all
+from DTC.nifti_handlers.nifti_handler import getfa, getdiffdata_all, getdiffdata, getdiffpath, getgtab, getlabelmask, move_bvals, getmask, getb0s, getrefdata
+from DTC.diff_handlers.connectome_handlers.connectome_handler import connectivity_matrix_custom
+from DTC.diff_handlers.diff_preprocessing import dwi_to_mask, denoise_pick, make_tensorfit
+import xlrd
+import warnings
+import shutil
+import dipy.reconst.msdki as msdki
+
+from multiprocessing import Pool
+from DTC.nifti_handlers.atlas_handlers.convert_atlas_mask import convert_labelmask, atlas_converter
+from DTC.diff_handlers.connectome_handlers.excel_management import connectomes_to_excel, grouping_to_excel
+from DTC.file_manager.computer_nav import load_trk_remote, checkfile_exists_remote, glob_remote, load_nifti_remote, pickledump_remote, \
+    remove_remote
 # We must import this explicitly, it is not imported by the top-level
 # multiprocessing module.
 import multiprocessing.pool
 
 
-from dipy.reconst import shm
-from scipy.ndimage.morphology import binary_dilation
-from dipy.tracking import utils
-from dipy.tracking.stopping_criterion import BinaryStoppingCriterion, ThresholdStoppingCriterion
 
-from dipy.tracking.streamline import Streamlines
 import matplotlib.pyplot as plt
 
 #from dipy.denoise.localpca import mppca
@@ -72,31 +97,6 @@ import matplotlib.pyplot as plt
 
 from random import randint
 
-from mpl_toolkits.axes_grid1 import AxesGrid
-import matplotlib
-import matplotlib.pyplot as plt
-import xlsxwriter
-
-from visualization_tools.figures_handler import shore_scalarmaps
-from tract_manager.tract_eval import bundle_coherence, LiFEvaluation
-from file_manager.BIAC_tools import send_mail, isempty
-from tract_manager.tract_handler import target, prune_streamlines, get_trk_params, get_tract_params, gettrkpath, reducetractnumber, reducetractnumber_all
-from nifti_handlers.nifti_handler import getfa, getdiffdata_all, getdiffdata, getdiffpath, getgtab, getlabelmask, move_bvals, getmask, getb0s, getrefdata
-from diff_handlers.connectome_handlers.connectome_handler import connectivity_matrix_custom
-from diff_handlers.diff_preprocessing import dwi_to_mask, denoise_pick, make_tensorfit
-import tract_manager.tract_save
-import xlrd
-import warnings
-import shutil
-#import dipy.reconst.dki as dki
-import dipy.reconst.msdki as msdki
-
-from multiprocessing import Pool
-from nifti_handlers.atlas_handlers.convert_atlas_mask import convert_labelmask, atlas_converter
-#from connectivity_own import connectivity_matrix_special
-from diff_handlers.connectome_handlers.excel_management import connectomes_to_excel, grouping_to_excel
-from file_manager.computer_nav import load_trk_remote, checkfile_exists_remote, glob_remote, load_nifti_remote, pickledump_remote, \
-    remove_remote
 
 def strfile(string):
     # Converts strings into more usable 'file strings (mostly takes out . and turns it into _

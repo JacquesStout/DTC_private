@@ -1,27 +1,33 @@
 import os
-from nifti_handlers.transform_handler import get_affine_transform, get_flip_affine, header_superpose, recenter_nii_affine, \
+from DTC.nifti_handlers.transform_handler import get_affine_transform, get_flip_affine, header_superpose, recenter_nii_affine, \
     convert_ants_vals_to_affine, read_affine_txt, recenter_nii_save, add_translation, recenter_nii_save_test, \
     affine_superpose, get_affine_transform_test
+
+import numpy as np
+
+from dipy.tracking.streamline import deform_streamlines, transform_streamlines
+
+from DTC.tract_manager.tract_save import save_trk_header
+
+import socket
+from DTC.tract_manager.tract_handler import gettrkpath
+from DTC.tract_manager.DTC_manager import get_str_identifier
+from DTC.file_manager.file_tools import mkcdir, check_files, getfromfile
+from DTC.tract_manager.DTC_manager import check_dif_ratio
+from DTC.file_manager.computer_nav import get_mainpaths, load_nifti_remote, load_trk_remote, loadmat_remote, checkfile_exists_remote
+import random
+
+"""
 import shutil
 import nibabel as nib
-import numpy as np
-from dipy.align.imaffine import (MutualInformationMetric, AffineRegistration,
-                                 transform_origins)
-from dipy.tracking.streamline import deform_streamlines, transform_streamlines
-from tract_manager.streamline_nocheck import load_trk, unload_trk
-from dipy.io.utils import create_tractogram_header
-from tract_manager.tract_save import save_trk_heavy_duty, make_tractogram_object, save_trk_header
 from scipy.io import loadmat
 from nifti_handlers.nifti_handler import extract_nii_info
-import socket
-from file_manager.file_tools import mkcdir
-from tract_manager.tract_handler import gettrkpath
-from tract_manager import get_str_identifier
-from file_manager.file_tools import mkcdir, check_files, getfromfile
-from tract_manager import check_dif_ratio
-from file_manager.computer_nav import get_mainpaths, load_nifti_remote, load_trk_remote, loadmat_remote, checkfile_exists_remote
+from tract_manager.streamline_nocheck import load_trk, unload_trk
+from dipy.io.utils import create_tractogram_header
 import glob, warnings
-import random
+from dipy.align.imaffine import (MutualInformationMetric, AffineRegistration,
+                                 transform_origins)
+"""
 
 project= 'AMD'
 subjects = ["H26578", "H29060", "H26637", "H29264", "H26765", "H29225", "H26660", "H29304", "H26890",

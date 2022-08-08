@@ -85,24 +85,6 @@ def file_rename(folder, initstring, finalstring, identifier_string="*", anti_ide
             else:
                 print(myfile, newfilepath)
 
-def getremotehome(computer):
-    import re
-    homepaths_file = os.path.join(os.path.expanduser('~'), 'homepaths.rtf')
-    if os.path.exists(homepaths_file):
-        with open(homepaths_file, 'rb') as source:
-            for line in source:
-                username_str = f'{computer} home'
-                rx1 = re.compile(username_str, re.IGNORECASE | re.MULTILINE | re.DOTALL)
-                for a in rx1.findall(str(line)):
-                    homepath = str(line).split('=')[1]
-                    homepath = homepath.split('\\')[0]
-                    homepath = homepath.strip()
-    else:
-        txt = f'could not find connection parameters at {homepaths_file}'
-        print(txt)
-        return None
-    return homepath
-
 
 def getfromfile(path):
     import re

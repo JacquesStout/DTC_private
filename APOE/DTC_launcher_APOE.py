@@ -8,14 +8,15 @@ Wenlin add for loop to run all the animals 2018-20-25
 """
 
 
-from tract_manager.DTC_manager import create_tracts, tract_connectome_analysis
-from file_manager.Daemonprocess import MyPool
+from DTC.tract_manager.DTC_manager import create_tracts, tract_connectome_analysis
+from DTC.file_manager.Daemonprocess import MyPool
 import multiprocessing as mp
 import os
-from file_manager.file_tools import mkcdir, getfromfile
+from DTC.file_manager.file_tools import mkcdir, getfromfile
 from time import time
-from file_manager.argument_tools import parse_arguments
-from file_manager.computer_nav import get_mainpaths, get_atlas, glob_remote
+from DTC.file_manager.argument_tools import parse_arguments
+from DTC.file_manager.computer_nav import get_mainpaths, get_atlas, glob_remote
+from DTC.file_manager.computer_nav import get_mainpaths, get_atlas, glob_remote
 import sys
 
 remote=True

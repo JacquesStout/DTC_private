@@ -1,17 +1,19 @@
 import numpy as np
 import multiprocessing as mp
-#from file_manager.Daemonprocess import MyPool
 import glob
 import os, sys
-from diff_handlers.bvec_handler import writebfiles, extractbvals, extractbvals_research, rewrite_subject_bvalues, fix_bvals_bvecs
+from DTC.diff_handlers.bvec_handler import extractbvals
+from DTC.diff_handlers.diff_preprocessing import launch_preprocessing
+from DTC.file_manager.file_tools import mkcdir, largerfile
+import shutil
+from DTC.file_manager.argument_tools import parse_arguments
+
+"""
+from DTC.diff_handlers.bvec_handler import orient_to_str
 from time import time
 import shutil
-from diff_handlers.diff_preprocessing import launch_preprocessing
-from file_manager.file_tools import mkcdir, largerfile
-import shutil
-from file_manager.argument_tools import parse_arguments
-from diff_handlers.bvec_handler import orient_to_str
-
+#from file_manager.Daemonprocess import MyPool
+"""
 
 gunniespath = "/Users/jas/bass/gitfolder/gunnies/"
 diffpath = "/Volumes/dusom_civm-atlas/18.abb.11/research/"
@@ -38,7 +40,7 @@ for remove in removed_list:
         subjects.remove(remove)
 
 subjects = subjects[firstsubj:lastsubj]
-
+subjects.sort()
 print(subjects)
 
 proc_subjn=""

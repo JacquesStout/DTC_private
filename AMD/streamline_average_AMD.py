@@ -6,27 +6,32 @@ from dipy.segment.metric import ResampleFeature, AveragePointwiseEuclideanMetric
 from dipy.io.image import load_nifti
 import warnings
 from dipy.viz import window, actor
-from time import sleep
 from dipy.tracking.streamline import set_number_of_points
-from dipy.tracking.streamline import transform_streamlines
 import os, glob
-from tract_manager.tract_save import unload_trk
 import pickle
-from dipy.tracking.utils import connectivity_matrix
-from nifti_handlers.nifti_handler import getlabeltypemask
-from file_manager.file_tools import mkcdir, check_files
-from tract_manager.tract_handler import ratio_to_str, gettrkpath
-from nifti_handlers.atlas_handlers.convert_atlas_mask import convert_labelmask, atlas_converter
+from DTC.nifti_handlers.nifti_handler import getlabeltypemask
+from DTC.file_manager.file_tools import mkcdir, check_files
+from DTC.tract_manager.tract_handler import ratio_to_str, gettrkpath
+from DTC.nifti_handlers.atlas_handlers.convert_atlas_mask import convert_labelmask, atlas_converter
 import errno
 import socket
+
+from DTC.visualization_tools.tract_visualize import show_bundles, setup_view
+from DTC.tract_manager.tract_save import save_trk_header
+from DTC.diff_handlers.connectome_handlers.excel_management import M_grouping_excel_save, extract_grouping
+import sys
+from DTC.file_manager.argument_tools import parse_arguments_function
+from DTC.diff_handlers.connectome_handlers.connectome_handler import connectivity_matrix_func
+
+"""
+from time import sleep
+from tract_manager.tract_save import unload_trk
+from dipy.tracking.utils import connectivity_matrix
 from dipy.segment.clustering import ClusterCentroid
 from dipy.tracking.streamline import Streamlines
-from visualization_tools.visualization_tools.tract_visualize import show_bundles, setup_view
-from tract_manager.tract_save import save_trk_header
-from diff_handlers.connectome_handlers.excel_management import M_grouping_excel_save, extract_grouping
-import sys
-from file_manager.argument_tools import parse_arguments_function
-from tract_manager import connectivity_matrix_func
+from dipy.tracking.streamline import transform_streamlines
+
+"""
 
 def get_grouping(grouping_xlsx):
     print('not done yet')

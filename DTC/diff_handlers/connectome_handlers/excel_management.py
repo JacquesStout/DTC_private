@@ -3,8 +3,8 @@ import xlsxwriter
 import pandas as pd
 import numpy as np
 from os import remove as file_remove
-from file_manager.BIAC_tools import send_mail, isempty
-from file_manager.computer_nav import make_temppath, glob_remote, checkfile_exists_remote, remove_remote
+from DTC.file_manager.BIAC_tools import send_mail, isempty
+from DTC.file_manager.computer_nav import make_temppath, glob_remote, checkfile_exists_remote, remove_remote
 """
 Created by Jacques Stout
 

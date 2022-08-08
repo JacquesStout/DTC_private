@@ -7,6 +7,9 @@ from DTC.nifti_handlers.nifti_handler import *
 from DTC.tract_manager.streamline_nocheck import load_trk
 from DTC.file_manager.computer_nav import splitpath
 import shutil
+import os
+import nibabel as nib
+import warnings
 
 def header_superpose(target_path, origin_path, outpath=None, verbose=False):
     target_nii=nib.load(target_path)
@@ -217,7 +220,8 @@ def recenter_affine_test(shape, affine, return_translation = False):
     signs = np.sign([newaffine[0, 0], newaffine[1, 1], newaffine[2, 2]])
 
     newaffine = np.eye(4)
-    axis_ratios = [np.abs(np.round(affine[0,0])), np.abs(np.round(affine[1,1])), np.abs(np.round(affine[2,2]))]
+    #axis_ratios = [np.abs(np.round(affine[0,0])), np.abs(np.round(affine[1,1])), np.abs(np.round(affine[2,2]))]
+    axis_ratios = [np.abs(affine[0, 0]), np.abs(affine[1, 1]), np.abs(affine[2, 2])]
     newaffine[0,0] = signs[0] * axis_ratios[0]
     newaffine[1,1] = signs[1] * axis_ratios[1]
     newaffine[2,2] = signs[2] * axis_ratios[2]
@@ -426,7 +430,7 @@ def add_translation(img, output_path, translation, verbose):
         print(f'Saved')
 
 
-def img_transform_exec(img, current_vorder, desired_vorder, output_path=None, write_transform=0, verbose=False):
+def img_transform_exec(img, current_vorder, desired_vorder, output_path=None, write_transform=0, rename = True, recenter=False, verbose=False):
 
     is_RGB = 0;
     is_vector = 0;
@@ -453,13 +457,20 @@ def img_transform_exec(img, current_vorder, desired_vorder, output_path=None, wr
         raise TypeError('Please use only R L A P S or I for desired voxel order')
 
     dirname, filename, ext = splitpath(img)
-    filename=filename+"."+ext
+    if ext=='.nii.gz':
+        filename = filename + ext
+    else:
+        filename = filename + "." + ext
+
+    if rename:
+        output_name = filename.replace('.nii', '_' + desired_vorder + '.nii')
+    else:
+        output_name = filename
+
     if output_path is None:
-        output_name=filename.replace('.nii','_'+desired_vorder+'.nii')
         output_path = os.path.join(dirname,output_name)
-    if not output_path.find('.'):
+    if output_path.find('.')==-1:
         mkcdir(output_path)
-        output_name=filename.replace('.nii','_'+desired_vorder+'.nii')
         output_path = os.path.join(output_path,output_name)
 
     out_dir, _, _ = splitpath(output_path)
@@ -599,6 +610,14 @@ def img_transform_exec(img, current_vorder, desired_vorder, output_path=None, wr
     newaffine[0:3,0:3]=affine[0:3,0:3]
     newaffine[3,:]=[0,0,0,1]
     newaffine[:3,3]=trueorigin
+
+    if recenter:
+        newdims = np.shape(new_data)
+        newaffine[0,3] = -(newdims[0] * newaffine[0,0]* 0.5)+0.045
+        newaffine[1,3] = -(newdims[1] * newaffine[1,1]* 0.5)+0.045#+1
+        newaffine[2,3] = -(newdims[2] * newaffine[2,2]* 0.5)+0.045
+
+
         #newaffine[0,:]=x_row
         #newaffine[1,:]=y_row
         #newaffine[2,:]=z_row

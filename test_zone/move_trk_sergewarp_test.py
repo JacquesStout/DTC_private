@@ -19,6 +19,7 @@ from nibabel.streamlines.array_sequence import ArraySequence
 from scipy.ndimage import map_coordinates
 from scilpy.tracking.tools import smooth_line_gaussian, smooth_line_spline
 from dipy.io.stateful_tractogram import StatefulTractogram, Space
+import logging
 
 
 def cut_invalid_streamlines(sft):

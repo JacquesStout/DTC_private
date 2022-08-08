@@ -5,7 +5,7 @@ Part of the DTC pipeline, mostly handles dwi files before calculating trk.
 Tries to create masks, determines the parameters of a denoising request, handles fa files, etc
 """
 
-
+"""
 import matplotlib.pyplot as plt
 from dipy.core.histeq import histeq
 import numpy as np
@@ -15,7 +15,7 @@ import os
 from DTC.diff_handlers.denoise_processes import mppca
 from dipy.denoise.gibbs import gibbs_removal
 from time import time
-from visualization_tools.figures_handler import denoise_fig
+from DTC.visualization_tools.figures_handler import denoise_fig
 import glob
 from DTC.nifti_handlers.atlas_handlers.mask_handler import applymask_array
 import nibabel as nib
@@ -26,7 +26,7 @@ import warnings
 #from dipy.data import get_fnames
 #from nifti_handlers.nifti_handler import getdwidata
 #from gunnies.basic_LPCA_denoise import basic_LPCA_denoise_func
-
+"""
 
 #from nifti_handlers.transform_handler import img_transform_exec, space_transpose, affine_superpose, header_superpose
 from DTC.nifti_handlers.transform_handler import *

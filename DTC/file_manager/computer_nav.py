@@ -1,10 +1,29 @@
 
 import socket, os, getpass, paramiko, glob
-from DTC.file_manager.file_tools import getremotehome
+#from DTC.file_manager.file_tools import getremotehome
 import fnmatch
 import numpy as np
 import pickle
 import nibabel as nib
+
+def getremotehome(computer):
+    import re
+    homepaths_file = os.path.join(os.path.expanduser('~'), 'homepaths.rtf')
+    if os.path.exists(homepaths_file):
+        with open(homepaths_file, 'rb') as source:
+            for line in source:
+                username_str = f'{computer} home'
+                rx1 = re.compile(username_str, re.IGNORECASE | re.MULTILINE | re.DOTALL)
+                for a in rx1.findall(str(line)):
+                    homepath = str(line).split('=')[1]
+                    homepath = homepath.split('\\')[0]
+                    homepath = homepath.strip()
+    else:
+        txt = f'could not find connection parameters at {homepaths_file}'
+        print(txt)
+        return None
+    return homepath
+
 
 def get_mainpaths(remote=False, project='any',username=None,password=None):
     computer_name = socket.gethostname()
@@ -18,20 +37,21 @@ def get_mainpaths(remote=False, project='any',username=None,password=None):
         outpath = home
         atlas_folder = os.path.join(home,'atlases')
     else:
-        home = getremotehome('remote')
+        remote_path = getremotehome('remote')
+        server = remote_path.split('.')[0]
+        home = getremotehome(server)
         inpath = home
+        """
         if "@" in inpath:
             inpath = inpath.split("@")
             username = inpath[0]
             server = inpath[1].split(".")[0]
             password = getpass.getpass()
-        else:
-            server = inpath.split(".")[0]
-            if username is None or password is None:
-                username = input("Username:")
-                password = getpass.getpass("Password for " + username + ":")
-            inpath = username + "@" + inpath
-        inpath = inpath.split(":")[1]
+        """
+        if username is None or password is None:
+            username = input("Username:")
+            password = getpass.getpass("Password for " + username + ":")
+        #inpath = inpath.split(":")[1]
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         ssh.load_host_keys(os.path.expanduser(os.path.join("~", ".ssh", "known_hosts")))
@@ -185,14 +205,17 @@ def load_trk_remote(trkpath,reference,sftp=None):
 
 def loadmat_remote(matpath, sftp):
     from scipy.io import loadmat
-    temp_path = f'{os.path.join(os.path.expanduser("~"), os.path.basename(matpath))}'
-    sftp.get(matpath, temp_path)
-    try:
-        mymat = loadmat(temp_path)
-        os.remove(temp_path)
-    except Exception as e:
-        os.remove(temp_path)
-        raise Exception(e)
+    if sftp is not None:
+        temp_path = f'{os.path.join(os.path.expanduser("~"), os.path.basename(matpath))}'
+        sftp.get(matpath, temp_path)
+        try:
+            mymat = loadmat(temp_path)
+            os.remove(temp_path)
+        except Exception as e:
+            os.remove(temp_path)
+            raise Exception(e)
+    else:
+        mymat = loadmat(matpath)
     return mymat
 
 def scp_multiple(list,outpath,sftp=None,overwrite=False):

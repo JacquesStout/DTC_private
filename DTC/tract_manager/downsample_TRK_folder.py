@@ -1,10 +1,13 @@
 import os
-from tract_manager.tract_handler import reducetractnumber
-from file_manager.file_tools import mkcdir
+from DTC.tract_manager.tract_handler import reducetractnumber
+from DTC.file_manager.file_tools import mkcdir
 import random
 
-trk_folder = os.path.join(path,'TRK_MPCA_fixed')
-new_trk_folder = os.path.join(path,'TRK_MPCA_fixed_100')
+path = '/Users/jas/jacques/APOE_subj_to_MDT'
+trk_folder = os.path.join(path,'TRK')
+new_trk_folder = os.path.join(path,'TRK')
+#trk_folder = os.path.join(path,'TRK_MPCA_fixed')
+#new_trk_folder = os.path.join(path,'TRK_MPCA_fixed_100')
 
 mkcdir(new_trk_folder)
 ratio = 100
