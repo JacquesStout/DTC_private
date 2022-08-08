@@ -1,4 +1,4 @@
-import os
+import os, sys
 from DTC.nifti_handlers.transform_handler import affine_superpose
 import numpy as np
 from DTC.tract_manager.DTC_manager import get_str_identifier
@@ -16,6 +16,7 @@ from DTC.file_manager.computer_nav import get_mainpaths, load_nifti_remote, load
     checkfile_exists_remote, glob_remote
 from DTC.file_manager.file_tools import mkcdir, getfromfile
 import time
+from DTC.file_manager.argument_tools import parse_arguments
 
 """
 from dipy.io.utils import get_reference_info, is_header_compatible
@@ -88,8 +89,9 @@ for remove in removed_list:
     if remove in subjects:
         subjects.remove(remove)
 
-# subjects.reverse()
-subjects = subjects[:]
+subject_processes, function_processes, firstsubj, lastsubj = parse_arguments(sys.argv, subjects)
+
+subjects = subjects[firstsubj:lastsubj]
 print(subjects)
 
 overwrite = False
