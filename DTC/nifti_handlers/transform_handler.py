@@ -612,11 +612,13 @@ def img_transform_exec(img, current_vorder, desired_vorder, output_path=None, wr
     newaffine[:3,3]=trueorigin
 
     if recenter:
+        """
         newdims = np.shape(new_data)
         newaffine[0,3] = -(newdims[0] * newaffine[0,0]* 0.5)+0.045
         newaffine[1,3] = -(newdims[1] * newaffine[1,1]* 0.5)+0.045#+1
         newaffine[2,3] = -(newdims[2] * newaffine[2,2]* 0.5)+0.045
-
+        """
+        newaffine = recenter_affine(np.shape(new_data),newaffine)
 
         #newaffine[0,:]=x_row
         #newaffine[1,:]=y_row
@@ -652,6 +654,23 @@ def img_transform_exec(img, current_vorder, desired_vorder, output_path=None, wr
     hdr_target = nib_test_target._header
     print('hi')
     """
+
+
+def recenter_file(input,output_path):
+    if isinstance(input, str):
+        image = nib.load(input)
+    elif isinstance(input, nib.nifti1.Nifti1Image):
+        image = input
+    new_affine = recenter_affine(image.shape,image.affine)
+    new_nii = nib.Nifti1Image(image._data,new_affine)
+    nib.save(new_nii,output_path)
+
+def recenter_affine(dims, affine):
+    #newdims = np.shape(new_data)
+    affine[0,3] = -(dims[0] * affine[0,0]* 0.5)+0.045
+    affine[1,3] = -(dims[1] * affine[1,1]* 0.5)+0.045#+1
+    affine[2,3] = -(dims[2] * affine[2,2]* 0.5)+0.045
+    return affine
 
 
 def new_voxels_filename(filename, current_vorder, desired_vorder):
