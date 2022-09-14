@@ -13,7 +13,7 @@ import numpy as np
 def applymask_array(data, mask):
 
     data_new = data
-    dims = np.size(data)
+    dims = np.size(np.shape(data))
     data_shape = np.shape(data)
     mask_shape = np.shape(mask)
 

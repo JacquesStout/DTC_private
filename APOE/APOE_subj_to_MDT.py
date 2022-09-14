@@ -76,7 +76,7 @@ if project == "APOE":
     trkroi = ["wholebrain"]
     str_identifier = get_str_identifier(stepsize, ratio, trkroi)
     SAMBA_MDT = '/Volumes/Data/Badea/Lab/mouse/VBM_20APOE01_chass_symmetric3_allAPOE-work/dwi/SyN_0p5_3_0p5_dwi/dwiMDT_NoNameYet_n32_i6/median_images/MDT_dwi.nii.gz'
-
+    #SAMBA_MDT = '/home/alex/MDT_dwi.nii.gz'
 
 subjects_all = glob_remote(os.path.join(path_DWI,'*subjspace*coreg*.nii.gz'),sftp)
 subjects = []

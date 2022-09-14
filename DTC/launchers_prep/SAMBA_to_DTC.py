@@ -2,13 +2,13 @@ import getpass
 import os
 from pathlib import Path
 import shutil
-from DTC.file_manager.file_tools import buildlink, mkcdir, getfromfile, getremotehome
+from DTC.file_manager.file_tools import buildlink, mkcdir, getfromfile
 import glob
 import numpy as np
 import warnings
 from DTC.nifti_handlers.atlas_handlers.create_backported_labels import create_backport_labels
 import os
-from DTC.file_manager.computer_nav import get_mainpaths, checkfile_exists_remote
+from DTC.file_manager.computer_nav import get_mainpaths, checkfile_exists_remote, getremotehome
 from DTC.nifti_handlers.atlas_handlers.convert_atlas_mask import convert_labelmask, atlas_converter
 
 #project = ["AD_Decode", "APOE"]
@@ -53,7 +53,6 @@ if project == 'Chavez':
     copytype = "truecopy"
     overwrite = False
     preppath = None
-    subjects = ['C_20220124_001', 'C_20220124_002', 'C_20220124_003', 'C_20220124_004', 'C_20220124_005', 'C_20220124_006', 'C_20220124_007']
     subjects = ['C_20220124_001', 'C_20220124_002', 'C_20220124_003', 'C_20220124_004', 'C_20220124_005', 'C_20220124_006', 'C_20220124_007']
 
     #subjects_folders = glob.glob(os.path.join(SAMBA_work_folder, '*affine.mat/'))

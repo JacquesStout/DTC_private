@@ -309,8 +309,111 @@ def fix_bvals_bvecs(fbvals, fbvecs, b0_threshold=50, atol=1e-2, outpath=None, id
 
 #def extract_bxh_bval_bvec(filepath):
 
+def dist(vals):
+    result = 0
+    for val in vals:
+        result += val*val
+    result = np.sqrt(result)
+    return(result)
 
-def extractbvec_fromheader(source_file,fileoutpath=None,save=None,verbose=True):
+def normalize(vals,tostr=True):
+    distance = dist(vals)
+    vals_new = []
+    for val in vals:
+        if tostr:
+            vals_new.append(str(val/(distance)))
+        else:
+            vals_new.append(val / (distance))
+    return(vals_new)
+
+def extractbvals_fromgrads(source_file,fileoutpath=None,tonorm=True,verbose=False):
+
+    bvals = dsl = dpe = dro = None
+
+    filename = os.path.split(source_file)[1]
+    if fileoutpath is None:
+        basepath = os.path.split(source_file)[0]
+        fileoutpath = basepath + filename.split('.')[0] + "_"
+    with open(source_file, 'rb') as source:
+        if verbose: print('INFO    : Extracting acquisition parameters')
+        bvals = []
+        bvecs = []
+        i=0
+        for line in source:
+
+            pattern1 = str(i)+':'
+            rx1 = re.compile(pattern1, re.IGNORECASE | re.MULTILINE | re.DOTALL)
+            if not len(rx1.findall(str(line)))>0:
+                i+=1
+                pattern1 = str(i) + ':'
+                rx1 = re.compile(pattern1, re.IGNORECASE | re.MULTILINE | re.DOTALL)
+            for a in rx1.findall(str(line)):
+                bvals_all = str(line).split(pattern1)[1].split('\\')[0]
+                bvalues_list = bvals_all.split(',')
+                bvalues_list = [float(x) for x in bvalues_list]
+                bvals.append(str(bvalues_list[-1]))
+                if tonorm:
+                    bvecs.append(normalize(bvalues_list[:3],tostr=True))
+                else:
+                    bvecs.append(bvalues_list[:3])
+
+            i += 1
+        bvals = "\n".join(bvals)
+
+    if fileoutpath is not None:
+        bval_file = fileoutpath + "_bvals.txt"
+        print(bval_file)
+        File_object = open(bval_file, "w")
+        File_object.write(bvals)
+        File_object.close()
+
+        if 'bvecs' in locals() and np.size(bvecs) > 0:
+            bvecs_file = fileoutpath + "_bvecs.txt"
+            File_object = open(bvecs_file, "w")
+            for bvec in bvecs:
+                File_object.write(str(bvec[0]) + " " + str(bvec[1]) + " " + str(bvec[2]) + "\n")
+            File_object.close()
+            dsl = []
+            dpe = []
+            dro = []
+            for bvec in bvecs:
+                dsl.append(bvec[0])
+                dpe.append(bvec[1])
+                dro.append(bvec[2])
+            dsl = "\n".join(dsl)
+            dpe = "\n".join(dpe)
+            dro = "\n".join(dro)
+
+        elif dsl and dpe and dro:
+            dsl_file = fileoutpath + "_dsl.txt"
+            File_object = open(dsl_file, "w")
+            File_object.write(dsl)
+            File_object.close()
+
+            dpe_file = fileoutpath + "_dpe.txt"
+            File_object = open(dpe_file, "w")
+            File_object.write(dpe)
+            File_object.close()
+
+            dro_file = fileoutpath + "_dro.txt"
+            File_object = open(dro_file, "w")
+            File_object.write(dro)
+            File_object.close()
+
+            bvecs_file = fileoutpath + "_bvecs.txt"
+            File_object = open(bvecs_file, "w")
+            dpe = dpe.split(" ")
+            dsl = dsl.split(" ")
+            dro = dro.split(" ")
+            print(dpe)
+            print(np.shape(dsl))
+            for i in range(np.size(dsl)):
+                File_object.write(str(dro[i]) + " " + str(dpe[i]) + " " + str(dsl[i]) + "\n")
+            File_object.close()
+        return bval_file, bvecs_file, bvals, dsl, dpe, dro
+
+
+def extractbvals_fromheader(source_file,fileoutpath=None,save=None,verbose=True):
 
     bvals = dsl = dpe = dro = None
     if save is not None:
@@ -520,10 +623,11 @@ def find_bval_bvecs(subjectpath, subject="",outpath=None):
     finputbvecs=glob.glob(os.path.join(subjectpath, "*input_gradient_matrix*"))
     bxhs=glob.glob(os.path.join(subjectpath, "*.bxh*"))
     fbvals_txt = glob.glob(os.path.join(subjectpath,"*bvals.txt"))
+    grads_txt = glob.glob(os.path.join(subjectpath,"*grads.txt"))
     headfile = glob.glob(os.path.join(subjectpath,"*studio.headfile"))
 
     if np.size(headfile)>0:
-        fbvals, fbvecs, _, _, _, _ = extractbvec_fromheader(headfile[0],
+        fbvals, fbvecs, _, _, _, _ = extractbvals_fromheader(headfile[0],
                                                             fileoutpath=os.path.join(outpath, subject),
                                                             save="all")
     elif np.size(fbtable)>0:
@@ -551,7 +655,7 @@ def find_bval_bvecs(subjectpath, subject="",outpath=None):
         dwipath = largerfile(subjectpath,identifier=".nii") #This just catches the LARGEST file, which should be a dwi file. This is obviously an unstable method and the best way to handle it would be to go through every bxh file and go through them individualls
         bxhpath = dwipath.replace(".nii.gz", ".bxh")
         bxhpath = bxhpath.replace(".nii", ".bxh")
-        fbvals, fbvecs, _, _, _, _ = extractbvec_fromheader(bxhpath,
+        fbvals, fbvecs, _, _, _, _ = extractbvals_fromheader(bxhpath,
                                                             fileoutpath=os.path.join(outpath, subject),
                                                             save="all")
     elif np.size(fbvals_txt) > 0:
@@ -562,6 +666,9 @@ def find_bval_bvecs(subjectpath, subject="",outpath=None):
             fbvecs = fbvecs_txt[0]
         else:
             raise Exception('Too many possible bvalue files in folder')
+    elif np.size(grads_txt) > 0:
+        fbvals, fbvecs, _, _, _, _ = extractbvals_fromgrads(grads_txt[0],
+                                                            fileoutpath=os.path.join(outpath, subject))
     else:
         raise Exception("Sorry, nothing here looks like it could serve as a way to extract bvalues")
     return fbvals, fbvecs
@@ -793,7 +900,7 @@ def extractbvals_research(dwipath, subject, outpath=None, writeformat="tab", fix
             if (fbvals) == 0 or (fbvecs) == 0:
                 bxhpath = dwipath.replace(".nii.gz", ".bxh")
                 bxhpath = bxhpath.replace(".nii", ".bxh")
-                fbvals, fbvecs, _, _, _, _ = extractbvec_fromheader(bxhpath,
+                fbvals, fbvecs, _, _, _, _ = extractbvals_fromheader(bxhpath,
                                                                     fileoutpath=os.path.join(dwifolder, subject),
                                                                     save="all")
                 if fix:
@@ -847,7 +954,7 @@ def extractbvals(subjectpath, subject, outpath=None, writeformat="tab", fix=True
             if (fbvals) == 0 or (fbvecs) == 0:
                 #bxhpath = subjectpath.replace(".nii.gz", ".bxh")
                 bxhpath = subjectpath.replace(".nii", ".bxh")
-                fbvals, fbvecs, _, _, _, _ = extractbvec_fromheader(bxhpath,
+                fbvals, fbvecs, _, _, _, _ = extractbvals_fromheader(bxhpath,
                                                                     fileoutpath=os.path.join(dwifolder, subject),
                                                                     save="all")
                 if fix:
@@ -893,7 +1000,7 @@ def rewrite_subject_bvalues(dwipath, subject, outpath=None, writeformat="tab", o
             if (fbvals) == 0 or (fbvecs) == 0:
                 bxhpath = dwipath.replace(".nii.gz", ".bxh")
                 bxhpath = bxhpath.replace(".nii", ".bxh")
-                fbvals, fbvecs, _, _, _, _ = extractbvec_fromheader(bxhpath,
+                fbvals, fbvecs, _, _, _, _ = extractbvals_fromheader(bxhpath,
                                                                     fileoutpath=os.path.join(dwifolder, subject),
                                                                     save="all")
                 fix_bvals_bvecs(fbvals, fbvecs)

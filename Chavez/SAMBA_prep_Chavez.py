@@ -1,20 +1,20 @@
 import numpy as np
-from tract_manager import create_tracts
 import multiprocessing as mp
-from file_manager.Daemonprocess import MyPool
+#from DTC.file_manager.Daemonprocess import MyPool
 import glob
 import os, sys
-from diff_handlers.bvec_handler import writebfiles, extractbvals, extractbvals_research, rewrite_subject_bvalues, fix_bvals_bvecs
+from DTC.diff_handlers.bvec_handler import writebfiles, extractbvals, extractbvals_research, rewrite_subject_bvalues, fix_bvals_bvecs
 from time import time
 import shutil
-from diffusion_preprocessing import launch_preprocessing
-from file_manager.file_tools import mkcdir, largerfile
+from DTC.file_manager.file_tools import mkcdir, largerfile
 import shutil
-from file_manager.argument_tools import parse_arguments
-from diff_handlers.bvec_handler import orient_to_str
+from DTC.file_manager.argument_tools import parse_arguments
+from DTC.diff_handlers.diff_preprocessing import launch_preprocessing
+
+from DTC.diff_handlers.bvec_handler import orient_to_str
 
 gunniespath = "/Users/jas/bass/gitfolder/gunnies/"
-diffpath = "/Volumes/Data/Badea/Lab/RaulChavezValdez_RAS/"
+diffpath = "/Volumes/Data/Badea/Lab/Chavez_init/"
 # diffpath = "/Volumes/dusom_dibs_ad_decode/all_staff/APOE_temp/research/"
 # outpath = "/Volumes/dusom_dibs_ad_decode/all_staff/APOE_temp/diffusion_prep_locale/"
 outpath = "/Volumes/Data/Badea/Lab/mouse/Chavez_series/diffusion_prep_locale/"
@@ -31,10 +31,8 @@ if SAMBA_inputs_folder is not None:
 if shortcuts_all_folder is not None:
     mkcdir(shortcuts_all_folder)
 mkcdir(outpath)
-subjects = ['C_20220124_001', 'C_20220124_002', 'C_20220124_003', 'C_20220124_004', 'C_20220124_005', 'C_20220124_006', 'C_20220124_007']
-#subjects = ['C_20220124_005', 'C_20220124_006']
-
-#subjects = ['C_20220124_005']
+#subjects = ['C_20220124_001', 'C_20220124_002', 'C_20220124_003', 'C_20220124_004', 'C_20220124_005', 'C_20220124_006', 'C_20220124_007']
+subjects = ['apoe_3_6_CtrlA_male', 'MHI_335_CtrA_male', 'apoe_4_4_CtrlB_female', 'MHI_326_C_male', 'MHI_334_CtrC_female', 'MHI_335_CtrB_female', 'MHI_326_D_female', 'apoe_4_2_A_male', 'apoe_3_4_CtrA_female', 'apoe_4_7_B_male', 'MHI_326_CtrB_male', 'MHI_334_D_female', 'apoe_4_7_A_female', 'apoe_4_2_B_female', 'apoe_3_6_B_male', 'MHI_334_CtrA_male', 'apoe_4_5_CtrA_female', 'apoe_4_4_CtrlD_male', 'apoe_4_4_B_female', 'MHI_326_CtrA_female', 'apoe_3_4_A_female']
 subjects.reverse()
 #subjects = ['C_20220124_007']
 
@@ -49,10 +47,12 @@ for remove in removed_list:
     if remove in subjects:
         subjects.remove(remove)
 
-print(subjects)
 # subjects = ['N58610', 'N58612', 'N58613']
 
-subject_processes, function_processes = parse_arguments(sys.argv, subjects)
+subject_processes, function_processes, firstsubj, lastsubj = parse_arguments(sys.argv, subjects)
+
+subjects = subjects[firstsubj:lastsubj]
+print(subjects)
 
 # subject 'N58610' retired, weird? to investigate
 proc_subjn = ""
@@ -76,6 +76,8 @@ btables = "extract"
 # go back to this if ANY issue with bvals/bvecs
 # extract is as the name implies here to extract the bvals/bvecs from the files around subject data
 # copy takes one known good file for bval and bvec and copies it over to all subjects
+
+"""
 if btables == "extract":
     for subject in subjects:
         # outpathsubj = "/Volumes/dusom_dibs_ad_decode/all_staff/APOE_temp/diffusion_prep_58214/"
@@ -90,6 +92,18 @@ if btables == "extract":
         fbvals, fbvecs = extractbvals(diffpath, subject, outpath=outpathsubj, writeformat=writeformat,
                                       overwrite=False)  # extractbvals_research
         # fbvals, fbvecs = rewrite_subject_bvalues(diffpath, subject, outpath=outpath, writeformat=writeformat, overwrite=overwrite)
+"""
+
+if btables=="extract":
+    for subject in subjects:
+        #outpathsubj = "/Volumes/dusom_dibs_ad_decode/all_staff/APOE_temp/diffusion_prep_58214/"
+        writeformat="tab"
+        writeformat="dsi"
+        subjectpath = glob.glob(os.path.join(os.path.join(diffpath, subject+"*")))[0]
+        subject_outpath = os.path.join(outpath, 'diffusion_prep_' + proc_subjn + subject)
+        mkcdir(subject_outpath)
+        fbvals, fbvecs = extractbvals(subjectpath, subject, outpath=subject_outpath, writeformat=writeformat, overwrite=overwrite) #extractbvals_research
+        #fbvals, fbvecs = rewrite_subject_bvalues(diffpath, subject, outpath=outpath, writeformat=writeformat, overwrite=overwrite)
 elif btables == "copy":
     for subject in subjects:
         # outpathsubj = "/Volumes/dusom_dibs_ad_decode/all_staff/APOE_temp/diffusion_prep_58214/"
@@ -118,11 +132,16 @@ if mp.cpu_count() < max_processors:
 
 # accepted values are "small" for one in ten streamlines, "all or "large" for all streamlines,
 # "none" or None variable for neither and "both" for both of them
-nominal_bval = 2401
+nominal_bval_orig = 2000
 verbose = True
 function_processes = np.int(max_processors / subject_processes)
 results = []
+
+nominal_bval_0 = 221
+
 if subject_processes > 1:
+
+    ### No longer Functional
     if function_processes > 1:
         pool = MyPool(subject_processes)
     else:
@@ -134,6 +153,10 @@ if subject_processes > 1:
                              recenter, verbose) for subject in subjects]).get()
 else:
     for subject in subjects:
+        if subject == 'apoe_4_2_B_female' or subject =='apoe_4_2_A_male':
+            nominal_bval=2401
+        else:
+            nominal_bval=nominal_bval_orig
         max_size = 0
         subjectpath = glob.glob(os.path.join(os.path.join(diffpath,subject + "*")))[0]
         subject_outpath = os.path.join(outpath, 'diffusion_prep_' + proc_subjn + subject)
@@ -142,8 +165,7 @@ else:
             print(f'already did subject {subject}')
         elif os.path.exists(os.path.join('/Volumes/Badea/Lab/APOE_symlink_pool/',
                                          f'{subject}_subjspace_coreg.nii.gz')) and not overwrite:
-            print(
-                f'Could not find subject {subject} in main diffusion folder but result was found in SAMBA prep folder')
+            print(f'Could not find subject {subject} in main diffusion folder but result was found in SAMBA prep folder')
         #elif os.path.exists(os.path.join(
         #        '/Volumes/Data/Badea/Lab/mouse/VBM_20APOE01_chass_symmetric3_allAPOE-work/dwi/SyN_0p5_3_0p5_dwi/dwiMDT_NoNameYet_n32_i5/reg_images/',
         #        f'{subject}_rd_to_MDT.nii.gz')) and not overwrite:

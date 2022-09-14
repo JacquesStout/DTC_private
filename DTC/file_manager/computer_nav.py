@@ -27,7 +27,7 @@ def getremotehome(computer):
 
 def get_mainpaths(remote=False, project='any',username=None,password=None):
     computer_name = socket.gethostname()
-    project_rename = {'Chavez':'21.chavez.01','AD_Decode':'AD_Decode','APOE':'APOE','AMD':'AMD'}
+    project_rename = {'Chavez':'21.chavez.01','AD_Decode':'AD_Decode','APOE':'APOE','AMD':'AMD','Daniel':'Daniel'}
     sftp = None
     computer_n = computer_name.split('.')[0]
 
@@ -203,7 +203,7 @@ def load_trk_remote(trkpath,reference,sftp=None):
         trkdata = load_trk_spe(trkpath, reference)
     return trkdata
 
-def loadmat_remote(matpath, sftp):
+def loadmat_remote(matpath, sftp=None):
     from scipy.io import loadmat
     if sftp is not None:
         temp_path = f'{os.path.join(os.path.expanduser("~"), os.path.basename(matpath))}'
@@ -217,6 +217,20 @@ def loadmat_remote(matpath, sftp):
     else:
         mymat = loadmat(matpath)
     return mymat
+
+
+def true_loadmat(matpath, sftp=None):
+    struct = loadmat_remote(matpath, sftp)
+    var_name = list(struct.keys())[0]
+    mat = struct[var_name]
+    return mat
+
+def ants_loadmat(matpath, sftp=None):
+    old_mat = true_loadmat(matpath, sftp=None)
+    ants_mat =np.eye(4)
+    ants_mat[:3,:3] = old_mat[:-3].reshape((3,3))
+    ants_mat[:3, 3] = old_mat[-3:].reshape(3)
+    return(ants_mat)
 
 def scp_multiple(list,outpath,sftp=None,overwrite=False):
     for filepath in list:
@@ -267,6 +281,13 @@ def glob_remote(path, sftp):
                     if fnmatch.fnmatch(os.path.basename(filepath), os.path.basename(path)):
                         match_files.append(os.path.join(dirpath, filepath))
     return(match_files)
+
+def copy_loctoremote(file,newfile,sftp=None):
+    import shutil
+    if sftp is None:
+        shutil.copy(file,newfile)
+    else:
+        sftp.put(file,newfile,sftp)
 
 def pickledump_remote(var,path,sftp=None):
     if sftp is None:

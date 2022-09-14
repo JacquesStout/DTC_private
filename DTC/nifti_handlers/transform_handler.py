@@ -11,6 +11,142 @@ import os
 import nibabel as nib
 import warnings
 
+from dipy.align.imaffine import (transform_centers_of_mass,
+                                 MutualInformationMetric,
+                                 AffineRegistration)
+from dipy.align.transforms import (TranslationTransform3D,
+                                   RigidTransform3D,
+                                   AffineTransform3D)
+
+def affine_reg(static, static_grid2world,
+               moving, moving_grid2world):
+    # https://gist.github.com/Garyfallidis/42dd1ab04371272050221275c6ab9bd6
+
+    c_of_mass = transform_centers_of_mass(static,
+                                          static_grid2world,
+                                          moving,
+                                          moving_grid2world)
+
+    nbins = 32
+    sampling_prop = None
+    metric = MutualInformationMetric(nbins, sampling_prop)
+
+    level_iters = [500, 100, 10]
+
+    sigmas = [3.0, 1.0, 0.0]
+
+    factors = [4, 2, 1]
+
+    affreg = AffineRegistration(metric=metric,
+                                level_iters=level_iters,
+                                sigmas=sigmas,
+                                factors=factors)
+
+    transform = TranslationTransform3D()
+    params0 = None
+    starting_affine = c_of_mass.affine
+    translation = affreg.optimize(static, moving, transform, params0,
+                                  static_grid2world, moving_grid2world,
+                                  starting_affine=starting_affine)
+
+    transformed = translation.transform(moving)
+
+    transform = RigidTransform3D()
+    params0 = None
+    starting_affine = translation.affine
+    rigid = affreg.optimize(static, moving, transform, params0,
+                            static_grid2world, moving_grid2world,
+                            starting_affine=starting_affine)
+    transformed = rigid.transform(moving)
+
+    transform = AffineTransform3D()
+    params0 = None
+    starting_affine = rigid.affine
+    affine = affreg.optimize(static, moving, transform, params0,
+                             static_grid2world, moving_grid2world,
+                             starting_affine=starting_affine)
+
+    transformed = affine.transform(moving)
+
+    return transformed, affine.affine
+
+
+def trans_reg(static, static_grid2world,
+              moving, moving_grid2world):
+    c_of_mass = transform_centers_of_mass(static,
+                                          static_grid2world,
+                                          moving,
+                                          moving_grid2world)
+
+    nbins = 32
+    sampling_prop = None
+    metric = MutualInformationMetric(nbins, sampling_prop)
+
+    level_iters = [500, 100, 10]
+
+    sigmas = [3.0, 1.0, 0.0]
+
+    factors = [4, 2, 1]
+
+    affreg = AffineRegistration(metric=metric,
+                                level_iters=level_iters,
+                                sigmas=sigmas,
+                                factors=factors)
+
+    transform = TranslationTransform3D()
+    params0 = None
+    starting_affine = c_of_mass.affine
+    translation = affreg.optimize(static, moving, transform, params0,
+                                  static_grid2world, moving_grid2world,
+                                  starting_affine=starting_affine)
+
+    transformed = translation.transform(moving)
+
+    return transformed, translation.affine
+
+
+def rigid_reg(static, static_grid2world,
+              moving, moving_grid2world):
+    c_of_mass = transform_centers_of_mass(static,
+                                          static_grid2world,
+                                          moving,
+                                          moving_grid2world)
+
+    nbins = 32
+    sampling_prop = None
+    metric = MutualInformationMetric(nbins, sampling_prop)
+
+    level_iters = [500, 100, 10]
+
+    sigmas = [3.0, 1.0, 0.0]
+
+    factors = [4, 2, 1]
+
+    affreg = AffineRegistration(metric=metric,
+                                level_iters=level_iters,
+                                sigmas=sigmas,
+                                factors=factors)
+
+    transform = TranslationTransform3D()
+    params0 = None
+    starting_affine = c_of_mass.affine
+    translation = affreg.optimize(static, moving, transform, params0,
+                                  static_grid2world, moving_grid2world,
+                                  starting_affine=starting_affine)
+
+    transformed = translation.transform(moving)
+
+    transform = RigidTransform3D()
+    params0 = None
+    starting_affine = translation.affine
+    rigid = affreg.optimize(static, moving, transform, params0,
+                            static_grid2world, moving_grid2world,
+                            starting_affine=starting_affine)
+    transformed = rigid.transform(moving)
+
+    return transformed, rigid.affine
+
+
 def header_superpose(target_path, origin_path, outpath=None, verbose=False):
     target_nii=nib.load(target_path)
     origin_nii=nib.load(origin_path)
@@ -148,7 +284,7 @@ def header_superpose_trk(target_path, origin_path, outpath=None):
                                 affine=target_affine, header=myheader)
 
 
-def affine_superpose(target_path, origin_path, outpath=None, transpose=None):
+def affine_superpose(target_path, origin_path, outpath=None, transpose=None, verbose=False):
     target_nii=nib.load(target_path)
     origin_nii=nib.load(origin_path)
     if np.shape(target_nii._data)[0:3] != np.shape(origin_nii._data)[0:3]:
@@ -164,6 +300,8 @@ def affine_superpose(target_path, origin_path, outpath=None, transpose=None):
             if outpath is None:
                 outpath = origin_path
             nib.save(new_nii, outpath)
+            if verbose:
+                print(f'Used affine of {target_path} for data in {origin_path} to create {outpath}')
             return 1 #returns 1 if it saved a new file
         else:
             shutil.copy(origin_path,outpath)
@@ -430,7 +568,25 @@ def add_translation(img, output_path, translation, verbose):
         print(f'Saved')
 
 
-def img_transform_exec(img, current_vorder, desired_vorder, output_path=None, write_transform=0, rename = True, recenter=False, verbose=False):
+def recenter_to_eye(nii,output_path,verbose=False):
+
+    if isinstance(nii,str):
+        nii=nib.load(nii)
+    newaffine = np.eye(4)
+    d = np.einsum('ii->i', newaffine)
+    d[0:3] *= nii.header['pixdim'][1:4]
+    # newaffine = recenter_affine(np.shape(new_data),newaffine)
+    newaffine = recenter_affine_test(np.shape(nii.get_data()), newaffine)
+    newaffine[:3, 3] += 0.1
+
+    new_nii=nib.Nifti1Image(nii.get_data(), newaffine, nii.header)
+    output_path = str(output_path)
+    if verbose:
+        print(f'Saving nifti file to {output_path}')
+    nib.save(new_nii, output_path)
+
+
+def img_transform_exec(img, current_vorder, desired_vorder, output_path=None, write_transform=0, rename = True, recenter=False, recenter_test= False, recenter_eye=False, recenter_flipaffine=False, verbose=False):
 
     is_RGB = 0;
     is_vector = 0;
@@ -512,7 +668,7 @@ def img_transform_exec(img, current_vorder, desired_vorder, output_path=None, wr
         x_row = affine[0,:]
         y_row = affine[1,:]
         z_row = affine[2,:]
-
+        flipping = [1,1,1]
         xpos=desired_vorder.find(current_vorder[0])
         if xpos == -1:
             if verbose:
@@ -524,6 +680,7 @@ def img_transform_exec(img, current_vorder, desired_vorder, output_path=None, wr
             if is_vector:
                 new_data[:,:,:,0,1]=-new_data[:,:,:,0,1]
             x_row = [-1 * val for val in x_row]
+            flipping[0] = -1
 
         ypos=desired_vorder.find(current_vorder[1])
         if ypos == -1:
@@ -536,6 +693,8 @@ def img_transform_exec(img, current_vorder, desired_vorder, output_path=None, wr
             if is_vector:
                 new_data[:,:,:,0,2]=-new_data[:,:,:,0,2]
             y_row = [-1 * val for val in y_row]
+            flipping[1] = -1
+
 
         zpos=desired_vorder.find(current_vorder[2])
         if zpos == -1:
@@ -548,6 +707,8 @@ def img_transform_exec(img, current_vorder, desired_vorder, output_path=None, wr
             if is_vector:
                 new_data[:,:,:,0,2]=-new_data[:,:,:,0,2]
             z_row = [-1 * val for val in z_row]
+            flipping[2] = -1
+
 
         xpos = current_vorder.find(desired_vorder[0])
         ypos = current_vorder.find(desired_vorder[1])
@@ -611,6 +772,8 @@ def img_transform_exec(img, current_vorder, desired_vorder, output_path=None, wr
     newaffine[3,:]=[0,0,0,1]
     newaffine[:3,3]=trueorigin
 
+    #affine_transform = np.array([x_row, y_row, z_row, affine[3, :]])
+    #affine_transform.transpose(xpos, ypos, zpos)
     if recenter:
         """
         newdims = np.shape(new_data)
@@ -619,7 +782,15 @@ def img_transform_exec(img, current_vorder, desired_vorder, output_path=None, wr
         newaffine[2,3] = -(newdims[2] * newaffine[2,2]* 0.5)+0.045
         """
         newaffine = recenter_affine(np.shape(new_data),newaffine)
-
+    elif recenter_test:
+        newaffine[:3,3] = origin * flipping
+    elif recenter_eye:
+        newaffine = np.eye(4)
+        d = np.einsum('ii->i', newaffine)
+        d[0:3] *= nii.header['pixdim'][1:4]
+        #newaffine = recenter_affine(np.shape(new_data),newaffine)
+        newaffine = recenter_affine_test(np.shape(new_data), newaffine)
+        newaffine[:3,3] += 0.1
         #newaffine[0,:]=x_row
         #newaffine[1,:]=y_row
         #newaffine[2,:]=z_row
@@ -627,6 +798,12 @@ def img_transform_exec(img, current_vorder, desired_vorder, output_path=None, wr
         #newhdr.srow_y=[newaffine[1,0:3]]
         #newhdr.srow_z=[newaffine[2,0:3]]
         #newhdr.pixdim=hdr.pixdim
+    elif recenter_flipaffine:
+        newaffine = affine_transform
+
+    else:
+        ## ADDED THIS ELSE OPTION FOR CONSISTENCY, MIGHT NEED TO SWITCH BACK AFTERWARDS IF OTHER STUFF BREAKS!!!!!
+        newaffine = affine
 
     new_nii=nib.Nifti1Image(new_data, newaffine, hdr)
     output_path = str(output_path)
@@ -716,6 +893,8 @@ def get_flip_affine(current_vorder, desired_vorder):
     y_row = affine[1,:]
     z_row = affine[2,:]
 
+    affine_temp = np.eye(4)
+
     xpos=desired_vorder.find(current_vorder[0])
     if xpos == -1:
         print('Flipping first dimension')
@@ -726,6 +905,7 @@ def get_flip_affine(current_vorder, desired_vorder):
         #if is_vector:
         #    new_data[:,:,:,0,1]=-new_data[:,:,:,0,1]
         x_row = [-1 * val for val in x_row]
+        affine_temp[0,:] = x_row
 
     ypos=desired_vorder.find(current_vorder[1])
     if ypos == -1:
@@ -737,6 +917,8 @@ def get_flip_affine(current_vorder, desired_vorder):
         #if is_vector:
         #    new_data[:,:,:,0,2]=-new_data[:,:,:,0,2]
         y_row = [-1 * val for val in y_row]
+        affine_temp[1,:] = y_row
+
 
     zpos=desired_vorder.find(current_vorder[2])
     if zpos == -1:
@@ -748,6 +930,7 @@ def get_flip_affine(current_vorder, desired_vorder):
         #if is_vector:
         #    new_data[:,:,:,0,2]=-new_data[:,:,:,0,2]
         z_row = [-1 * val for val in z_row]
+        affine_temp[2,:] = z_row
 
     xpos=current_vorder.find(desired_vorder[0])
     ypos=current_vorder.find(desired_vorder[1])
@@ -759,7 +942,8 @@ def get_flip_affine(current_vorder, desired_vorder):
     trueorigin=origin*[x_row[0],y_row[1],z_row[2]]
     #trueorigin[2]=trueorigin[2]*(-1)
 
-    affine_transform = np.array([x_row,y_row,z_row,affine[3,:]])
+    #affine_transform = np.array([x_row,y_row,z_row,affine[3,:]])
+    affine_transform = np.array([affine_temp[xpos,:], affine_temp[ypos,:], affine_temp[zpos,:], affine[3, :]])
 
     newaffine=np.zeros([4,4])
     if not desired_vorder==orig_current_vorder:
@@ -777,7 +961,7 @@ def get_flip_affine(current_vorder, desired_vorder):
     else:
         newaffine=affine
 
-    return affine_transform, newaffine
+    return affine_transform#, newaffine
 
 
 def get_flip_bvecs(bvecs, current_vorder, desired_vorder, output_file=None, writeformat = 'line'):

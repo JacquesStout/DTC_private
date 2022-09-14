@@ -30,8 +30,6 @@ for subject_folder in subjects_folders:
 
 #removed_list = ['N58794','N58514','N58305','N58613','N58346','N58344','N58788']
 
-
-#subjects = ['N58794','N58514','N58305','N58613','N58346','N58344','N58788']
 subject_processes, function_processes, firstsubj, lastsubj = parse_arguments(sys.argv, subjects)
 
 removed_list = ['N58613']

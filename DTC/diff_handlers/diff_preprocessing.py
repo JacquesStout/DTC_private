@@ -352,8 +352,11 @@ def launch_preprocessing(subj, raw_nii, outpath, cleanup=False, nominal_bval=400
             select_cmd = f"select_dwi_vols {raw_nii} {bvals} {raw_dwi} {nominal_bval} -m"
             os.system(select_cmd)
         if not os.path.exists(b0_dwi) or overwrite:
-            select_cmd = f"select_dwi_vols {raw_nii} {bvals} {b0_dwi} 0 -m"
-            os.system(select_cmd)
+            b0_val = 0
+            while not os.path.exists(b0_dwi) or b0_val > (nominal_bval / 2):
+                cmd = f'select_dwi_vols {raw_nii} {bvals} {b0_dwi} {b0_val}  -m;'
+                os.system(cmd)
+                b0_val += 50
         if not os.path.exists(tmp_mask) or overwrite:
             if 'median' in masking:
                 tmp = tmp_mask.replace("_mask", "")
@@ -461,8 +464,12 @@ def launch_preprocessing(subj, raw_nii, outpath, cleanup=False, nominal_bval=400
     b0_out = os.path.join(work_dir, f'{subj}_b0{ext}')
     #if (not os.path.exists(b0_out) and not os.path.exists(tmp_b0_out)) or overwrite:
     if not os.path.exists(tmp_b0_out) or overwrite:
-        cmd=f'select_dwi_vols {coreg_nii} {bvals} {tmp_b0_out} 0  -m;'
-        os.system(cmd)
+        b0_val = 0
+        while not os.path.exists(tmp_b0_out) or b0_val>(nominal_bval/2):
+            cmd=f'select_dwi_vols {coreg_nii} {bvals} {tmp_b0_out} {b0_val}  -m;'
+            os.system(cmd)
+            b0_val+=50
+
     #overwrite=False
     #elif cleanup and os.path.exists(tmp_b0_out):
     #    os.remove(tmp_b0_out)
