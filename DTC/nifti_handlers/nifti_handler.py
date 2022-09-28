@@ -17,6 +17,10 @@ import errno
 from DTC.file_manager.computer_nav import load_nifti_remote, glob_remote, checkfile_exists_remote, read_bvals_bvecs_remote
 import numpy as np
 import nibabel as nib
+from DTC.file_manager.BIAC_tools import send_mail
+import pathlib
+from DTC.diff_handlers.bvec_handler import fix_bvals_bvecs, reorient_bvecs
+from dipy.core.gradients import gradient_table
 
 def getfa(mypath, subject, bvec_orient, verbose=None):
 

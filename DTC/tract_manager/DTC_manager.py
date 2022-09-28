@@ -566,7 +566,6 @@ def tract_connectome_analysis(diffpath, trkpath, str_identifier, outpath, subjec
         pruned_streamlines_SL = trkprunedata.streamlines
 
         streamlines_test = list(pruned_streamlines_SL)
-        from visualization_tools.figures_handler import viewstreamlines_anat
         #viewstreamlines_anat(streamlines_test, mask, affinemask, ratio=100, threshold=10., verbose=False)
         """
         endpoints = [sl[0::len(sl) - 1] for sl in streamlines_test]

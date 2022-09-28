@@ -4,12 +4,12 @@ import multiprocessing as mp
 import glob
 import os
 import sys
-from diff_handlers.bvec_handler import extractbvals, rewrite_subject_bvalues, fix_bvals_bvecs
-from diff_handlers.diff_preprocessing import launch_preprocessing
-from file_manager.file_tools import mkcdir, largerfile
-from nifti_handlers.transform_handler import get_transpose
+from DTC.diff_handlers.bvec_handler import extractbvals, rewrite_subject_bvalues, fix_bvals_bvecs, extractbvals_fromheader
+from DTC.diff_handlers.diff_preprocessing import launch_preprocessing
+from DTC.file_manager.file_tools import mkcdir, largerfile
+from DTC.nifti_handlers.transform_handler import get_transpose
 import shutil
-from file_manager.argument_tools import parse_arguments
+from DTC.file_manager.argument_tools import parse_arguments
 
 munin=False
 if munin:
@@ -47,7 +47,8 @@ subjects = ['02230','02231','02490','02523','02745','02266','02289','02320','023
 subjects = ['01912', '02110', '02224', '02227', '02230', '02231', '02266', '02289', '02320', '02361', '02363', '02373', '02386', '02390', '02402', '02410', '02421', '02424', '02446', '02451', '02469', '02473', '02485', '02491', '02490', '02506', '02523', '02524']
 subjects.reverse()
 """
-subjects = ['01912', '02110', '02224', '02227', '02230', '02231', '02266', '02289', '02320', '02361', '02363', '02373', '02386', '02390', '02402', '02410', '02421', '02424', '02446', '02451', '02469', '02473', '02485', '02491', '02490', '02506', '02523', '02524', '02535', '02654', '02666', '02670', '02686', '02690', '02695', '02715', '02720', '02737', '02745', '02753', '02765', '02771', '02781', '02802', '02804', '02813', '02812', '02817', '02840', '02842', '02871', '02877', '02898', '02926', '02938', '02939', '02954', '02967', '02987', '03010', '03017', '03028', '03033', '03034', '03045', '03048', '03069', '03225', '03265', '03293', '03308', '03321']
+subjects = ['01912', '02110', '02224', '02227', '02230', '02231', '02266', '02289', '02320', '02361', '02363', '02373', '02386', '02390', '02402', '02410', '02421', '02424', '02446', '02451', '02469', '02473', '02485', '02491', '02490', '02506', '02523', '02524', '02535', '02654', '02666', '02670', '02686', '02690', '02695', '02715', '02720', '02737', '02745', '02753', '02765', '02771', '02781', '02802', '02804', '02813', '02812', '02817', '02840', '02842', '02871', '02877', '02898', '02926', '02938', '02939', '02954', '02967', '02987', '03010', '03017', '03028', '03033', '03034', '03045', '03048', '03069', '03225', '03265', '03293', '03308', '03321', '03343', '03350', '03378', '03391', '03394', '03847', '03866', '03867', '03889', '03890', '03896']
+subjects = ['03847', '03866', '03867', '03889', '03890', '03896']
 
 removed_list = ['02230','02490','02523','02745']
 #subjects = ['01912']
@@ -85,7 +86,7 @@ recenter=0
 transpose=None
 
 #btables=["extract","copy","None"]
-btables="copy"
+btables="extract"
 #Neither copy nor extract are fully functioning right now, for now the bvec extractor from extractdiffdirs works
 #go back to this if ANY issue with bvals/bvecs
 #extract is as the name implies here to extract the bvals/bvecs from the files around subject data
@@ -93,10 +94,26 @@ btables="copy"
 if btables=="extract":
     for subject in subjects:
         #outpathsubj = "/Volumes/dusom_dibs_ad_decode/all_staff/APOE_temp/diffusion_prep_58214/"
+        """
         outpathsubj = outpath + "_" + subject
         writeformat="tab"
         writeformat="dsi"
         fbvals, fbvecs = extractbvals(diffpath, subject, outpath=outpath, writeformat=writeformat, overwrite=True)
+        """
+
+        writeformat="tab"
+        writeformat="dsi"
+        subjectpath = glob.glob(os.path.join(os.path.join(diffpath, "*"+subject+"*")))[0]
+        bxh_file=largerfile(subjectpath).replace('.nii.gz','.bxh')
+        subject_outpath = os.path.join(outpath, 'diffusion_prep_' + proc_subjn + subject)
+        mkcdir(subject_outpath)
+        #fbvals, fbvecs = extractbvals(subjectpath, subject, outpath=subject_outpath, writeformat=writeformat, overwrite=overwrite)
+        if not os.path.exists(os.path.join(subject_outpath,proc_subjn + subject+"_bvals.txt")) or overwrite:
+            fbvals, fbvecs, _, _, _, _ = extractbvals_fromheader(bxh_file,
+                                                                fileoutpath=os.path.join(subject_outpath,proc_subjn + subject),
+                                                                writeformat=writeformat,
+                                                                save="all")
+
         #fbvals, fbvecs = rewrite_subject_bvalues(diffpath, subject, outpath=outpath, writeformat=writeformat, overwrite=overwrite)
 elif btables=="copy":
     for subject in subjects:

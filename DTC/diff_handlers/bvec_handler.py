@@ -413,7 +413,7 @@ def extractbvals_fromgrads(source_file,fileoutpath=None,tonorm=True,verbose=Fals
         return bval_file, bvecs_file, bvals, dsl, dpe, dro
 
 
-def extractbvals_fromheader(source_file,fileoutpath=None,save=None,verbose=True):
+def extractbvals_fromheader(source_file,fileoutpath=None,save=None,writeformat= 'classic', verbose=True):
 
     bvals = dsl = dpe = dro = None
     if save is not None:
@@ -501,16 +501,45 @@ def extractbvals_fromheader(source_file,fileoutpath=None,save=None,verbose=True)
     if save == "all":
         bval_file=fileoutpath+"_bvals.txt"
         print(bval_file)
-        File_object = open(bval_file,"w")
-        File_object.write(bvals)
-        File_object.close()
+
+        if writeformat == "classic":
+            File_object = open(bval_file, "w")
+            try:
+                File_object.write(bvals)
+            except:
+                print('hi')
+            File_object.close()
+        if writeformat == "dsi":
+            bvals = bvals.split('\n')
+            with open(bval_file, 'w') as File_object:
+                for bval in bvals:
+                    if int(bval) > 10:
+                        bval = int(round(float(bval)))
+                    else:
+                        bval = 0
+                    File_object.write(str(bval) + "\t")
 
         if 'bvecs' in locals() and np.size(bvecs)>0:
             bvecs_file=fileoutpath+"_bvecs.txt"
-            File_object = open(bvecs_file,"w")
-            for bvec in bvecs:
-                File_object.write(str(bvec[0]) + " " + str(bvec[1]) + " " + str(bvec[2]) + "\n")
-            File_object.close()
+            if writeformat == "classic":
+                File_object = open(bvecs_file,"w")
+                for bvec in bvecs:
+                    File_object.write(str(bvec[0]) + " " + str(bvec[1]) + " " + str(bvec[2]) + "\n")
+                File_object.close()
+
+            if writeformat == "dsi":
+                with open(bvecs_file, 'w') as File_object:
+                    for i in [0, 1, 2]:
+                        for j in np.arange(np.shape(bvecs)[0]):
+                            if float(bvecs[j][i]) == 0:
+                                bvec = 0
+                            else:
+                                bvec = round(float(bvecs[j][i]), 3)
+                            File_object.write(str(bvec) + "\t")
+                        File_object.write("\n")
+                    File_object.close()
+
+
             dsl = []
             dpe = []
             dro = []
@@ -626,7 +655,25 @@ def find_bval_bvecs(subjectpath, subject="",outpath=None):
     grads_txt = glob.glob(os.path.join(subjectpath,"*grads.txt"))
     headfile = glob.glob(os.path.join(subjectpath,"*studio.headfile"))
 
-    if np.size(headfile)>0:
+    if np.size(fbtable)>0:
+        bvals_all=[]
+        bvecs_all=[]
+        fbtable=fbtable[0]
+        with open(fbtable, 'rb') as source:
+            for line in source:
+                bvals = str(line).split("'")[1]
+                bvals = bvals.split("\\n")[0]
+                bvals = bvals.split("\\t")
+                bvals_all.append(float(bvals[0]))
+                bvecs_all.append([float(bvals[1]), float(bvals[2]), float(bvals[3])])
+        #return np.array(bvals), np.array(bvecs)
+        bvals_all = np.array(bvals_all)
+        bvecs_all = np.array(bvecs_all)
+        fbvals = os.path.join(outpath,f'{subject}_bvals.txt')
+        fbvecs = os.path.join(outpath,f'{subject}_bvecs.txt')
+        writebval(bvals_all, fbvals, subject=subject, writeformat = "line", overwrite=False)
+        writebvec(bvecs_all, fbvecs, subject=subject, writeformat = "classic", overwrite=False)
+    elif np.size(headfile)>0:
         fbvals, fbvecs, _, _, _, _ = extractbvals_fromheader(headfile[0],
                                                             fileoutpath=os.path.join(outpath, subject),
                                                             save="all")

@@ -12,7 +12,7 @@ import shutil
 import numpy as np
 import errno
 import os
-from DTC.file_manager.file_tools import getremotehome
+from DTC.file_manager.computer_nav import getremotehome
 
 def get_info_SAMBA_headfile(SAMBA_headfile, verbose=False):
 
@@ -186,6 +186,7 @@ def create_backport_labels(subject, mainpath, project_name, prep_folder, atlas_l
             else:
                 if verbose:
                     print(f"Orientations are the same, skipping reorientation")
+                    shutil.copy(fixed_preprocess_labels, coreg_labels)
                 #if coreg_labels != coreg_reorient_labels:
                 #    warnings.warn('There is a discrepancy between the stated input orientation in headfile and the '
                 #                  'one found by find_relative_orientation_by_CoM.bash, beware')

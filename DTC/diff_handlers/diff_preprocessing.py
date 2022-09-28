@@ -35,6 +35,7 @@ from DTC.file_manager.file_tools import largerfile, mkcdir, getext, buildlink
 import glob
 from DTC.nifti_handlers.atlas_handlers.mask_handler import applymask_samespace, median_mask_make
 import time
+from DTC.gunnies.basic_LPCA_denoise import basic_LPCA_denoise_func
 
 
 def string_inclusion(string_option,allowed_strings,option_name):
@@ -293,6 +294,7 @@ def launch_preprocessing(subj, raw_nii, outpath, cleanup=False, nominal_bval=400
 
     proc_name ="diffusion_prep_" # Not gonna call it diffusion_calc so we don't assume it does the same thing as the civm pipeline
     work_dir=os.path.join(outpath,proc_name+subj)
+    overwrite=False
     """
     for filePath in glob.glob(os.path.join(work_dir,'*')):
         modTimesinceEpoc = os.path.getmtime(filePath)
@@ -409,7 +411,7 @@ def launch_preprocessing(subj, raw_nii, outpath, cleanup=False, nominal_bval=400
             if not os.path.exists(masked_nii) or overwrite:
                 fsl_cmd = f"fslmaths {raw_nii} -mas {tmp_mask} {masked_nii} -odt 'input'";
                 os.system(fsl_cmd)
-            gunnies.basic_LPCA_denoise_func(subj,masked_nii,bvecs,denoised_nii, processes=processes,
+            basic_LPCA_denoise_func(subj,masked_nii,bvecs,denoised_nii, processes=processes,
                                     denoise=denoise, verbose=False) #to improve and make multiprocessing
 
     #if cleanup and os.path.exists(denoised_nii) and os.path.exists(masked_nii) and denoised_nii!=masked_nii:

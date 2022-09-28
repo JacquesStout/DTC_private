@@ -62,7 +62,7 @@ else:
     remote=False
 if remote:
     username, passwd = getfromfile('/Users/jas/remote_connect.rtf')
-inpath, outpath, _, sftp = get_mainpaths(remote,project = 'AMD', username=username,password=passwd)
+inpath, outpath, _, sftp = get_mainpaths(remote,project = project, username=username,password=passwd)
 
 
 testing = False

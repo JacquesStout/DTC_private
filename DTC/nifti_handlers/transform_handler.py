@@ -10,6 +10,7 @@ import shutil
 import os
 import nibabel as nib
 import warnings
+from dipy.align.reslice import reslice
 
 from dipy.align.imaffine import (transform_centers_of_mass,
                                  MutualInformationMetric,
@@ -107,6 +108,12 @@ def trans_reg(static, static_grid2world,
 
 def rigid_reg(static, static_grid2world,
               moving, moving_grid2world):
+
+    moving_orig = moving
+    if np.size(np.shape(moving))>3:
+        moving_orig = moving
+        moving = moving[...,0]
+
     c_of_mass = transform_centers_of_mass(static,
                                           static_grid2world,
                                           moving,
@@ -142,7 +149,19 @@ def rigid_reg(static, static_grid2world,
     rigid = affreg.optimize(static, moving, transform, params0,
                             static_grid2world, moving_grid2world,
                             starting_affine=starting_affine)
-    transformed = rigid.transform(moving)
+    #transformed = np.zeros(list(np.shape(rigid.transform(moving_orig[...,0])))+[np.shape(moving_orig)[3]])
+    #transformed = np.zeros(np.shape(moving_orig))
+    #transformed = np.zeros(list(np.shape(reslice(rigid.transform(moving_orig[...,0]), moving_grid2world, [0.1,0.1,0.1], [0.3,0.3,0.3])[0]))+[np.shape(moving_orig)[3]])
+    transformed = np.zeros(list(np.shape(rigid.transform(moving_orig[..., 0]))) + [np.shape(moving_orig)[3]])
+    #if reslice:
+        #transformed, reslice_affine = reslice(rigid.transform(moving_orig), moving_grid2world,
+        #                                             [0.1, 0.1, 0.1], [0.3, 0.3, 0.3])
+    #for i in np.arange(np.shape(moving_orig)[3]):
+    #transformed[..., i], reslice_affine = reslice(rigid.transform(moving_orig[..., i]), moving_grid2world,
+     #                                             [0.1, 0.1, 0.1], [0.3, 0.3, 0.3])
+
+    for i in np.arange(np.shape(moving_orig)[3]):
+        transformed[..., i] = rigid.transform(moving_orig[..., i])
 
     return transformed, rigid.affine
 

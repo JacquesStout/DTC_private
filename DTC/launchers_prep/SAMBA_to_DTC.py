@@ -82,11 +82,11 @@ elif project == "AD_Decode":
     #SAMBA_prep_folder = os.path.join(SAMBA_mainpath, SAMBA_projectname+"-inputs")
     SAMBA_prep_folder = os.path.join(mainpath, "human","ADDeccode_symlink_pool_allfiles")
     atlas_labels = os.path.join(mainpath, "atlas","IITmean_RPI","IITmean_RPI_labels.nii.gz")
-    atlas_legends = os.path.join(mainpath, "/atlases/IITmean_RPI/IITmean_RPI_index.xlsx")
+    atlas_legends = os.path.join(mainpath, "atlases/IITmean_RPI/IITmean_RPI_index.xlsx")
     DTC_DWI_folder = os.path.join(mainpath, "..","ADdecode.01","Analysis","DWI")
     DTC_labels_folder = os.path.join(mainpath, "..","ADdecode.01","Analysis","DWI")
     DTC_transforms = os.path.join(mainpath, "..","ADdecode.01","Analysis","Transforms")
-
+    atlas_name = 'IITmean_RPI'
     DTC_DWI_folder = "DWI"
     DTC_labels_folder = "DWI"
 
@@ -119,6 +119,8 @@ elif project == "AD_Decode":
                 'S02373', 'S02386', 'S02390', 'S02402', 'S02410', 'S02421', 'S02424', 'S02446', 'S02451', 'S02469',
                 'S02473',
                 'S02485', 'S02491', 'S02490', 'S02506']
+    subjects = ['S03847', 'S03866', 'S03867', 'S03889', 'S03890', 'S03896']
+
     subjects_all = glob.glob(os.path.join(SAMBA_work_folder, 'preprocess','*_dwi_masked.nii.gz'))
     subjects = []
     for subject in subjects_all:
@@ -128,6 +130,9 @@ elif project == "AD_Decode":
     for remove in removed_list:
         if remove in subjects:
             subjects.remove(remove)
+
+    #subjects = ['S03847', 'S03866', 'S03867', 'S03889', 'S03890', 'S03896']
+
 
     #oldsubjects = ["01912", "02110", "02224", "02227", "02230", "02231", "02266", "02289", "02320", "02361",
     # #           "02363", "02373", "02386", "02390", "02402", "02410", "02421", "02424", "02446", "02451",
@@ -317,7 +322,7 @@ if project != "AMD":
         else:
             subjectpath = SAMBA_label_folder
 
-        labelspath = glob.glob(os.path.join(subjectpath, f'{subject}*{atlas_name}*labels.nii*'))
+        labelspath = glob.glob(os.path.join(subjectpath, f'{subject}*{atlas_name}*_labels.nii*'))
         if np.size(labelspath) == 1:
             labelspath = labelspath[0]
         else:

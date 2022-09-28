@@ -22,7 +22,7 @@ import sys
 remote=True
 project='APOE'
 if remote:
-    username, passwd = getfromfile(os.path.join(os.environ['HOME'],'samos_connect.rtf'))
+    username, passwd = getfromfile(os.path.join(os.environ['HOME'],'remote_connect.rtf'))
 else:
     username = None
     passwd = None

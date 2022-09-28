@@ -1,18 +1,18 @@
 
 import numpy as np
 import glob
-from diff_handlers.bvec_handler import orient_to_str
-from tract_manager.DTC_manager import create_tracts, tract_connectome_analysis, get_diffusionattributes
-from file_manager.Daemonprocess import MyPool
+from DTC.diff_handlers.bvec_handler import orient_to_str
+from DTC.tract_manager.DTC_manager import create_tracts, tract_connectome_analysis, get_diffusionattributes
+from DTC.file_manager.Daemonprocess import MyPool
 import multiprocessing as mp
 import os
-from file_manager.file_tools import mkcdir, getfromfile
+from DTC.file_manager.file_tools import mkcdir, getfromfile
 from time import time
-from file_manager.argument_tools import parse_arguments
+from DTC.file_manager.argument_tools import parse_arguments
 import sys
 import socket
 import random
-from file_manager.computer_nav import get_mainpaths, get_atlas
+from DTC.file_manager.computer_nav import get_mainpaths, get_atlas
 
 remote=True
 project='AD_Decode'
@@ -20,7 +20,7 @@ project='AD_Decode'
 computer_name = socket.gethostname()
 
 if remote:
-    username, passwd = getfromfile(os.path.join(os.environ['HOME'],'samos_connect.rtf'))
+    username, passwd = getfromfile(os.path.join(os.environ['HOME'],'remote_connect.rtf'))
 else:
     username = None
     passwd = None
@@ -41,7 +41,9 @@ subjects = ['S01912', 'S02110', 'S02224', 'S02227', 'S02230', 'S02231', 'S02266'
         'S02690', 'S02695', 'S02715', 'S02720', 'S02737', 'S02745', 'S02753', 'S02765', 'S02771', 'S02781', 'S02802',
         'S02804', 'S02813', 'S02812', 'S02817', 'S02840', 'S02842', 'S02871', 'S02877', 'S02898', 'S02926', 'S02938',
         'S02939', 'S02954', 'S02967', 'S02987', 'S03010', 'S03017', 'S03028', 'S03033', 'S03034', 'S03045', 'S03048',
-        'S03069', 'S03225', 'S03265', 'S03293', 'S03308', 'S03321', 'S03343', 'S03350', 'S03378', 'S03391', 'S03394']
+        'S03069', 'S03225', 'S03265', 'S03293', 'S03308', 'S03321', 'S03343', 'S03350', 'S03378', 'S03391', 'S03394',
+            'S03847', 'S03866', 'S03867', 'S03889', 'S03890', 'S03896']
+subjects.reverse()
 removed_list = ["S02745","S02230","S02490","S02523"]
 for remove in removed_list:
     if remove in subjects:
@@ -76,7 +78,7 @@ savefa = True
 reference_weighting = None
 volume_weighting = True
 make_tracts = True
-make_connectomes = False
+make_connectomes = True
 
 classifiertype = "binary"
 brainmask = "subjspace"

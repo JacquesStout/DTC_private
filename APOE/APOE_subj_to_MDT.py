@@ -66,7 +66,7 @@ if project == "APOE":
     path_transforms = os.path.join(inpath, 'Transforms')
     path_TRK = os.path.join(inpath, 'TRK_RAS')
     path_trk_tempdir = os.path.join(outpath, 'TRK_transition')
-    path_TRK_output = os.path.join(outpath, 'TRK_MDT_real')
+    path_TRK_output = os.path.join(outpath, 'TRK_MDT_real_testtemp')
     ref = "md"
     DWI_save = os.path.join(outpath, 'NII_trans_save')
     mkcdir([DWI_save, path_DWI_MDT, path_TRK_output, path_trk_tempdir],sftp=sftp)
@@ -173,7 +173,6 @@ for subj in subjects:
     MDT_exists = checkfile_exists_remote(trk_MDT_space, sftp)
 
     if not MDT_exists or overwrite:
-
 
         print(f'Beginning the moving of subject {subj} to {trk_MDT_space}')
         tstart = time.perf_counter()
