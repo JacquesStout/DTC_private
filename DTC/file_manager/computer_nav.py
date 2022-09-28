@@ -27,7 +27,7 @@ def getremotehome(computer):
 
 def get_mainpaths(remote=False, project='any',username=None,password=None):
     computer_name = socket.gethostname()
-    project_rename = {'Chavez':'21.chavez.01','AD_Decode':'AD_Decode','APOE':'APOE','AMD':'AMD','Daniel':'Daniel'}
+    project_rename = {'Chavez':'21.chavez.02','AD_Decode':'AD_Decode','APOE':'APOE','AMD':'AMD','Daniel':'Daniel'}
     sftp = None
     computer_n = computer_name.split('.')[0]
 

@@ -15,6 +15,10 @@ subjects = ['sub22040413', 'sub22040411', 'sub2204041', 'sub22040410', 'sub22040
             'sub2206061', 'sub22060610', 'sub22060611', 'sub22060612', 'sub22060613', 'sub22060614', 'sub2206062',
             'sub2206063', 'sub2206064', 'sub2206065', 'sub2206066', 'sub2206067', 'sub2206068', 'sub2206069']
 subjects = ['sub2206061', 'sub22060610', 'sub22060611', 'sub22060612', 'sub22060613', 'sub22060614', 'sub2206062']
+subjects = ['sub2206061', 'sub22060610', 'sub22060611']
+subjects = ['sub22060612', 'sub22060613', 'sub22060614', 'sub2206062']
+subjects = ['sub2206063', 'sub2206064', 'sub2206065', 'sub2206066']
+subjects = ['sub2206067', 'sub2206068', 'sub2206069']
 #subjects = ['sub2206063', 'sub2206064', 'sub2206065', 'sub2206066', 'sub2206067', 'sub2206068', 'sub2206069']
 #subjects = ['sub2206069']
 #subjects = ['sub22040413', 'sub22040411', 'sub2204041', 'sub22040410', 'sub2204042', 'sub2204043', 'sub2204044',
@@ -248,8 +252,8 @@ for subj in subjects:
                 os.remove(tmpfile)
 
             tempfolders = [split_subject_folder_transf,split_subject_folder]
-            for tmpfile in tempfolders:
-                os.rmdir(tmpfile)
+            for tmpfolder in tempfolders:
+                os.rmdir(tmpfolder)
     else:
         print(f'already wrote {subj_anat_sambad} and {subj_func_sambad}')
 

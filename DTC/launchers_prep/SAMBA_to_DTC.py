@@ -14,9 +14,9 @@ from DTC.nifti_handlers.atlas_handlers.convert_atlas_mask import convert_labelma
 #project = ["AD_Decode", "APOE"]
 #project = "APOE"
 #project = "AMD"
-project = 'AD_Decode'
+#project = 'AD_Decode'
 #project = 'AMD'
-#project = 'Chavez'
+project = 'Chavez'
 verbose = True
 mainpath = getremotehome('Lab')
 SAMBA_headfile_dir = os.path.join(mainpath, "samba_startup_cache")
@@ -30,9 +30,10 @@ if project == 'Chavez':
     SAMBA_mainpath = os.path.join(mainpath, "mouse")
 
     #SAMBA_projectname = "VBM_20APOE01_chass_symmetric3_allAPOE"
-    SAMBA_projectname = "VBM_21Chavez01_chass_symmetric3_all"
+    #SAMBA_projectname = "VBM_21Chavez01_chass_symmetric3_all"
+    SAMBA_projectname = "VBM_21Chavez02_chass_symmetric3_all"
 
-    SAMBA_headfile = os.path.join(SAMBA_headfile_dir, "rja20_hm190_SAMBA_Chavez.headfile")
+    SAMBA_headfile = os.path.join(SAMBA_headfile_dir, "jas297_SAMBA_Chavez_set.headfile")
 
     gunniespath = "~/gunnies/"
     recenter = 0
@@ -53,7 +54,11 @@ if project == 'Chavez':
     copytype = "truecopy"
     overwrite = False
     preppath = None
-    subjects = ['C_20220124_001', 'C_20220124_002', 'C_20220124_003', 'C_20220124_004', 'C_20220124_005', 'C_20220124_006', 'C_20220124_007']
+    subjects = ['apoe_3_6_CtrlA_male', 'MHI_335_CtrA_male', 'apoe_4_4_CtrlB_female','MHI_326_C_male','MHI_334_CtrC_female',
+                'MHI_335_CtrB_female','MHI_326_D_female','apoe_4_2_A_male','apoe_3_4_CtrA_female','apoe_4_7_B_male',
+                'MHI_326_CtrB_male','MHI_334_D_female','apoe_4_7_A_female','apoe_4_2_B_female','apoe_3_6_B_male',
+                'MHI_334_CtrA_male','apoe_4_5_CtrA_female','apoe_4_4_CtrlD_male','apoe_4_4_B_female','MHI_326_CtrA_female',
+                'apoe_3_4_A_female']
 
     #subjects_folders = glob.glob(os.path.join(SAMBA_work_folder, '*affine.mat/'))
 
@@ -242,7 +247,7 @@ _, outpath, _, sftp = get_mainpaths(remote,project = project, username=username,
 DTC_DWI_folder = os.path.join(outpath,DTC_DWI_folder)
 DTC_labels_folder = os.path.join(outpath,DTC_labels_folder)
 DTC_transforms = os.path.join(DTC_DWI_folder,'../Transforms')
-mkcdir([DTC_DWI_folder,DTC_labels_folder,DTC_transforms],sftp)
+mkcdir([outpath,DTC_DWI_folder,DTC_labels_folder,DTC_transforms],sftp)
 
 print(subjects)
 
