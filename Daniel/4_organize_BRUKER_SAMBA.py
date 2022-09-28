@@ -9,8 +9,6 @@ from DTC.file_manager.computer_nav import save_nifti_remote
 from dipy.align.reslice import reslice
 import glob
 
-transforms_folder = '/Users/jas/jacques/Daniel_test/Transforms_2'
-
 subjects = ['sub22040413', 'sub22040411', 'sub2204041', 'sub22040410', 'sub2204042', 'sub2204043', 'sub2204044',
             'sub2204045', 'sub2204046', 'sub2204047', 'sub2204048', 'sub2204049', 'sub2205091', 'sub22050910',
             'sub22050911', 'sub22050912', 'sub22050913', 'sub22050914', 'sub2205094', 'sub2205097', 'sub2205098',
@@ -65,6 +63,9 @@ nii_temp_dir = '/Volumes/Data/Badea/Lab/jacques/APOE_func_proc/temp_nii'
 
 #MDT_baseimages = '/Volumes/Data/Badea/Lab/mouse/VBM_18APOERAREset02_invivoAPOE1-work/preprocess'
 MDT_baseimages = '/Volumes/Data/Badea/Lab/jacques/APOE_func_proc/MDT_base/'
+
+transforms_folder = '/Users/jas/jacques/Daniel_test/Transforms_2'
+transforms_folder = '/Volumes/Data/Badea/Lab/jacques/APOE_func_proc/Transforms'
 
 mkcdir(nii_temp_dir)
 mkcdir(new_dir)
