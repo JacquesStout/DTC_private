@@ -33,7 +33,7 @@ if shortcuts_all_folder is not None:
 mkcdir(outpath)
 #subjects = ['C_20220124_001', 'C_20220124_002', 'C_20220124_003', 'C_20220124_004', 'C_20220124_005', 'C_20220124_006', 'C_20220124_007']
 subjects = ['apoe_3_6_CtrlA_male', 'MHI_335_CtrA_male', 'apoe_4_4_CtrlB_female', 'MHI_326_C_male', 'MHI_334_CtrC_female', 'MHI_335_CtrB_female', 'MHI_326_D_female', 'apoe_4_2_A_male', 'apoe_3_4_CtrA_female', 'apoe_4_7_B_male', 'MHI_326_CtrB_male', 'MHI_334_D_female', 'apoe_4_7_A_female', 'apoe_4_2_B_female', 'apoe_3_6_B_male', 'MHI_334_CtrA_male', 'apoe_4_5_CtrA_female', 'apoe_4_4_CtrlD_male', 'apoe_4_4_B_female', 'MHI_326_CtrA_female', 'apoe_3_4_A_female']
-subjects.reverse()
+#subjects.reverse()
 #subjects = ['C_20220124_007']
 
 """

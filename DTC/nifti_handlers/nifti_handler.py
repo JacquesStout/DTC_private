@@ -350,8 +350,8 @@ def getgtab(mypath, subject, bvec_orient=[1,2,3],sftp=None):
     #bvec_sign = bvec_orient/np.abs(bvec_orient)
     #bvecs = np.c_[bvec_sign[0]*bvecs[:, np.abs(bvec_orient[0])-1], bvec_sign[1]*bvecs[:, np.abs(bvec_orient[1])-1],
     #              bvec_sign[2]*bvecs[:, np.abs(bvec_orient[2])-1]]
-
-    gtab = gradient_table(bvals, bvecs)
+    b0_threshold = np.min(bvals) + 1
+    gtab = gradient_table(bvals, bvecs, b0_threshold = b0_threshold)
 
     return gtab
 

@@ -43,9 +43,10 @@ if project == 'Chavez':
     SAMBA_prep_folder = os.path.join(mainpath, "mouse","Chavez_symlink_pool_allfiles")
 
     atlas_labels = os.path.join(mainpath,"atlases","chass_symmetric3","chass_symmetric3_labels.nii.gz")
+    atlas_name = 'chass_symmetric3'
     atlas_legends = os.path.join(mainpath,'atlases/CHASSSYMM3AtlasLegends.xlsx')
-    DTC_DWI_folder = "DWI_allsubj/"
-    DTC_labels_folder = "DWI_allsubj/"
+    DTC_DWI_folder = "DWI"
+    DTC_labels_folder = "DWI"
 
     SAMBA_label_folder = os.path.join(SAMBA_mainpath, SAMBA_projectname + "-results", "connectomics")
     SAMBA_work_folder = os.path.join(SAMBA_mainpath, SAMBA_projectname + "-work")
