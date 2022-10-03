@@ -7,19 +7,20 @@ from dipy.io.image import save_nifti
 import pandas as pd
 from DTC.file_manager.computer_nav import save_nifti_remote
 from dipy.align.reslice import reslice
-import glob
+import glob, sys
+from DTC.file_manager.argument_tools import parse_arguments
 
 subjects = ['sub22040413', 'sub22040411', 'sub2204041', 'sub22040410', 'sub2204042', 'sub2204043', 'sub2204044',
             'sub2204045', 'sub2204046', 'sub2204047', 'sub2204048', 'sub2204049', 'sub2205091', 'sub22050910',
             'sub22050911', 'sub22050912', 'sub22050913', 'sub22050914', 'sub2205094', 'sub2205097', 'sub2205098',
             'sub2206061', 'sub22060610', 'sub22060611', 'sub22060612', 'sub22060613', 'sub22060614', 'sub2206062',
             'sub2206063', 'sub2206064', 'sub2206065', 'sub2206066', 'sub2206067', 'sub2206068', 'sub2206069']
-subjects = ['sub2206061', 'sub22060610', 'sub22060611', 'sub22060612', 'sub22060613', 'sub22060614', 'sub2206062']
-subjects = ['sub2206061', 'sub22060610', 'sub22060611']
-subjects = ['sub22060612', 'sub22060613', 'sub22060614', 'sub2206062']
-subjects = ['sub2206063', 'sub2206064', 'sub2206065', 'sub2206066']
-subjects = ['sub2206067', 'sub2206068', 'sub2206069']
-subjects = ['sub22040413']
+#subjects = ['sub2206061', 'sub22060610', 'sub22060611', 'sub22060612', 'sub22060613', 'sub22060614', 'sub2206062']
+#subjects = ['sub2206061', 'sub22060610', 'sub22060611']
+#subjects = ['sub22060612', 'sub22060613', 'sub22060614', 'sub2206062']
+#subjects = ['sub2206063', 'sub2206064', 'sub2206065', 'sub2206066']
+#subjects = ['sub2206067', 'sub2206068', 'sub2206069']
+#subjects = ['sub22040413']
 #subjects = ['sub2206063', 'sub2206064', 'sub2206065', 'sub2206066', 'sub2206067', 'sub2206068', 'sub2206069']
 #subjects = ['sub2206069']
 #subjects = ['sub22040413', 'sub22040411', 'sub2204041', 'sub22040410', 'sub2204042', 'sub2204043', 'sub2204044',
@@ -44,6 +45,11 @@ def full_split_nii(subj_path, output_folder, sftp=None):
         nii_temp = nib.Nifti1Image(data[...,i], img.affine)
         temp_path = os.path.join(output_folder, f'{subj}_{istr}.nii.gz')
         save_nifti_remote(nii_temp, temp_path, sftp)
+
+subjects.sort()
+subject_processes, function_processes, firstsubj, lastsubj = parse_arguments(sys.argv,subjects)
+subjects = subjects[firstsubj:lastsubj]
+print(subjects)
 
 overwrite = False
 verbose = True
