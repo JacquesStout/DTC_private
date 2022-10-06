@@ -18,6 +18,7 @@ from DTC.file_manager.computer_nav import checkfile_exists_remote, get_mainpaths
 import time
 from DTC.tract_manager.tract_handler import transform_streamwarp
 from DTC.file_manager.argument_tools import parse_arguments
+import sys
 
 def _to_streamlines_coordinates(inds, lin_T, offset):
     """Applies a mapping from streamline coordinates to voxel_coordinates,
