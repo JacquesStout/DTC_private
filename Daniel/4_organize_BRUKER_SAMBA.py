@@ -72,6 +72,8 @@ native_ref = ''
 orig_dir = '/Users/jas/jacques/Daniel_test/BRUKER_organized_JS/'
 if 'hydra' in platform.node():
     orig_dir = '/Users/alex/jacques/BRUKER_organized_JS/'
+if 'lefkada' in platform.node():
+    orig_dir = '/Users/alex/temp_BRUKER_run/BRUKER_organized_JS'
 
 new_dir = '/Volumes/Data/Badea/Lab/jacques/APOE_func_proc/BRUKER_organized_JS_SAMBAD_3'
 #new_dir = '/Users/jas/jacques/Daniel_test/BRUKER_organized_JS_SAMBAD_3/'
