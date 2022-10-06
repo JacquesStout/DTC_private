@@ -68,8 +68,9 @@ print(f'there are {function_processes} function processes')
 #    outpath = os.path.join(outpath,'Analysis')
 #    inpath = os.path.join(inpath, 'Analysis')
 
+#TRK_folder = os.path.join(inpath, f'TRK_MPCA_MDT{fixed_str}{folder_ratio_str}')
+TRK_folder = os.path.join(inpath, f'TRK_MDT_real_testtemp{fixed_str}{folder_ratio_str}')
 
-TRK_folder = os.path.join(inpath, f'TRK_MPCA_MDT{fixed_str}{folder_ratio_str}')
 label_folder = os.path.join(inpath, 'DWI')
 #trkpaths = glob.glob(os.path.join(TRK_folder, '*trk'))
 excel_folder = os.path.join(outpath, f'Excels_MDT{inclusive_str}{symmetric_str}{folder_ratio_str}')
@@ -104,6 +105,7 @@ if project == 'AD_Decode':
                 'S03048',
                 'S03069', 'S03225', 'S03265', 'S03293', 'S03308', 'S03321', 'S03343', 'S03350', 'S03378', 'S03391',
                 'S03394', 'S03847', 'S03866', 'S03867', 'S03889', 'S03890', 'S03896']
+    subjects.sort()
     removed_list = ['S02523']
     str_identifier = f'_stepsize_2{ratio_str}_wholebrain_pruned'
 

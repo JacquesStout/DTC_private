@@ -6,17 +6,16 @@ from DTC.file_manager.file_tools import buildlink, mkcdir, getfromfile
 import glob
 import numpy as np
 import warnings
-from DTC.nifti_handlers.atlas_handlers.create_backported_labels import create_backport_labels
+from DTC.nifti_handlers.atlas_handlers.create_backported_labels import create_backport_labels, create_MDT_labels
 import os
 from DTC.file_manager.computer_nav import get_mainpaths, checkfile_exists_remote, getremotehome
 from DTC.nifti_handlers.atlas_handlers.convert_atlas_mask import convert_labelmask, atlas_converter
-
-#project = ["AD_Decode", "APOE"]
+from DTC.file_manager.argument_tools import parse_arguments
 #project = "APOE"
 #project = "AMD"
-#project = 'AD_Decode'
+project = 'AD_Decode'
 #project = 'AMD'
-project = 'Chavez'
+#project = 'Chavez'
 verbose = True
 mainpath = getremotehome('Lab')
 SAMBA_headfile_dir = os.path.join(mainpath, "samba_startup_cache")
@@ -251,6 +250,8 @@ DTC_transforms = os.path.join(DTC_DWI_folder,'../Transforms')
 mkcdir([outpath,DTC_DWI_folder,DTC_labels_folder,DTC_transforms],sftp)
 
 print(subjects)
+
+create_MDT_labels(subject, SAMBA_mainpath, SAMBA_projectname, atlas_labels, overwrite=overwrite)
 
 subjects_notdone = []
 for subject in subjects:

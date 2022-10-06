@@ -17,6 +17,7 @@ import glob, warnings
 from DTC.file_manager.computer_nav import checkfile_exists_remote, get_mainpaths, load_nifti_remote, load_trk_remote, loadmat_remote
 import time
 from DTC.tract_manager.tract_handler import transform_streamwarp
+from DTC.file_manager.argument_tools import parse_arguments
 
 def _to_streamlines_coordinates(inds, lin_T, offset):
     """Applies a mapping from streamline coordinates to voxel_coordinates,
@@ -108,7 +109,9 @@ for remove in removed_list:
         subjects.remove(remove)
 
 # subjects.reverse()
-subjects = subjects[:]
+subject_processes, function_processes, firstsubj, lastsubj = parse_arguments(sys.argv,subjects)
+subjects = subjects[firstsubj:lastsubj]
+
 print(subjects)
 
 overwrite = False

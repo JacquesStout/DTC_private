@@ -462,7 +462,7 @@ def getlabeltypemask(mypath, subject, ROI_legends, labeltype = '', verbose=False
 
     labelmask, labelaffine, labelpath = getlabelmask(mypath, subject, verbose=verbose, sftp=sftp)
 
-    converter_lr, converter_comb, index_to_struct_lr, index_to_struct_comb = atlas_converter(ROI_legends)
+    converter_lr, converter_comb, index_to_struct_lr, index_to_struct_comb = atlas_converter(ROI_legends, sftp)
     if labeltype == 'combined':
         labeloutpath = labelpath.replace('.nii.gz', '_comb.nii.gz')
         if not os.path.isfile(labeloutpath):
@@ -475,9 +475,9 @@ def getlabeltypemask(mypath, subject, ROI_legends, labeltype = '', verbose=False
         labeloutpath = labelpath.replace('.nii.gz', '_lr_ordered.nii.gz')
         if not checkfile_exists_remote(labeloutpath,sftp):
             labelmask = convert_labelmask(labelmask, converter_lr, atlas_outpath=labeloutpath,
-                                          affine_labels=labelaffine)
+                                          affine_labels=labelaffine, sftp=sftp)
         else:
-            labelmask, labelaffine, _, _, _ = load_nifti_remote(labeloutpath, sftp)
+            labelmask, labelaffine, _, _, _ = load_nifti_remote(labeloutpath, sftp=sftp)
         index_to_struct = index_to_struct_lr
     else:
         labeloutpath = labelpath

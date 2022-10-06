@@ -51,6 +51,62 @@ def get_info_SAMBA_headfile(SAMBA_headfile, verbose=False):
     return orig_orientation, working_orientation
 
 
+def create_MDT_labels(subject, mainpath, project_name, atlas_labels, overwrite=False, verbose=True):
+    out_dir_base = os.path.join(mainpath, f"{project_name}-results")
+    out_dir = os.path.join(out_dir_base,'atlas_to_MDT')
+    mkcdir([out_dir_base,out_dir])
+    work_dir = os.path.join(mainpath, f"{project_name}-work")
+
+    template_type_prefix = os.path.basename(os.path.dirname(glob.glob(os.path.join(work_dir,"dwi","SyN*/"))[0]))
+    template_runs = glob.glob((os.path.join(work_dir,"dwi",template_type_prefix,"*/")))
+
+    mymax=-1
+    if mymax==-1:
+        for template_run in template_runs:
+            if "NoNameYet" in template_run and template_run[-4:-2] == "_i":
+                if int(template_run[-2]) > mymax:
+                    mymax = int(template_run[-2])
+                    final_template_run = template_run
+    if mymax==-1:
+        for template_run in template_runs:
+            if "dwiMDT_Control_n72" in template_run and template_run[-4:-2]=="_i":
+                if int(template_run[-2])>mymax:
+                    mymax=int(template_run[-2])
+                    final_template_run=template_run
+    if mymax == -1:
+        raise Exception(f"Could not find template runs in {os.path.join(mainpath, f'{project_name}-work','dwi',template_type_prefix)}")
+
+    MDT_ref = os.path.join(final_template_run, 'median_images',f"MDT_dwi.nii.gz")
+    label_name = os.path.basename(atlas_labels)
+    label_name = label_name.split("_labels")[0]
+
+    labels_MDT = os.path.join(out_dir, label_name + '_MDT_labels.nii.gz')
+
+    MDT_to_atlas_affine = os.path.join(final_template_run,"stats_by_region","labels","transforms",f"MDT_*_to_{label_name}_affine.mat")
+    atlas_to_MDT = os.path.join(final_template_run,"stats_by_region","labels","transforms",f"{label_name}_to_MDT_warp.nii.gz")
+
+    listfiles = [MDT_to_atlas_affine, atlas_to_MDT]
+    [MDT_to_atlas_affine, atlas_to_MDT], exists = check_files([MDT_to_atlas_affine,atlas_to_MDT])
+    if not np.all(exists):
+        for i in np.arange(np.size(exists)):
+            if exists[i] is False:
+                print(f'could not find {listfiles[i]}')
+                filenotfound = listfiles[i]
+        raise FileNotFoundError(
+            errno.ENOENT, os.strerror(errno.ENOENT), filenotfound)
+    if not os.path.exists(labels_MDT) or overwrite:
+        if verbose:
+            print(f"Backporting labels to MDT space for subject: {subject} to {labels_MDT}")
+        if not os.path.exists(labels_MDT) or overwrite:
+            #Note, it used to be MultiLabel[1.0x1.0x1.0,2] but it seems like the default parameters tend to be based on the image themselves and work fine,
+            #so be careful but I removed it for now so it would work on different image sets
+            cmd = f"antsApplyTransforms -v 1 -d 3 -i {atlas_labels} -o {labels_MDT} -r {MDT_ref} -n MultiLabel -t [{MDT_to_atlas_affine},1] {atlas_to_MDT}"
+            #check_files([atlas_labels,preprocess_ref,trans,rigid,affine,MDT_to_subject,MDT_to_atlas_affine,atlas_to_MDT])
+            os.system(cmd)
+    else:
+        print(f"Already calculated the label file for subject {subject}")
+
+
 def create_backport_labels(subject, mainpath, project_name, prep_folder, atlas_labels, headfile=None, overwrite=False, verbose=True):
 
     out_dir_base = os.path.join(mainpath, f"{project_name}-results","connectomics")
