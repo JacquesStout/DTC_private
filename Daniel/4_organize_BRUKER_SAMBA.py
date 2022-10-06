@@ -52,7 +52,7 @@ subject_processes, function_processes, firstsubj, lastsubj = parse_arguments(sys
 #firstsubj=23
 #lastsubj=26
 subjects = subjects[firstsubj:lastsubj]
-subjects = ['sub22040411']
+#subjects = ['sub22040411']
 print(subjects)
 
 overwrite = False
