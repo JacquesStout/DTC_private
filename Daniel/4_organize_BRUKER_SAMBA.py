@@ -9,6 +9,7 @@ from DTC.file_manager.computer_nav import save_nifti_remote
 from dipy.align.reslice import reslice
 import glob, sys
 from DTC.file_manager.argument_tools import parse_arguments
+import platform
 
 subjects = ['sub22040413', 'sub22040411', 'sub2204041', 'sub22040410', 'sub2204042', 'sub2204043', 'sub2204044',
             'sub2204045', 'sub2204046', 'sub2204047', 'sub2204048', 'sub2204049', 'sub2205091', 'sub22050910',
@@ -48,7 +49,10 @@ def full_split_nii(subj_path, output_folder, sftp=None):
 
 subjects.sort()
 subject_processes, function_processes, firstsubj, lastsubj = parse_arguments(sys.argv,subjects)
+#firstsubj=23
+#lastsubj=26
 subjects = subjects[firstsubj:lastsubj]
+subjects = ['sub22040411']
 print(subjects)
 
 overwrite = False
@@ -56,6 +60,7 @@ verbose = True
 recenter = False
 remote = False
 toclean = True
+tempcheck=False
 
 if not remote:
     sftp=None
@@ -65,6 +70,8 @@ ext = '.nii.gz'
 native_ref = ''
 
 orig_dir = '/Users/jas/jacques/Daniel_test/BRUKER_organized_JS/'
+if 'hydra' in platform.node():
+    orig_dir = '/Users/alex/jacques/BRUKER_organized_JS/'
 
 new_dir = '/Volumes/Data/Badea/Lab/jacques/APOE_func_proc/BRUKER_organized_JS_SAMBAD_3'
 #new_dir = '/Users/jas/jacques/Daniel_test/BRUKER_organized_JS_SAMBAD_3/'
@@ -266,7 +273,8 @@ for subj in subjects:
 
         if temp_check:
             temp_anat = os.path.join(nii_temp_dir, os.path.basename(subj_anat_sambad))
-            shutil.copy(subj_anat_sambad, temp_anat)
-
+            if not os.path.exists(temp_anat):
+                shutil.copy(subj_anat_sambad, temp_anat)
             temp_func = os.path.join(nii_temp_dir, os.path.basename(subj_func_sambad))
-            shutil.copy(subj_func_sambad, temp_func)
+            if not os.path.exists(temp_func):
+                shutil.copy(subj_func_sambad, temp_func)
