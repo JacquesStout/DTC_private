@@ -78,11 +78,12 @@ savefa = True
 reference_weighting = None
 volume_weighting = True
 make_tracts = True
-make_connectomes = True
+make_connectomes = False
 
 classifiertype = "binary"
 brainmask = "subjspace"
 labeltype='lrordered'
+seedtype = 'label'
 ratio = 1
 
 if ratio == 1:
@@ -93,8 +94,7 @@ else:
     trk_folder_name = "_" + str(ratio)
 
 trkpath = os.path.join(inpath, "TRK_MPCA_fixed")
-trkpath = os.path.join(inpath, "TRK_MPCA_100")
-trkpath = os.path.join(inpath, "TRK_MPCA_fixed"+trk_folder_name)
+trkpath = os.path.join(inpath, "TRK_MPCA_fixed_labelseeded"+trk_folder_name)
 
 trkroi = ["wholebrain"]
 if len(trkroi)==1:
@@ -150,7 +150,7 @@ if make_connectomes:
 
 dwi_results = []
 tract_results = []
-
+overwrite=True
 print(f'Overwrite is {overwrite}')
 
 if subject_processes>1:
@@ -161,7 +161,7 @@ if subject_processes>1:
     if make_tracts:
         tract_results = pool.starmap_async(create_tracts, [(diff_preprocessed, trkpath, subject, figspath, stepsize, function_processes, str_identifier,
                           ratio, brainmask, classifier, labelslist, bvec_orient, doprune, overwrite, get_params, denoise,
-                          verbose) for subject
+                          seedtype, verbose, sftp) for subject
                                                        in subjects]).get()
     if make_connectomes:
         tract_results = pool.starmap_async(tract_connectome_analysis, [(diff_preprocessed, trkpath, str_identifier, figspath,
@@ -175,7 +175,7 @@ else:
             tract_results.append(
             create_tracts(diff_preprocessed, trkpath, subject, figspath, stepsize, function_processes, str_identifier,
                           ratio, brainmask, classifier, labelslist, bvec_orient, doprune, overwrite, get_params, denoise,
-                          verbose, sftp))
+                          seedtype, verbose, sftp))
         #get_diffusionattributes(diff_preprocessed, diff_preprocessed, subject, str_identifier, vol_b0, ratio, bvec_orient,
         #                        masktype, overwrite, verbose)
         if make_connectomes:

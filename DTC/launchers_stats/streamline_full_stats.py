@@ -1,13 +1,13 @@
 from dipy.io.streamline import load_trk
 import os
 import pickle
-from nifti_handlers.atlas_handlers.convert_atlas_mask import atlas_converter
-from tract_manager.tract_handler import ratio_to_str
+from DTC.nifti_handlers.atlas_handlers.convert_atlas_mask import atlas_converter
+from DTC.tract_manager.tract_handler import ratio_to_str
 from itertools import compress
 import numpy as np
 import nibabel as nib, socket
-from file_manager.file_tools import mkcdir
-from tract_manager.streamline_nocheck import load_trk as load_trk_spe
+from DTC.file_manager.file_tools import mkcdir
+from DTC.tract_manager.streamline_nocheck import load_trk as load_trk_spe
 from dipy.segment.clustering import QuickBundles
 from dipy.segment.metric import ResampleFeature, AveragePointwiseEuclideanMetric
 import warnings

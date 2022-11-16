@@ -782,6 +782,15 @@ def writebvec(bvecs, outpath, subject=None, writeformat = "line", overwrite=Fals
         for bvec in bvecs:
             File_object.write(str(bvec[0]) + " " + str(bvec[1]) + " " + str(bvec[2]) + "\n")
         File_object.close()
+    elif writeformat=='BRUKER':
+        File_object = open(bvec_file, "w")
+        num_dirs = np.shape(bvecs)[0]
+        File_object.write(f'[directions={num_dirs}]\n')
+        for i,bvec in enumerate(bvecs):
+            if i+1!=num_dirs:
+                File_object.write(f'Vector[{i}]= ({str(bvec[0])}, {str(bvec[1])}, {str(bvec[2])})\n')
+            else:
+                File_object.write(f'Vector[{i}]= ({str(bvec[0])}, {str(bvec[1])}, {str(bvec[2])})')
     return bvec_file
 
 

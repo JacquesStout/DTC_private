@@ -62,7 +62,7 @@ if project == "AD_Decode":
     ref = "md"
 
     path_trk_tempdir = os.path.join(outpath, 'TRK_transition')
-    path_TRK_output = os.path.join(outpath, 'TRK_MDT_real_testtemp')
+    path_TRK_output = os.path.join(outpath, 'TRK_MPCA_MDT')
     DWI_save = os.path.join(outpath, 'NII_trans_save')
 
     mkcdir([DWI_save, path_DWI_MDT, path_TRK_output, path_trk_tempdir],sftp=sftp)
@@ -104,7 +104,7 @@ subjects = ['S01912', 'S02110', 'S02224', 'S02227', 'S02230', 'S02231', 'S02266'
             'S02871', 'S02877', 'S02898', 'S02926', 'S02938', 'S02939', 'S02954', 'S02967', 'S02987', 'S03010',
             'S03017', 'S03028', 'S03033', 'S03034', 'S03045', 'S03048', 'S03069', 'S03225', 'S03265', 'S03293',
             'S03308', 'S03321', 'S03343', "S03350", "S03378", "S03391", "S03394"]
-removed_list = ['S02654']
+removed_list = ['S02230','S02654','S02490', 'S02523', 'S02745']
 for remove in removed_list:
     if remove in subjects:
         subjects.remove(remove)
@@ -196,6 +196,15 @@ for subj in subjects:
     if not trkexists:
         warnings.warn(f'Could not find the trk for subj {subj} at {subj_trk}, will continue with next subject')
         continue
+
+    """
+    if not MDT_exists or overwrite:
+        print(f'did not run subject {subj} yet')
+        continue
+    else:
+        #print(f'already ran subject {subj} yet')
+        continue
+    """
 
     if not MDT_exists or overwrite:
 

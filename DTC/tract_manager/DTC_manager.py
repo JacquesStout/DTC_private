@@ -49,6 +49,7 @@ import DTC.tract_manager.tract_save
 import nibabel as nib
 import numpy as np
 from DTC.tract_manager.streamline_nocheck import load_trk
+from DTC.tract_manager.tract_save import save_trk_heavy_duty
 import pickle
 import pathlib
 from DTC.tract_manager.dif_to_trk import QCSA_tractmake
@@ -548,7 +549,7 @@ def tract_connectome_analysis(diffpath, trkpath, str_identifier, outpath, subjec
         myheader = create_tractogram_header(trkprunepath, *header)
         prune_sl = lambda: (s for s in pruned_streamlines)
         if prunesave:
-            tract_manager.tract_save.save_trk_heavy_duty(trkprunepath, streamlines=prune_sl, affine=affine, header=myheader,sftp=sftp)
+            save_trk_heavy_duty(trkprunepath, streamlines=prune_sl, affine=affine, header=myheader,sftp=sftp)
         del(prune_sl,pruned_streamlines,trkdata)
     elif trkpruneexists:
         if verbose:
@@ -1071,7 +1072,7 @@ def check_dif_ratio(trkpath, subject, strproperty, ratio,sftp = None):
 
 def create_tracts(diffpath, outpath, subject, figspath, step_size, peak_processes, strproperty = "", ratio = 1, masktype="binary",
                       classifier="FA", labelslist=None, bvec_orient=[1,2,3], doprune=False, overwrite=False,
-                  get_params=False, denoise="", verbose=None, sftp=None):
+                  get_params=False, denoise="", seedmasktype = None, verbose=None, sftp=None):
 
     check_dif_ratio(outpath, subject, strproperty, ratio)
     outpathtrk, trkexists = gettrkpath(outpath, subject, strproperty, pruned=doprune, verbose=False,sftp=sftp)
@@ -1111,6 +1112,10 @@ def create_tracts(diffpath, outpath, subject, figspath, step_size, peak_processe
     if classifier == "FA":
         outpathbmfa, mask = make_tensorfit(diff_data,mask,gtab,affine,subject,outpath=diffpath,verbose=verbose)
 
+    if seedmasktype =='label':
+        seedmask, _, _ = getlabelmask(diffpath, subject, verbose, sftp=sftp)
+    else:
+        seedmask=None
     print(verbose)
     if verbose:
         txt = ("The QCSA Tractmake is ready to launch for subject " + subject)
@@ -1154,7 +1159,7 @@ def create_tracts(diffpath, outpath, subject, figspath, step_size, peak_processe
     outpathtrk, trkstreamlines, params = QCSA_tractmake(diff_data, affine, vox_size, gtab, mask, masktype, ref_info,
                                                         step_size, peak_processes, outpathtrk, subject, ratio,
                                                         overwrite, get_params, doprune, figspath=figspath,
-                                                        verbose=verbose,sftp=sftp)
+                                                        verbose=verbose, seedmask=seedmask, sftp=sftp)
 
     if labelslist:
         print('In process of implementing')

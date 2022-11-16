@@ -94,8 +94,8 @@ def save_roisubset(trkfile, roislist, roisexcel, labelmask):
                                            affine=header[0], header=myheader)
 
 
-def QCSA_tractmake(data, affine, vox_size, gtab, mask, masktype, header, step_size, peak_processes, outpathtrk, subject='NA',
-                   ratio=1, overwrite=False, get_params=False, doprune=False, figspath=None, verbose=None, sftp=None):
+def QCSA_tractmake(data, affine, vox_size, gtab, mask, classifier_mask, header, step_size, peak_processes, outpathtrk, subject='NA',
+                   ratio=1, overwrite=False, get_params=False, doprune=False, figspath=None, verbose=None, seedmask = None, sftp=None):
     # Compute odfs in Brain Mask
     t2 = time()
     if os.path.isfile(outpathtrk) and not overwrite:
@@ -137,7 +137,7 @@ def QCSA_tractmake(data, affine, vox_size, gtab, mask, masktype, header, step_si
 
         print('Computing classifier for local tracking for subject ' + subject)
 
-    if masktype == "FA":
+    if classifier_mask == "FA":
         #tensor_model = dti.TensorModel(gtab)
         #tenfit = tensor_model.fit(data, mask=labels > 0)
         #FA = fractional_anisotropy(tenfit.evals)
@@ -157,6 +157,15 @@ def QCSA_tractmake(data, affine, vox_size, gtab, mask, masktype, header, step_si
     else:
         classifier = BinaryStoppingCriterion(wholemask)
 
+    if seedmask is None:
+        seedmask = wholemask
+    elif isinstance(seedmask,np.ndarray):
+        if seedmask.dtype != bool:
+            seedmask = seedmask>0
+    else:
+        raise TypeError('seedmask is not good')
+
+
     # generates about 2 seeds per voxel
     # seeds = utils.random_seeds_from_mask(fa > .2, seeds_count=2,
     #                                      affine=np.eye(4))
@@ -167,7 +176,7 @@ def QCSA_tractmake(data, affine, vox_size, gtab, mask, masktype, header, step_si
 
     if verbose:
         print('Computing seeds')
-    seeds = utils.seeds_from_mask(wholemask, density=1,
+    seeds = utils.seeds_from_mask(seedmask, density=1,
                                   affine=np.eye(4))
 
     #streamlines_generator = local_tracking.local_tracker(csa_peaks,classifier,seeds,affine=np.eye(4),step_size=step_size)

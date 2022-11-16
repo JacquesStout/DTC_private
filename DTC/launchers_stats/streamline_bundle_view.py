@@ -2,14 +2,14 @@ from dipy.io.streamline import load_trk, save_trk
 from dipy.viz import window, actor
 import os
 import pickle
-from visualization_tools.visualization_tools.tract_visualize import show_bundles, setup_view, view_test, setup_view_colortest
-from nifti_handlers.atlas_handlers.convert_atlas_mask import convert_labelmask, atlas_converter
-from tract_manager.tract_handler import ratio_to_str, gettrkpath
+from DTC.visualization_tools.tract_visualize import show_bundles, setup_view, view_test, setup_view_colortest
+from DTC.nifti_handlers.atlas_handlers.convert_atlas_mask import convert_labelmask, atlas_converter
+from DTC.tract_manager.tract_handler import ratio_to_str, gettrkpath
 from itertools import compress
 import numpy as np
 import nibabel as nib, socket
-from file_manager.file_tools import mkcdir
-from tract_manager.streamline_nocheck import load_trk as load_trk_spe
+from DTC.file_manager.file_tools import mkcdir
+from DTC.tract_manager.streamline_nocheck import load_trk as load_trk_spe
 from dipy.segment.clustering import QuickBundles
 from dipy.segment.metric import ResampleFeature, AveragePointwiseEuclideanMetric
 import warnings
@@ -20,9 +20,23 @@ import fury
 #pyximport.install()
 import pandas as pd
 #from fbcmeasures import FBCMeasures
+from DTC.file_manager.computer_nav import checkfile_exists_remote, get_mainpaths, load_nifti_remote, load_trk_remote, loadmat_remote
+from DTC.file_manager.file_tools import mkcdir, check_files, getfromfile
+from DTC.file_manager.computer_nav import copy_loctoremote, load_trk_remote, remote_pickle
+
+project = 'AD_Decode'
+
 
 computer_name = socket.gethostname().split('.')[0]
-mainpath = getremotehome(computer_name)
+
+computer_name = socket.gethostname()
+remote = True
+username = None
+passwd = None
+if remote:
+    username, passwd = getfromfile(os.path.join(os.path.expanduser('~'), 'remote_connect.rtf'))
+
+mainpath, _, _, sftp = get_mainpaths(remote,project = project, username=username,password=passwd)
 
 if 'os' in computer_name:
     ROI_legends = "/mnt/paros_MRI/jacques/atlases/IITmean_RPI/IITmean_RPI_index.xlsx"
@@ -33,8 +47,7 @@ elif 'de' in computer_name:
 else:
     raise Exception('No other computer name yet')
 
-#project = 'AD_Decode'
-project = 'AMD'
+#project = 'AMD'
 
 fixed = True
 record = ''
@@ -47,7 +60,7 @@ ratio = 1
 top_percentile = 100
 num_bundles = 10
 num_bundles_toview = 10
-distance = 7
+distance = 6
 num_points = 50
 
 if project == 'AD_Decode':
@@ -57,10 +70,13 @@ if project == 'AD_Decode':
     target_tuples = [(58, 57), (9, 1), (24, 1), (22, 1), (64, 57), (23, 24), (24, 30), (23, 30)]
     target_tuples = [(24, 30), (23, 24)]
     target_tuples = [(80, 58)]
+    target_tuples = [(9,1)]
     target_tuples = [(58, 57)]
-    target_tuples = [(64,57)]
+    target_tuples = [(64, 57), (58, 57), (9, 1)]
+    #target_tuples = [(64, 58)]
+    #target_tuples = (80, 58)
     #genotype_noninclusive
-    target_tuples = [(9, 1), (24, 1), (58, 57), (64, 57), (22, 1)]
+    #target_tuples = [(9, 1), (24, 1), (58, 57), (64, 57), (22, 1)]
     #target_tuples = [(24, 1)]
     #genotype_noninclusive_volweighted_fa
     #target_tuples = [(9, 1), (57, 9), (61, 23), (84, 23), (80, 9)]
@@ -71,10 +87,9 @@ if project == 'AD_Decode':
     #target_tuples = [(58, 24), (58, 30), (64, 30), (64, 24), (58,48)]
 
     groups = ['APOE4', 'APOE3']
-    #groups = ['Male','Female']
+    groups = ['Male','Female']
 
-    mainpath = os.path.join(mainpath, project, 'Analysis')
-    anat_path = os.path.join(mainpath,'../../mouse/VBM_21ADDecode03_IITmean_RPI_fullrun-work/dwi/SyN_0p5_3_0p5_fa/faMDT_NoNameYet_n37_i6/median_images/MDT_b0.nii.gz')
+    anat_path = os.path.join('/Volumes/Data/Badea/Lab/mouse/VBM_21ADDecode03_IITmean_RPI_fullrun-work/dwi/SyN_0p5_3_0p5_fa/faMDT_NoNameYet_n37_i6/median_images/MDT_dwi.nii.gz')
     space_param = '_MDT'
 
 if project == 'AMD':
@@ -86,7 +101,7 @@ if project == 'AMD':
     #groups = ['Paired Initial Control','Paired Initial AMD']
     #groups = ['Paired 2-YR Control', 'Paired 2-YR AMD']
     mainpath = os.path.join(mainpath, project)
-    anat_path = os.path.join(mainpath,'../../mouse/VBM_19BrainChAMD01_IITmean_RPI_with_2yr-work/dwi/SyN_0p5_3_0p5_dwi/dwiMDT_Control_n72_i6/median_images/MDT_dwi.nii.gz')
+    anat_path = os.path.join('/Volumes/Data/Badea/Lab/mouse/VBM_19BrainChAMD01_IITmean_RPI_with_2yr-work/dwi/SyN_0p5_3_0p5_dwi/dwiMDT_Control_n72_i6/median_images/MDT_dwi.nii.gz')
 
     space_param = '_affinerigid'
 
@@ -153,9 +168,9 @@ else:
 
 centroid_folder = os.path.join(mainpath, f'Centroids{space_param}{inclusive_str}{symmetric_str}{folder_ratio_str}')
 trk_folder = os.path.join(mainpath, f'Centroids{space_param}{inclusive_str}{symmetric_str}{folder_ratio_str}')
-stats_folder = os.path.join(mainpath, f'Statistics_allregions{space_param}{inclusive_str}{symmetric_str}{folder_ratio_str}')
+stats_folder = os.path.join(mainpath, f'Statistics{space_param}{inclusive_str}{symmetric_str}{folder_ratio_str}')
 
-mkcdir([figures_path, centroid_folder, stats_folder])
+mkcdir([figures_path, centroid_folder, stats_folder], sftp)
 
 # groups = ['Initial AMD', 'Paired 2-YR AMD', 'Initial Control', 'Paired 2-YR Control', 'Paired Initial Control',
 #          'Paired Initial AMD']
@@ -181,6 +196,7 @@ coloring_options = ['centroids_fa_mean_coloring','centroids_id_coloring','stream
 #coloring_options = ['coherence_coloring_bundle','coherence_coloring_streams','coherence_coloring_points']
 coloring_options = ['streams_fa_points_coloring','streams_fa_mean_coloring','coherence_coloring_bundle','coherence_coloring_streams']
 coloring_options = ['streams_id_coloring']
+coloring_options = ['streams_fa_points_coloring','streams_fa_mean_coloring']
 fa_scale_range = (0.1, 0.3)
 coherence_scale_range = (0.1, 0.6)
 
@@ -195,7 +211,7 @@ for coloring_option in coloring_options:
 #coloring = 'bundles_id_coloring'
 #coloring = 'streams_fa_mean_coloring'
 coloring = 'streams_fa_points_coloring'
-coloring = 'streams_id_coloring'
+#coloring = 'streams_id_coloring'
 #coloring = 'centroids_fa_mean_coloring'
 #coloring = 'centroids_fa_point_coloring'
 
@@ -214,13 +230,19 @@ for target_tuple in target_tuples:
     region_connection = index_to_struct[target_tuple[0]] + '_to_' + index_to_struct[target_tuple[1]]
     print(region_connection)
 
-
+    if sftp is not None:
+        tempdir = os.path.join(os.path.expanduser('~'), 'temp_dir')
+        mkcdir(tempdir)
 
     if write_txt:
-        text_path = os.path.join(figures_path, region_connection + '_stats.txt')
+        if sftp is not None:
+            text_path = os.path.join(tempdir, region_connection + '_stats.txt')
+        else:
+            text_path = os.path.join(figures_path, region_connection + '_stats.txt')
         testfile = open(text_path, "w")
         testfile.write("Parameters for groups\n")
         testfile.close()
+        #copy_loctoremote()
 
     if changewindow_eachtarget:
         firstrun = True
@@ -229,7 +251,6 @@ for target_tuple in target_tuples:
 
         print(f'Setting up group {group}')
         group_str = group.replace(' ', '_')
-
         group_connection_str = group_str + space_param + ratio_str + '_' + region_connection
         if write_stats:
             stats_path = os.path.join(stats_folder, group_connection_str + '_bundle_stats.xlsx')
@@ -253,19 +274,13 @@ for target_tuple in target_tuples:
         trk_path = os.path.join(trk_folder, group_connection_str + '_streamlines.trk')
         fa_points_path = (os.path.join(centroid_folder, group_connection_str + '_' + 'fa' + '_points.py'))
 
-        if os.path.exists(fa_path):
-            with open(fa_path, 'rb') as f:
-                fa_lines = pickle.load(f)
-        if os.path.exists(md_path):
-            with open(md_path, 'rb') as f:
-                md_lines = pickle.load(f)
+        if checkfile_exists_remote(fa_path, sftp):
+            fa_lines = remote_pickle(fa_path, sftp=sftp)
+        if checkfile_exists_remote(md_path, sftp):
+            md_lines = remote_pickle(md_path, sftp=sftp)
         # '/Volumes/Data/Badea/Lab/human/AD_Decode/Analysis/Centroids_MDT_non_inclusive_symmetric_100/APOE4_MDT_ratio_100_ctx-lh-inferiorparietal_left_to_ctx-lh-inferiortemporal_left_streamlines.trk'
-        if os.path.exists(trk_path):
-            try:
-                streamlines_data = load_trk(trk_path, 'same')
-            except:
-                streamlines_data = load_trk_spe(trk_path, 'same')
-
+        if checkfile_exists_remote(trk_path, sftp):
+            streamlines_data = load_trk_remote(trk_path, 'same', sftp)
 
         #streamlines_2 = streamlines_data.remove_invalid_streamlines()
 
@@ -304,7 +319,7 @@ for target_tuple in target_tuples:
 
             figures_coloring_path = os.path.join(mainpath, figures_path, coloring)
             #figures_coloring_path = os.path.join(mainpath, figures_path, 'test_zone')
-            mkcdir(figures_coloring_path)
+            mkcdir(figures_coloring_path, sftp)
 
             if coloring == 'coherence_coloring_points':
                 from dipy.io.image import load_nifti
@@ -442,9 +457,8 @@ for target_tuple in target_tuples:
                     scale_range=fa_scale_range)
 
             elif coloring == 'streams_fa_points_coloring':
-                if os.path.exists(fa_points_path):
-                    with open(fa_points_path, 'rb') as f:
-                        fa_points = pickle.load(f)
+                if checkfile_exists_remote(fa_points_path, sftp):
+                    fa_points = remote_pickle(fa_path, sftp=sftp)
                 if 'select_streams' in locals():
                     fa_points = list(compress(fa_points, select_streams))
                 bundle_fa_points = []
@@ -505,11 +519,20 @@ for target_tuple in target_tuples:
                     bun_num+=1
                 workbook.close()
 
-            record_path = os.path.join(figures_coloring_path, group_connection_str + f'_bundles_figure_distance_{str(distance)}.png')
+            if sftp is not None:
+                record_path = os.path.join(tempdir,
+                                           group_connection_str + f'_bundles_figure_distance_{str(distance)}.png')
+                record_path_true = os.path.join(figures_coloring_path, group_connection_str + f'_bundles_figure_distance_{str(distance)}.png')
+            else:
+                record_path = os.path.join(figures_coloring_path, group_connection_str + f'_bundles_figure_distance_{str(distance)}.png')
             #scene = None
             #interactive = False
             #record_path = None
+            plane = 'x'
             scene = setup_view(trkobject, colors = lut_cmap,ref = anat_path, world_coords = True, objectvals = coloring_vals, colorbar=colorbar, record = record_path, scene = scene, plane = plane, interactive = interactive)
+            if sftp is not None:
+                copy_loctoremote(record_path, record_path_true, sftp=sftp)
+
             #scene = setup_view_colortest(trkobject, colors=lut_cmap, ref=anat_path, world_coords=True, objectvals=coloring_vals,
             #                   colorbar=True, record=record_path, scene=scene, plane=plane, interactive=interactive)
             """

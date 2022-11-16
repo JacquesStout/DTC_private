@@ -69,11 +69,14 @@ print(f'there are {function_processes} function processes')
 #    inpath = os.path.join(inpath, 'Analysis')
 
 #TRK_folder = os.path.join(inpath, f'TRK_MPCA_MDT{fixed_str}{folder_ratio_str}')
-TRK_folder = os.path.join(inpath, f'TRK_MDT_real_testtemp{fixed_str}{folder_ratio_str}')
+space_type = 'MDT'
+
+TRK_folder = os.path.join(inpath, f'TRK_MPCA_{space_type}{fixed_str}{folder_ratio_str}')
+#TRK_folder = os.path.join(inpath, f'TRK_MDT_real_testtemp{fixed_str}{folder_ratio_str}')
 
 label_folder = os.path.join(inpath, 'DWI')
 #trkpaths = glob.glob(os.path.join(TRK_folder, '*trk'))
-excel_folder = os.path.join(outpath, f'Excels_MDT{inclusive_str}{symmetric_str}{folder_ratio_str}')
+excel_folder = os.path.join(outpath, f'Excels_{space_type}{inclusive_str}{symmetric_str}{folder_ratio_str}')
 
 mkcdir(excel_folder,sftp)
 

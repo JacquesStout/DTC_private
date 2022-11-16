@@ -405,9 +405,9 @@ def setup_view(trk_object, colors=None, world_coords=False, show=True, fname=Non
             show_z = True
         elif plane == 'x':
             show_x=True
-        elif plane == 'x':
+        elif plane == 'y':
             show_y=True
-        elif plane == 'x':
+        elif plane == 'z':
             show_z=True
         else:
             warnings.warn('Plane was not a recognized parameter, showing all planes by default')
@@ -648,10 +648,8 @@ def setup_view(trk_object, colors=None, world_coords=False, show=True, fname=Non
             for (i, bundle) in enumerate(bundles):
                 color = colors[i]
                 #         lines_actor = actor.streamtube(bundle, color, linewidth=0.05
-                # color = (0.0, 1.0, 0.0)
                 object_actor = actor.line(bundle, color, linewidth=1.0)
-                # lines_actor.RotateX(-90)
-                # lines_actor.RotateZ(90)
+
                 scene.add(object_actor)
                 object_actors_toremove.append(object_actor)
     elif isinstance(trk_object[0][0], ClusterCentroid):

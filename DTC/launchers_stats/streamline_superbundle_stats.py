@@ -470,7 +470,7 @@ for target_tuple in target_tuples:
     record_path = os.path.join(stats_folder,
                                connection_str + f'_allstreamlines.png')
     plane = 'x'
-    from visualization_tools.visualization_tools.tract_visualize import setup_view
+    from DTC.visualization_tools.tract_visualize import setup_view
     scene = setup_view(trkobject, colors=lut_cmap, ref=anat_path, world_coords=True, objectvals=coloring_vals,
                        colorbar=colorbar, record=record_path, scene=scene, plane=plane, interactive=interactive)
 

@@ -111,7 +111,7 @@ def getfromfile(path):
         password = getpass.getpass("Password for " + username + ":")
     return username, password
 
-def check_files(files,sftp=None):
+def check_files(files,sftp=None, verbose=False):
     exists=[]
     newfiles = []
     if isinstance(files, dict):
@@ -128,7 +128,8 @@ def check_files(files,sftp=None):
                 exists.append(1)
                 newfiles.append(testfile[0])
             elif np.size(testfile) == 0:
-                print(f"{file} does not exist")
+                if verbose:
+                    print(f"{file} does not exist")
                 exists.append(0)
                 newfiles.append("")
             else:
@@ -145,7 +146,8 @@ def check_files(files,sftp=None):
             if exists[-1] is True:
                 newfiles.append(file)
             else:
-                print(f"{file} does not exist")
+                if verbose:
+                    print(f"{file} does not exist")
                 newfiles.append(file)
 
     return newfiles, exists

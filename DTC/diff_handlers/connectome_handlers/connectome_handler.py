@@ -187,14 +187,16 @@ def connectivity_matrix_func(pruned_streamlines_SL, affine_streams, labelmask, i
 
     return M, grouping
 
-def retweak_points(points, shape):
+def retweak_points(points, shape, verbose=False):
     pointsT = points.T
     for axis in [0,1,2]:
         if np.min(pointsT[axis])<0:
-            print(f'There are {np.sum(pointsT[axis]<0)} points that are negative in axis {axis}')
+            if verbose:
+                print(f'There are {np.sum(pointsT[axis]<0)} points that are negative in axis {axis}')
             pointsT[axis][pointsT[axis]<0] = 0
         if np.max(pointsT[axis]>=shape[axis]):
-            print(f'There are {np.sum(pointsT[axis]>=shape[axis])} points that are above maximum in axis {axis}')
+            if verbose:
+                print(f'There are {np.sum(pointsT[axis]>=shape[axis])} points that are above maximum in axis {axis}')
             pointsT[axis][pointsT[axis]>=shape[axis]] = shape[axis] - 1
     pointsnew = pointsT.T
 
@@ -211,6 +213,9 @@ def connectivity_matrix_custom(streamlines, affine, label_volume,
         volume_weights = label_weights_matrix(label_volume)
 
     kind = label_volume.dtype.kind
+    if label_volume.dtype.kind=='f':
+        label_volume = np.array(label_volume,dtype='int')
+        kind = label_volume.dtype.kind
     labels_positive = ((kind == 'u') or
                        ((kind == 'i') and (label_volume.min() >= 0)))
     valid_label_volume = (labels_positive and label_volume.ndim == 3)

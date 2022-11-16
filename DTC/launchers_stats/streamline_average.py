@@ -9,21 +9,23 @@ from dipy.tracking.streamline import set_number_of_points
 from dipy.tracking.streamline import transform_streamlines
 import os, glob
 import pickle
-from nifti_handlers.nifti_handler import getlabeltypemask, get_diff_ref
-from file_manager.file_tools import mkcdir, check_files, getfromfile
-from tract_manager.tract_handler import ratio_to_str, gettrkpath, gettrkpath_testsftp
-from nifti_handlers.atlas_handlers.convert_atlas_mask import atlas_converter
+from DTC.nifti_handlers.nifti_handler import getlabeltypemask, get_diff_ref
+from DTC.file_manager.file_tools import mkcdir, check_files, getfromfile
+from DTC.tract_manager.tract_handler import ratio_to_str, gettrkpath, gettrkpath_testsftp
+from DTC.nifti_handlers.atlas_handlers.convert_atlas_mask import atlas_converter
 import socket
-from tract_manager.tract_save import save_trk_header
-from diff_handlers.connectome_handlers.excel_management import M_grouping_excel_save, extract_grouping
+from DTC.tract_manager.tract_save import save_trk_header
+from DTC.diff_handlers.connectome_handlers.excel_management import M_grouping_excel_save, extract_grouping
 import sys
-from file_manager.argument_tools import parse_arguments_function
-from diff_handlers.connectome_handlers.connectome_handler import connectivity_matrix_func, _to_voxel_coordinates_warning, retweak_points
+from DTC.file_manager.argument_tools import parse_arguments_function
+from DTC.diff_handlers.connectome_handlers.connectome_handler import connectivity_matrix_func, _to_voxel_coordinates_warning, retweak_points
 from dipy.tracking.utils import length
 import getpass
 import random
-from file_manager.computer_nav import get_mainpaths, get_atlas, make_temppath, checkfile_exists_remote, load_trk_remote, \
+from DTC.file_manager.computer_nav import get_mainpaths, get_atlas, make_temppath, checkfile_exists_remote, load_trk_remote, \
     remote_pickle, pickledump_remote, load_nifti_remote, remove_remote
+from nibabel.streamlines import ArraySequence as Streamlines
+
 
 def get_grouping(grouping_xlsx):
     print('not done yet')
@@ -37,7 +39,7 @@ distance2 = 2
 
 ratio = 1
 #projects = ['AD_Decode', 'AMD', 'APOE']
-project = 'AMD'
+project = 'AD_Decode'
 
 
 computer_name = socket.gethostname()
@@ -45,7 +47,7 @@ remote=True
 username = None
 passwd = None
 if remote:
-    username, passwd = getfromfile(os.path.expanduser('~'),'remote_connect.rtf')
+    username, passwd = getfromfile(os.path.join(os.path.expanduser('~'),'remote_connect.rtf'))
 
 inpath, outpath, atlas_folder, sftp = get_mainpaths(remote,project = project, username=username,password=passwd)
 
@@ -103,12 +105,15 @@ labeltype = 'lrordered'
 function_processes = parse_arguments_function(sys.argv)
 print(f'there are {function_processes} function processes')
 
-if project=='AD_Decode':
-    outpath = os.path.join(outpath, 'Analysis')
-    inpath = os.path.join(inpath, 'Analysis')
+#if project=='AD_Decode':
+#    outpath = os.path.join(outpath, 'Analysis')
+#    inpath = os.path.join(inpath, 'Analysis')
 
-TRK_folder = os.path.join(inpath, f'TRK_MPCA_MDT{fixed_str}{folder_ratio_str}')
-TRK_folder = os.path.join(inpath, f'TRK_rigidaff{fixed_str}{folder_ratio_str}')
+#space_type : 'MDT', 'rigid_aff'
+space_type = 'MDT'
+
+TRK_folder = os.path.join(inpath, f'TRK_MPCA_{space_type}{fixed_str}{folder_ratio_str}')
+#TRK_folder = os.path.join(inpath, f'TRK_rigidaff{fixed_str}{folder_ratio_str}')
 
 label_folder = os.path.join(outpath, 'DWI')
 if symmetric:
@@ -122,10 +127,10 @@ centroid_folder = os.path.join(outpath, f'Centroids_MDT{inclusive_str}{symmetric
 stats_folder = os.path.join(outpath, f'Statistics_MDT{inclusive_str}{symmetric_str}{folder_ratio_str}')
 excel_folder = os.path.join(outpath, f'Excels_MDT{inclusive_str}{symmetric_str}{folder_ratio_str}')
 """
-pickle_folder = os.path.join(outpath, f'Pickle_affinerigid{inclusive_str}{symmetric_str}{folder_ratio_str}')
-centroid_folder = os.path.join(outpath, f'Centroids_affinerigid{inclusive_str}{symmetric_str}{folder_ratio_str}')
-stats_folder = os.path.join(outpath, f'Statistics_affinerigid{inclusive_str}{symmetric_str}{folder_ratio_str}')
-excel_folder = os.path.join(outpath, f'Excels_affinerigid{inclusive_str}{symmetric_str}{folder_ratio_str}')
+pickle_folder = os.path.join(outpath, f'Pickle_{space_type}{inclusive_str}{symmetric_str}{folder_ratio_str}')
+centroid_folder = os.path.join(outpath, f'Centroids_{space_type}{inclusive_str}{symmetric_str}{folder_ratio_str}')
+stats_folder = os.path.join(outpath, f'Statistics_{space_type}{inclusive_str}{symmetric_str}{folder_ratio_str}')
+excel_folder = os.path.join(outpath, f'Excels_{space_type}{inclusive_str}{symmetric_str}{folder_ratio_str}')
 
 mkcdir([pickle_folder, centroid_folder, stats_folder, excel_folder],sftp)
 if not remote and not os.path.exists(TRK_folder):
@@ -149,15 +154,11 @@ if project == 'AD_Decode':
 
     groups_subjects['Male'] =['S01912', 'S02110', 'S02231', 'S02402', 'S02469', 'S02473', 'S02491', 'S02535', 'S02654', 'S02289', 'S02266', 'S02666', 'S02670', 'S02690', 'S02753', 'S02227', 'S02813', 'S02842', 'S02224', 'S02871', 'S02938', 'S02939', 'S02954', 'S02987', 'S03010', 'S02320', 'S03017', 'S03028', 'S03048', 'S03069', 'S03225', 'S03265', 'S03293', 'S03350', 'S03391']
     groups_subjects['Female'] = ['S02363', 'S02373', 'S02386', 'S02390', 'S02410', 'S02421', 'S02424', 'S02446', 'S02451', 'S02506', 'S02524', 'S02686', 'S02695', 'S02715', 'S02720', 'S02737', 'S02765', 'S02771', 'S02781', 'S02802', 'S02804', 'S02812', 'S02817', 'S02840', 'S02877', 'S02898', 'S02926', 'S02967', 'S03033', 'S03034', 'S03045', 'S02361', 'S03308', 'S03321', 'S03343', 'S03378']
-
+    groups_subjects['Male_test'] = ['S01912']
     #groups to go through
     #groups_all = ['APOE4','APOE3']
-    groups= ['APOE3', 'APOE4']
-
-    #groups = ['APOE3']
-    #groups = ['Male','Female']
-    #groups =['Female']
-    #groups = ['APOEtestrun']
+    #groups= ['APOE3', 'APOE4']
+    groups = ['Male','Female']
 
     removed_list = ['S02654','S02523']
 
@@ -168,7 +169,9 @@ if project == 'AD_Decode':
     # target_tuples = [(9, 1), (57, 9), (61, 23), (84, 23), (80, 9)]
 
     # sex_noninclusive
-    # target_tuples = [(64, 57), (58, 57), (9, 1), (64, 58), (80,58)]
+    target_tuples = [(64, 57), (58, 57), (9, 1), (64, 58), (80,58)]
+    target_tuples = [(64, 57), (58,57)]
+    target_tuples = [(9, 1), (64, 58), (80,58)]
     # sex_noninclusive_volweighted_fa
     # target_tuples = [(58, 24), (58, 30), (64, 30), (64, 24), (58,48)]
 
@@ -274,7 +277,7 @@ for target_tuple in target_tuples:
             groupLines[group, ref] = []
             groupPoints[group, ref] = []
 
-    _, _, index_to_struct, _ = atlas_converter(atlas_legends)
+    _, _, index_to_struct, _ = atlas_converter(atlas_legends, sftp)
     print(f'Starting the run for {index_to_struct[target_tuple[0]]} to {index_to_struct[target_tuple[1]]}')
 
     for group in groups:
@@ -332,8 +335,12 @@ for target_tuple in target_tuples:
 
                 picklepath_connectome = os.path.join(pickle_folder, subject + str_identifier + '_connectomes.p')
                 picklepath_grouping = os.path.join(pickle_folder, subject + str_identifier + '_grouping.p')
-                M_xlsxpath = os.path.join(excel_folder, subject + str_identifier + "_connectomes.xlsx")
-                grouping_xlsxpath = os.path.join(excel_folder, subject + str_identifier + "_grouping.xlsx")
+                #M_xlsxpath = os.path.join(excel_folder, subject + str_identifier + "_connectomes.xlsx")
+                #grouping_xlsxpath = os.path.join(excel_folder, subject + str_identifier + "_grouping.xlsx")
+                M_xlsxpath = os.path.join(excel_folder, subject + "_connectomes.xlsx")
+                grouping_xlsxpath = os.path.join(excel_folder, subject + "_grouping.xlsx")
+                picklepath_connectome = os.path.join(pickle_folder, subject + '_connectomes.p')
+                picklepath_grouping = os.path.join(pickle_folder, subject + '_grouping.p')
                 #if os.path.exists(picklepath_grouping) and not overwrite:
                 #    with open(picklepath_grouping, 'rb') as f:
                 #        grouping = pickle.load(f)
@@ -467,7 +474,7 @@ for target_tuple in target_tuples:
                 if verbose:
                     print(f'Summarized the streamlines for group {group} at {streamline_file_path}')
                 pickledump_remote(groupstreamlines[group], streamline_file_path, sftp=sftp)
-                save_trk_header(filepath= streamline_file_path, streamlines = groupstreamlines[group], header = header,
+                save_trk_header(filepath= streamline_file_path, streamlines = Streamlines(groupstreamlines[group]), header = header,
                                 affine=np.eye(4), verbose=verbose, sftp=sftp)
 
             """
@@ -491,7 +498,7 @@ for target_tuple in target_tuples:
 
                 if not os.path.exists(grouping_files[ref, 'points']):
                     if verbose:
-                        print(f"Summarized the clusters for group {group} and statistics {ref} at {grouping_files[ref,'lines']}")
+                        print(f"Summarized the clusters for group {group} and statistics {ref} at {grouping_files[ref,'points']}")
                     pickledump_remote(groupPoints[group, ref], grouping_files[ref,'points'], sftp=sftp)
 
             pickledump_remote(groupPoints[group, 'ln'], grouping_files['ln', 'lines'], sftp=sftp)

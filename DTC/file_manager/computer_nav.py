@@ -5,6 +5,8 @@ import fnmatch
 import numpy as np
 import pickle
 import nibabel as nib
+import shutil
+
 
 def getremotehome(computer):
     import re
@@ -283,11 +285,19 @@ def glob_remote(path, sftp):
     return(match_files)
 
 def copy_loctoremote(file,newfile,sftp=None):
-    import shutil
     if sftp is None:
         shutil.copy(file,newfile)
     else:
-        sftp.put(file,newfile,sftp)
+        sftp.put(file,newfile)
+
+def copy_remotefiles(file,newfile,sftp=None):
+    if sftp is not None:
+        temp_path = make_temppath(file)
+        sftp.get(file, temp_path)
+        sftp.put(temp_path,newfile)
+        os.remove(temp_path)
+    else:
+        shutil.copy(file,newfile)
 
 def pickledump_remote(var,path,sftp=None):
     if sftp is None:

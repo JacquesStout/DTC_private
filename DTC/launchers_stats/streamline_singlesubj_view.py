@@ -1,8 +1,8 @@
 import os
 from dipy.viz import window, actor
-from tract_manager.streamline_nocheck import load_trk as load_trk_spe
+from DTC.tract_manager.streamline_nocheck import load_trk as load_trk_spe
 from dipy.io.streamline import load_trk, save_trk
-from visualization_tools.visualization_tools.tract_visualize import show_bundles, setup_view
+from DTC.visualization_tools.visualization_tools.tract_visualize import show_bundles, setup_view
 
 trk_folder = '/Volumes/Data/Badea/Lab/human/AD_Decode/Analysis/TRK_MPCA_MDT/'
 trk_name = 'S03350_stepsize_2_all_wholebrain_pruned.trk'

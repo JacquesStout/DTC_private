@@ -10,25 +10,25 @@ from dipy.align.reslice import reslice
 import glob, sys
 from DTC.file_manager.argument_tools import parse_arguments
 import platform
+from DTC.file_manager.computer_nav import get_mainpaths, glob_remote, copy_loctoremote, checkfile_exists_remote, load_nifti_remote
+from DTC.file_manager.file_tools import mkcdir, getfromfile
 
 subjects = ['sub22040413', 'sub22040411', 'sub2204041', 'sub22040410', 'sub2204042', 'sub2204043', 'sub2204044',
             'sub2204045', 'sub2204046', 'sub2204047', 'sub2204048', 'sub2204049', 'sub2205091', 'sub22050910',
             'sub22050911', 'sub22050912', 'sub22050913', 'sub22050914', 'sub2205094', 'sub2205097', 'sub2205098',
             'sub2206061', 'sub22060610', 'sub22060611', 'sub22060612', 'sub22060613', 'sub22060614', 'sub2206062',
             'sub2206063', 'sub2206064', 'sub2206065', 'sub2206066', 'sub2206067', 'sub2206068', 'sub2206069']
+
+cancelled_subj = ['sub2204041', 'sub22060611', 'sub22060612', 'sub22060613', 'sub22060614', 'sub2206063']
+for cancelled in cancelled_subj:
+    if cancelled in subjects:
+        subjects.remove(cancelled)
+
 #subjects = ['sub2206061', 'sub22060610', 'sub22060611', 'sub22060612', 'sub22060613', 'sub22060614', 'sub2206062']
 #subjects = ['sub2206061', 'sub22060610', 'sub22060611']
 #subjects = ['sub22060612', 'sub22060613', 'sub22060614', 'sub2206062']
 #subjects = ['sub2206063', 'sub2206064', 'sub2206065', 'sub2206066']
-#subjects = ['sub2206067', 'sub2206068', 'sub2206069']
-#subjects = ['sub22040413']
-#subjects = ['sub2206063', 'sub2206064', 'sub2206065', 'sub2206066', 'sub2206067', 'sub2206068', 'sub2206069']
-#subjects = ['sub2206069']
-#subjects = ['sub22040413', 'sub22040411', 'sub2204041', 'sub22040410', 'sub2204042', 'sub2204043', 'sub2204044',
-#            'sub2204045']
-#subjects = ['sub22050911', 'sub22050912', 'sub22050913', 'sub22050914', 'sub2205094', 'sub2205097', 'sub2205098']
-#subjects = ['sub2204046', 'sub2204047', 'sub2204048', 'sub2204049', 'sub2205091', 'sub22050910']
-#subjects = ['sub2205098']
+
 
 def full_split_nii(subj_path, output_folder, sftp=None):
     img = nib.load(subj_path)
@@ -58,37 +58,54 @@ print(subjects)
 overwrite = False
 verbose = True
 recenter = False
-remote = False
+remote = True
 toclean = True
 tempcheck=False
 
-if not remote:
-    sftp=None
+project='Daniel'
+
+if remote:
+    username, passwd = getfromfile(os.path.join(os.environ['HOME'],'remote_connect.rtf'))
+else:
+    username = None
+    passwd = None
+
+if remote:
+    _, _, _, sftp = get_mainpaths(remote,project = project, username=username,password=passwd)
+    orig_dir = '/mnt/paros_WORK/daniel/project/BRUKER_organized_JS_combined/'
+    new_dir = '/mnt/paros_WORK/daniel/project/BRUKER_organized_JS_SAMBAD_4'
+else:
+    orig_dir = '/Users/jas/jacques/Daniel_test/BRUKER_organized_JS_combined/'
+    new_dir = '/Volumes/Data/Badea/Lab/jacques/APOE_func_proc/BRUKER_organized_JS_SAMBAD_4'
+    sftp = None
 
 copytype = "truecopy"
 ext = '.nii.gz'
 native_ref = ''
 
-orig_dir = '/Users/jas/jacques/Daniel_test/BRUKER_organized_JS/'
+#orig_dir = '/Users/jas/jacques/Daniel_test/BRUKER_organized_JS/'
+#orig_dir = '/Users/jas/jacques/Daniel_test/BRUKER_organized_JS_combined/'
+
+"""
 if 'hydra' in platform.node():
     orig_dir = '/Users/alex/jacques/BRUKER_organized_JS/'
 if 'lefkada' in platform.node():
     orig_dir = '/Users/alex/temp_BRUKER_run/BRUKER_organized_JS'
+"""
 
-new_dir = '/Volumes/Data/Badea/Lab/jacques/APOE_func_proc/BRUKER_organized_JS_SAMBAD_3'
 #new_dir = '/Users/jas/jacques/Daniel_test/BRUKER_organized_JS_SAMBAD_3/'
 
-nii_temp_dir = '/Volumes/Data/Badea/Lab/jacques/APOE_func_proc/temp_nii'
-#nii_temp_dir = '/Users/jas/jacques/Daniel_test/temp_nii'
+#nii_temp_dir = '/Volumes/Data/Badea/Lab/jacques/APOE_func_proc/temp_nii'
+nii_temp_dir = '/Users/jas/jacques/Daniel_test/temp_nii'
 
 #MDT_baseimages = '/Volumes/Data/Badea/Lab/mouse/VBM_18APOERAREset02_invivoAPOE1-work/preprocess'
 MDT_baseimages = '/Volumes/Data/Badea/Lab/jacques/APOE_func_proc/MDT_base/'
 
-transforms_folder = '/Users/jas/jacques/Daniel_test/Transforms_2'
+#transforms_folder = '/Users/jas/jacques/Daniel_test/Transforms_2'
 transforms_folder = '/Volumes/Data/Badea/Lab/jacques/APOE_func_proc/Transforms'
 
 mkcdir(nii_temp_dir)
-mkcdir(new_dir)
+mkcdir(new_dir, sftp)
 
 #ref_t1 = '/Volumes/Data/Badea/Lab/mouse/VBM_18APOERAREset02_invivoAPOE1-work/T1/SyN_0p5_3_0p5_T1/JS_rabies_i7/median_images/MDT_T1.nii.gz'
 ref_t1 = '/Volumes/Data/Badea/Lab/jacques/APOE_func_proc/MDT_T1.nii.gz'
@@ -103,6 +120,8 @@ csv_summary = pd.read_excel(csv_summary_path)
 temp_check = True
 toclean = False
 
+num_images = 600
+
 for subj in subjects:
 
     line = csv_summary.loc[csv_summary['D_name'] == int(subj.replace('sub',''))]
@@ -112,7 +131,7 @@ for subj in subjects:
         print(f'could not find associated animal ID for this folder {subj}, skipping')
         continue
 
-    print(f'running move for subject {newid}')
+    #print(f'running move for subject {newid}')
     trans = os.path.join(transforms_folder, f"{newid}_0DerivedInitialMovingTranslation.mat")
     rigid = os.path.join(transforms_folder, f"{newid}_rigid.mat")
     affine_orig = os.path.join(transforms_folder, f"{newid}_affine.mat")
@@ -133,7 +152,13 @@ for subj in subjects:
     subj_anat_sambad = os.path.join(folder_anat, f'{subj.replace("b", "b-")}_ses-1_T1w{ext}')
     subj_func_sambad = os.path.join(folder_func, f'{subj.replace("b", "b-")}_ses-1_bold.nii.gz')
 
-    if not os.path.exists(subj_anat_sambad) or not os.path.exists(subj_func_sambad):
+    #if not os.path.exists(subj_func_sambad) or not os.path.exists(subj_func_sambad):
+    #    print(f'Still missing subject {subj}')
+    #    continue
+    #else:
+    #    continue
+
+    if not checkfile_exists_remote(subj_anat_sambad, sftp) or not checkfile_exists_remote(subj_func_sambad, sftp):
         func_reorient = os.path.join(nii_temp_dir, f'{subj}_func_reorient{ext}')
         func_reorient_affined = os.path.join(nii_temp_dir, f'{subj}_func_reorient_affined{ext}')
         target_base = os.path.join(MDT_baseimages, f'{newid}_T1_masked.nii.gz')
@@ -142,13 +167,19 @@ for subj in subjects:
         print(f'Reorienting the file {subj_anat}')
 
         if not os.path.exists(func_reorient) or overwrite:
-            img_transform_exec(subj_func, 'LPI', 'ALS', output_path=func_reorient, verbose=True)
-
+            if sftp is not None:
+                subj_func_temp = os.path.join(nii_temp_dir,os.path.basename(subj_func))
+                sftp.get(subj_func, subj_func_temp)
+            else:
+                subj_func_temp = subj_func
+            img_transform_exec(subj_func_temp, 'LPI', 'ALS', output_path=func_reorient, verbose=True)
+            if sftp is not None:
+                os.remove(subj_func_temp)
         if not os.path.exists(SAMBA_preprocess) or overwrite:
             shutil.copy(target_base, SAMBA_preprocess)
 
         if not os.path.exists(func_reorient_affined) or overwrite:
-            affine = nib.load(subj_anat).affine
+            _, affine, _, _, _ = load_nifti_remote(subj_anat, sftp)
             affine_recentered = nib.load(SAMBA_preprocess).affine
 
             transform = get_affine_transform(affine, affine_recentered)
@@ -210,21 +241,28 @@ for subj in subjects:
                 os.remove(tmpfile)
 
         if transf_level=='torigid':
-            if not os.path.exists(subj_anat_sambad) or overwrite:
-                cmd = f"antsApplyTransforms -v 1 -d 3 -i {SAMBA_preprocess} -o {subj_anat_sambad} -r {SAMBA_preprocess} -n MultiLabel -t [{rigid},0] [{trans},0]"
+            if not checkfile_exists_remote(subj_anat_sambad, sftp) or overwrite:
+                if sftp is not None:
+                    subj_anat_sambad_temp = os.path.join(nii_temp_dir, os.path.basename(subj_anat_sambad))
+                else:
+                    subj_anat_sambad_temp = subj_anat_sambad
+                cmd = f"antsApplyTransforms -v 1 -d 3 -i {SAMBA_preprocess} -o {subj_anat_sambad_temp} -r {SAMBA_preprocess} -n MultiLabel -t [{rigid},0] [{trans},0]"
                 os.system(cmd)
+                if sftp is not None:
+                    sftp.put(subj_anat_sambad_temp,subj_anat_sambad)
+                    os.remove(subj_anat_sambad_temp)
 
             if not os.path.exists(subj_func_sambad) or overwrite:
                 split_subject_folder = os.path.join(nii_temp_dir,f'{subj}_split')
                 mkcdir(split_subject_folder)
-                if np.size(glob.glob(os.path.join(split_subject_folder,'*.nii.gz')))<1800:
+                if np.size(glob.glob(os.path.join(split_subject_folder,'*.nii.gz')))<num_images:
                     full_split_nii(func_reorient_recentered_reslicedtargetaff,split_subject_folder)
                 split_subject_files = glob.glob(os.path.join(split_subject_folder,'*.nii.gz'))
                 split_subject_files.sort()
 
                 split_subject_folder_transf = os.path.join(nii_temp_dir,f'{subj}_split_transf')
                 mkcdir(split_subject_folder_transf)
-                if np.size(glob.glob(os.path.join(split_subject_folder_transf, '*.nii.gz')))<1800:
+                if np.size(glob.glob(os.path.join(split_subject_folder_transf, '*.nii.gz')))<num_images:
                     for split_subj_file in split_subject_files:
                         output_transf = os.path.join(split_subject_folder_transf, os.path.basename(split_subj_file))
                         if not os.path.exists(output_transf):
@@ -233,8 +271,17 @@ for subj in subjects:
 
                 time_origin = 0
                 time_spacing = float(os.popen(f'fslval {func_reorient_recentered_reslicedtargetaff} pixdim4').read().split(' \n')[0])
-                cmd = f'ImageMath 4 {subj_func_sambad} TimeSeriesAssemble {time_spacing} {time_origin} {split_subject_folder_transf}/*'
+
+
+                if sftp is not None:
+                    subj_func_sambad_temp = os.path.join(nii_temp_dir, os.path.basename(subj_func_sambad))
+                else:
+                    subj_func_sambad_temp = subj_func_sambad
+                cmd = f'ImageMath 4 {subj_func_sambad_temp} TimeSeriesAssemble {time_spacing} {time_origin} {split_subject_folder_transf}/*'
                 os.system(cmd)
+                if sftp is not None:
+                    sftp.put(subj_func_sambad_temp,subj_func_sambad)
+                    os.remove(subj_func_sambad_temp)
 
         if transf_level=='tofullwarp':
             if not os.path.exists(subj_anat_sambad) or overwrite:
@@ -243,14 +290,14 @@ for subj in subjects:
             if not os.path.exists(subj_func_sambad) or overwrite:
                 split_subject_folder = os.path.join(nii_temp_dir,f'{subj}_split')
                 mkcdir(split_subject_folder)
-                if np.size(glob.glob(os.path.join(split_subject_folder,'*.nii.gz')))<1800:
+                if np.size(glob.glob(os.path.join(split_subject_folder,'*.nii.gz')))<num_images:
                     full_split_nii(func_reorient_recentered_reslicedtargetaff,split_subject_folder)
                 split_subject_files = glob.glob(os.path.join(split_subject_folder,'*.nii.gz'))
                 split_subject_files.sort()
 
                 split_subject_folder_transf = os.path.join(nii_temp_dir,f'{subj}_split_transf')
                 mkcdir(split_subject_folder_transf)
-                if np.size(glob.glob(os.path.join(split_subject_folder_transf, '*.nii.gz')))<1800:
+                if np.size(glob.glob(os.path.join(split_subject_folder_transf, '*.nii.gz')))<num_images:
                     for split_subj_file in split_subject_files:
                         output_transf = os.path.join(split_subject_folder_transf, os.path.basename(split_subj_file))
                         if not os.path.exists(output_transf):
@@ -259,8 +306,15 @@ for subj in subjects:
 
                 time_origin = 0
                 time_spacing = float(os.popen(f'fslval {func_reorient_recentered_reslicedtargetaff} pixdim4').read().split(' \n')[0])
+                if sftp is not None:
+                    subj_func_sambad_temp = os.path.join(nii_temp_dir, os.path.basename(subj_func_sambad))
+                else:
+                    subj_func_sambad_temp = subj_func_sambad
                 cmd = f'ImageMath 4 ${subj_func_sambad} TimeSeriesAssemble ${time_spacing} ${time_origin} ${split_subject_folder_transf}/*'
                 os.system(cmd)
+                if sftp is not None:
+                    sftp.put(subj_func_sambad_temp,subj_func_sambad)
+                    os.remove(subj_func_sambad_temp)
 
         if toclean and os.path.exists(subj_func_sambad):
             tempfiles = [func_reorient_recentered_reslicedtargetaff]
@@ -272,11 +326,3 @@ for subj in subjects:
                 os.rmdir(tmpfolder)
     else:
         print(f'already wrote {subj_anat_sambad} and {subj_func_sambad}')
-
-        if temp_check:
-            temp_anat = os.path.join(nii_temp_dir, os.path.basename(subj_anat_sambad))
-            if not os.path.exists(temp_anat):
-                shutil.copy(subj_anat_sambad, temp_anat)
-            temp_func = os.path.join(nii_temp_dir, os.path.basename(subj_func_sambad))
-            if not os.path.exists(temp_func):
-                shutil.copy(subj_func_sambad, temp_func)
