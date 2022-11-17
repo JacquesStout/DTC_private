@@ -20,6 +20,7 @@ from DTC.tract_manager.tract_save import save_trk_header
 import time
 import nibabel as nib
 import copy
+import socket
 """
 import pandas as pd
 from dipy.segment.bundles import bundle_shape_similarity
@@ -73,6 +74,11 @@ def show_both_bundles(bundles, colors=None, show=True, fname=None):
 MDT_mask_folder = '/Volumes/Data/Badea/Lab/mouse/VBM_21ADDecode03_IITmean_RPI_fullrun-results/atlas_to_MDT'
 project='AD_Decode'
 remote=True
+
+if 'samos' in socket.gethostname():
+    remote=False
+else:
+    remote=True
 
 if remote:
     username, passwd = getfromfile(os.path.join(os.environ['HOME'],'remote_connect.rtf'))
