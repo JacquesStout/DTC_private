@@ -271,15 +271,17 @@ for subject in viewed_subjects:
 
         # record_path = os.path.join(figures_outpath,
         #                           f'{subject}_{side}side_{num_bundles}_bundles_distance_{str(distance)}{ratiostr}_figure.png')
+        side = 'combined'
+        streamlines_template[side] = load_trk_remote(trktemplate_paths[side], 'same', sftp).streamlines
+        timings.append(time.perf_counter())
+        print(f'Loaded {trktemplate_paths[side]}, took {timings[-1] - timings[-2]} seconds')
         for i, bundle in enumerate(selected_bundles['combined']):
-            side = 'combined'
             filepath_bundle = os.path.join(outpath_trk_subj_bundleset, f'{side}_bundle_{i}.trk')
             indices = bundle.indices
             stream_combvals = streams_dict['combined', subject]
-
             if (not checkfile_exists_remote(filepath_bundle, sftp) or overwrite):
                 test = set1(indices, stream_combvals)
-                streamlines_set = streamlines_template[side][test]
+                streamlines_set = streamlines_template['combined'][test]
                 save_trk_header(filepath=filepath_bundle, streamlines=streamlines_set, header=header,
                                 affine=np.eye(4), verbose=verbose, sftp=sftp)
                 timings.append(time.perf_counter())
@@ -353,6 +355,10 @@ for subject in viewed_subjects:
     else:
         for side in sides:
             selected_bundles_new = []
+            streamlines_template[side] = load_trk_remote(trktemplate_paths[side], 'same', sftp).streamlines
+            timings.append(time.perf_counter())
+            print(f'Loaded {trktemplate_paths[side]}, took {timings[-1] -timings[-2]} seconds')
+            del streamlines_template_data
             # record_path = os.path.join(figures_outpath,
             #                           f'{subject}_{side}side_{num_bundles}_bundles_distance_{str(distance)}{ratiostr}_figure.png')
             for i, bundle in enumerate(selected_bundles[side]):
@@ -372,7 +378,7 @@ for subject in viewed_subjects:
                           f'{timings[-1] - timings[-2]} seconds')
                 new_bundle = qb_test.cluster(streamlines_set)[0]
                 selected_bundles_new.append(new_bundle)
-
+            del(streamlines_template[side])
         if save_img:
             lut_cmap = None
             coloring_vals = fury.colormap.distinguishable_colormap(nb_colors=num_bundles)

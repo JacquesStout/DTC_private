@@ -128,7 +128,7 @@ if project=='AD_Decode':
                              'S03391',
                              'S03394', 'S03847']  # , 'S03866', 'S03867', 'S03889', 'S03890', 'S03896']
     viewed_subjects = template_subjects
-    removed_list = ['S02230', 'S02654', 'S02490', 'S02523', 'S02745']
+    removed_list = ['S02230', 'S02654', 'S02490', 'S02523', 'S02745','S03391','S03394','S03847']
 
     for remove in removed_list:
         if remove in template_subjects:
@@ -268,9 +268,22 @@ for side in sides:
             streams_dict_temp = {}
             for sidetemp in ['left','right']:
                 streams_dict.update(remote_pickle(streams_dict_picklepaths[dict_revtracker[sidetemp]], sftp=sftp))
+                timings.append(time.perf_counter())
+                print(f'Loaded dictionary from {streams_dict_picklepaths[dict_revtracker[sidetemp]]}, took {timings[-1] - timings[-2]} seconds')
+                if np.size(streamlines_template[sidetemp]) == 0:
+                    streamlines_template_data = load_trk_remote(trktemplate_paths[sidetemp], 'same', sftp)
+                    if 'header' not in locals():
+                        header = streamlines_template_data.space_attributes
+                    streamlines_template[sidetemp] = streamlines_template_data.streamlines
+                    timings.append(time.perf_counter())
+                    print(
+                        f'Loaded {dict_revtracker[sidetemp]} side from {trktemplate_paths[sidetemp]}, took {timings[-1] - timings[-2]} seconds')
+                    del streamlines_template_data
+
             for subject in template_subjects:
                 #streams_dict_comb[subject] = streams_dict['left',subject] #streams_dict['left','right_f']
                 streams_dict_side[side,subject] = np.array(list(streams_dict['left', subject]) + (list(streams_dict['right',subject] + streams_dict['left', template_subjects[-1]][-1])))
+
             streamlines_comb = copy.copy(streamlines_template['left'])
             streamlines_comb.extend(streamlines_template['right_f'])
             save_trk_header(filepath=trktemplate_paths[side], streamlines=streamlines_comb, header=header,
