@@ -299,6 +299,8 @@ for side in sides:
             pickledump_remote(streams_dict_side, streams_dict_picklepaths[side], sftp)
             timings.append(time.perf_counter())
             print(f'Saved dictionary at {streams_dict_picklepaths[side]}, took {timings[-1] - timings[-2]} seconds')
+    else:
+        print(f'already wrote {trktemplate_paths[side]} and {streams_dict_picklepaths[side]}')
 #pickledump_remote(streams_dict,streams_dict_picklepath, sftp)
 
 """
