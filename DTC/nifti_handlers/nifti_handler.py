@@ -22,6 +22,20 @@ import pathlib
 from DTC.diff_handlers.bvec_handler import fix_bvals_bvecs, reorient_bvecs
 from dipy.core.gradients import gradient_table
 
+
+def average_4dslices(path, new_path, split=1, slices=None, sftp=None):
+    data, affine, _, hdr, _ = load_nifti_remote(path, sftp)
+    num_4dslices = np.shape(data)[3]
+    if slices is None:
+        new_data = np.zeros(tuple(list(np.shape(data)[0:3])+[int(num_4dslices/split)]))
+        for i in np.arange(split):
+            new_data += data[:,:,:,int(i*(num_4dslices/split)):int((i+1)*(num_4dslices/split))]
+        new_data = new_data/split
+    new_nii = nib.Nifti1Image(new_data, affine, hdr)
+    nib.save(new_nii, new_path)
+    return
+
+
 def getfa(mypath, subject, bvec_orient, verbose=None):
 
     # fdwi = mypath + '4Dnii/' + subject + '_nii4D_RAS.nii.gz'

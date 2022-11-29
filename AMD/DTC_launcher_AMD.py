@@ -1,15 +1,15 @@
 
 import numpy as np
-from tract_manager import create_tracts, diff_handlers.diff_preprocessing, tract_connectome_analysis, get_diffusionattributes, get_str_identifier
-from file_manager.Daemonprocess import MyPool
+from DTC.tract_manager import create_tracts, diff_handlers.diff_preprocessing, tract_connectome_analysis, get_diffusionattributes, get_str_identifier
+from DTC.file_manager.Daemonprocess import MyPool
 import multiprocessing as mp
 import os, sys
-from file_manager.file_tools import mkcdir, getfromfile
+from DTC.file_manager.file_tools import mkcdir, getfromfile
 from time import time
-from file_manager.argument_tools import parse_arguments
-from diff_handlers.bvec_handler import orient_to_str
+from DTC.file_manager.argument_tools import parse_arguments
+from DTC.diff_handlers.bvec_handler import orient_to_str
 import socket
-from file_manager.computer_nav import get_mainpaths, get_atlas
+from DTC.file_manager.computer_nav import get_mainpaths, get_atlas
 import random
 
 remote=True

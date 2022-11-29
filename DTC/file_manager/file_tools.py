@@ -153,10 +153,11 @@ def check_files(files,sftp=None, verbose=False):
     return newfiles, exists
 
 
-def largerfile(path, identifier=""):
+def largerfile(path, sftp=None, identifier=""):
     max_size=0
     max_file=None
-    if os.path.isdir(path):
+
+    if (sftp is None and os.path.isdir(path)):
         for folder, subfolders, files in os.walk(path):
 
             # checking the size of each file
@@ -168,6 +169,17 @@ def largerfile(path, identifier=""):
                     if size > max_size:
                         max_size = size
                         max_file = os.path.join(folder, file)
+
+    elif sftp is not None:
+        for file in glob_remote(path, sftp):
+            if identifier in file:
+                size = sftp.stat(os.path.join(path, file)).st_size
+
+                # updating maximum size
+                if size > max_size:
+                    max_size = size
+                    max_file = os.path.join(path, file)
+
     else:
         if identifier != "":
             files = glob.glob(os.path.join(path,"*"+identifier+"*"))

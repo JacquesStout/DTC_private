@@ -5,7 +5,7 @@ import fnmatch
 import numpy as np
 import pickle
 import nibabel as nib
-import shutil
+import shutil, re
 
 
 def getremotehome(computer):
@@ -29,7 +29,7 @@ def getremotehome(computer):
 
 def get_mainpaths(remote=False, project='any',username=None,password=None):
     computer_name = socket.gethostname()
-    project_rename = {'Chavez':'21.chavez.02','AD_Decode':'AD_Decode','APOE':'APOE','AMD':'AMD','Daniel':'Daniel'}
+    project_rename = {'Chavez':'21.chavez.02','AD_Decode':'AD_Decode','APOE':'APOE','AMD':'AMD','Daniel':'Daniel', 'Vitek':'Vitek'}
     sftp = None
     computer_n = computer_name.split('.')[0]
 
@@ -71,6 +71,7 @@ def get_mainpaths(remote=False, project='any',username=None,password=None):
 
     return inpath, outpath, atlas_folder, sftp
 
+
 def splitpath(path):
     dirpath = os.path.dirname(path)
     name = os.path.basename(path).split('.')[0]
@@ -79,6 +80,7 @@ def splitpath(path):
     else:
         ext = ''
     return dirpath, name, ext
+
 
 def get_sftp(remote, username=None, password=None):
     computer_name = socket.gethostname()
@@ -98,6 +100,7 @@ def get_sftp(remote, username=None, password=None):
 
     return sftp
 
+
 def get_atlas(atlas_folder, atlas_type):
     if atlas_type == 'IIT':
         index_path = os.path.join(atlas_folder,'IITmean_RPI','IITmean_RPI_index.xlsx')
@@ -108,8 +111,18 @@ def get_atlas(atlas_folder, atlas_type):
     return index_path
 
 
-def make_temppath(path):
-    return f'{os.path.join(os.path.expanduser("~"), os.path.basename(path).split(".")[0]+"_temp."+ ".".join(os.path.basename(path).split(".")[1:]))}'
+def badpath_fixer(path):
+    fixed_path = re.sub('\?|!|\(|\)|', '', path)
+    fixed_path = re.sub('-| ', '_', fixed_path)
+    return fixed_path
+
+
+def make_temppath(path, to_fix=False):
+    temppath = f'{os.path.join(os.path.expanduser("~"), os.path.basename(path).split(".")[0]+"_temp."+ ".".join(os.path.basename(path).split(".")[1:]))}'
+    if to_fix:
+        return badpath_fixer(temppath)
+    else:
+        return temppath
 
 
 def load_nifti_remote(niipath, sftp=None):
@@ -205,6 +218,7 @@ def load_trk_remote(trkpath,reference,sftp=None):
         trkdata = load_trk_spe(trkpath, reference)
     return trkdata
 
+
 def loadmat_remote(matpath, sftp=None):
     from scipy.io import loadmat
     if sftp is not None:
@@ -227,12 +241,14 @@ def true_loadmat(matpath, sftp=None):
     mat = struct[var_name]
     return mat
 
+
 def ants_loadmat(matpath, sftp=None):
     old_mat = true_loadmat(matpath, sftp=None)
     ants_mat =np.eye(4)
     ants_mat[:3,:3] = old_mat[:-3].reshape((3,3))
     ants_mat[:3, 3] = old_mat[-3:].reshape(3)
     return(ants_mat)
+
 
 def scp_multiple(list,outpath,sftp=None,overwrite=False):
     for filepath in list:
@@ -251,7 +267,13 @@ def scp_multiple(list,outpath,sftp=None,overwrite=False):
 def glob_remote(path, sftp):
     match_files = []
     if sftp is not None:
-        if '.' not in path:
+        if '*' in path:
+            pathdir, pathname = os.path.split(path)
+            allfiles = sftp.listdir(pathdir)
+            for file in allfiles:
+                if re.search(pathname, file) is not None:
+                    match_files.append(os.path.join(pathdir,file))
+        elif '.' not in path:
             allfiles = sftp.listdir(path)
             for filepath in allfiles:
                 match_files.append(os.path.join(path, filepath))
@@ -284,12 +306,16 @@ def glob_remote(path, sftp):
                         match_files.append(os.path.join(dirpath, filepath))
     return(match_files)
 
+
+##Copys a file to a sftp new path, if not sftp, simply copy
 def copy_loctoremote(file,newfile,sftp=None):
     if sftp is None:
         shutil.copy(file,newfile)
     else:
         sftp.put(file,newfile)
 
+
+##Copys a sftp file to a new sftp path, if not sftp, simple copy
 def copy_remotefiles(file,newfile,sftp=None):
     if sftp is not None:
         temp_path = make_temppath(file)
@@ -298,6 +324,7 @@ def copy_remotefiles(file,newfile,sftp=None):
         os.remove(temp_path)
     else:
         shutil.copy(file,newfile)
+
 
 def pickledump_remote(var,path,sftp=None):
     if sftp is None:
@@ -308,9 +335,15 @@ def pickledump_remote(var,path,sftp=None):
         sftp.put(temp_path, path)
         os.remove(temp_path)
 
+
 def checkfile_exists_remote(path, sftp=None):
     match_files = glob_remote(path,sftp)
     if np.size(match_files)>0:
         return True
     else:
         return False
+
+
+def checkallfiles(paths, sftp=None):
+    for path in paths:
+        match_files = glob_remote(path, sftp)

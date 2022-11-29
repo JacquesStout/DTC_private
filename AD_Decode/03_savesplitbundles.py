@@ -142,7 +142,7 @@ if project == 'AD_Decode':
         if remove in template_subjects:
             template_subjects.remove(remove)
     stepsize = 2
-    ratio = 100
+    ratio = 1
     trkroi = ["wholebrain"]
     prune = True
     str_identifier = get_str_identifier(stepsize, ratio, trkroi)

@@ -57,12 +57,12 @@ def applymask_samespace(file, mask, outpath=None):
     nib.save(img_nii_new, outpath)
 
 
-def median_mask_make(inpath, outpath, outpathmask=None, median_radius=4, numpass=4,binary_dilation=None):
+def median_mask_make(inpath, outpath, outpathmask=None, median_radius=4, numpass=4,binary_dilation=None, vol_idx = None):
 
     if outpathmask is None:
         outpathmask=outpath.replace(".nii","_mask.nii")
     data, affine = load_nifti(inpath)
     data = np.squeeze(data)
-    data_masked, mask = median_otsu(data, median_radius=median_radius, numpass=numpass, dilate=binary_dilation)
+    data_masked, mask = median_otsu(data, median_radius=median_radius, numpass=numpass, dilate=binary_dilation, vol_idx=vol_idx)
     save_nifti(outpath, data_masked.astype(np.float32), affine)
     save_nifti(outpathmask, mask.astype(np.float32), affine)

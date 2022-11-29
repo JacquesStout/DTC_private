@@ -72,11 +72,11 @@ else:
 
 if remote:
     _, _, _, sftp = get_mainpaths(remote,project = project, username=username,password=passwd)
-    orig_dir = '/mnt/paros_WORK/daniel/project/BRUKER_organized_JS_combined/'
-    new_dir = '/mnt/paros_WORK/daniel/project/BRUKER_organized_JS_SAMBAD_4'
+    orig_dir = '/mnt/paros_WORK/daniel/project/BRUKER_organized_JS_combined_v2/'
+    new_dir = '/mnt/paros_WORK/daniel/project/BRUKER_organized_JS_SAMBAD_5'
 else:
     orig_dir = '/Users/jas/jacques/Daniel_test/BRUKER_organized_JS_combined/'
-    new_dir = '/Volumes/Data/Badea/Lab/jacques/APOE_func_proc/BRUKER_organized_JS_SAMBAD_4'
+    new_dir = '/Volumes/Data/Badea/Lab/jacques/APOE_func_proc/BRUKER_organized_JS_SAMBAD_5'
     sftp = None
 
 copytype = "truecopy"

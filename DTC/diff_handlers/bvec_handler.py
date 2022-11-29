@@ -326,6 +326,25 @@ def normalize(vals,tostr=True):
             vals_new.append(val / (distance))
     return(vals_new)
 
+def extractbvals_vectortxt(source_file,fileoutpath=None,verbose=False):
+
+    with open(source_file, 'rb') as source:
+        if verbose: print('INFO    : Extracting acquisition parameters')
+        bvecs = []
+        i=0
+        for line in source:
+            pattern1 = f'Vector\[{str(i)}\]'
+            rx1 = re.compile(pattern1, re.IGNORECASE | re.MULTILINE | re.DOTALL)
+            for a in rx1.findall(str(line)):
+                bvec = str(line).split('=')[1].split('\\')[0]
+                bvec = bvec.split(')')[0]
+                bvec = bvec.split('(')[1]
+                bvecs.append([eval(i) for i in (bvec.split(','))])
+                i += 1
+
+    return np.array(bvecs)
+
+
 def extractbvals_fromgrads(source_file,fileoutpath=None,tonorm=True,verbose=False):
 
     bvals = dsl = dpe = dro = None
@@ -721,10 +740,13 @@ def find_bval_bvecs(subjectpath, subject="",outpath=None):
     return fbvals, fbvecs
 
 
-def writebval(bvals, outpath, subject, writeformat = "line", overwrite=False):
+def writebval(bvals, outpath, subject=None, writeformat = "line", overwrite=False):
     
     if os.path.isdir(outpath):
-        bval_file = os.path.join(outpath, subject+"_bvals.txt")
+        if subject is not None:
+            bval_file = os.path.join(outpath, subject+"_bvals.txt")
+        else:
+            bval_file = os.path.join(outpath, "bvals.txt")
     else:
         bval_file = outpath
     

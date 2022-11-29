@@ -34,7 +34,7 @@ else:
 if remote:
     _, _, _, sftp = get_mainpaths(remote,project = project, username=username,password=passwd)
     BRUKER_processed = '/mnt/paros_DB/BRUKER/niftis/'
-    BRUKER_f = '/mnt/paros_WORK/daniel/project/BRUKER_organized_JS_combined/'
+    BRUKER_f = '/mnt/paros_WORK/daniel/project/BRUKER_organized_JS_combined_v2/'
 else:
     BRUKER_processed = '/Users/jas/jacques/Daniel_test/BRUKER/'
     BRUKER_f = '/Users/jas/jacques/Daniel_test/BRUKER_organized_JS_combined/'
@@ -91,6 +91,7 @@ for folder in processed_folders:
     rare_newpath = os.path.join(folder_anat, f'sub-{id}_ses-1_T1w.nii.gz')
     func_newpath = os.path.join(folder_func, f'sub-{id}_ses-1_bold.nii.gz')
     if not checkfile_exists_remote(func_newpath, sftp) or overwrite:
+        print(f'Starting processing for {t2S_path} to {func_newpath}')
         data_multi_echo, affine, _, hdr, _ = load_nifti_remote(t2S_path, sftp)
         #img = nib.load('/Volumes/Data/Badea/Lab/jacques/APOE_func_proc/sub-2204043_ses-1_run-1_bold.nii.gz')
         #data_truncated = data_multi_echo[:,:,:,:9]
@@ -98,6 +99,16 @@ for folder in processed_folders:
         #nib.save(truncated_nii,'/Volumes/Data/Badea/Lab/jacques/APOE_func_proc/trunc_{id}.nii.gz')
         timings.append(time.perf_counter())
         print(f'Loaded {t2S_path}, took {timings[-1] - timings[-2]} seconds')
+
+        mask_threshold_path = os.path.join(outpath_temp, f'{id}_mask.nii.gz')
+        if not checkfile_exists_remote(mask_threshold_path, sftp):
+            if sftp is not None:
+                t2S_path_local = os.path.join(outpath_temp, os.path.basename(t2S_path))
+                sftp.get(t2S_path, t2S_path_local)
+            else:
+                t2S_path_local = t2S_path
+            threshold_command = f'ThresholdImage 3 {t2S_path_local} {mask_threshold_path} 0 1000000'
+            os.system(threshold_command)
 
         # specify the number of echos
         TEs = 3
@@ -117,7 +128,7 @@ for folder in processed_folders:
 
         tedana_out_dir = os.path.join(outpath_temp, 'tedana_outputs')
         mkcdir(tedana_out_dir)
-        tedana_command = f'tedana -d {os.path.join(outpath_temp,f"{id}_echo_1.nii.gz")} {os.path.join(outpath_temp,f"{id}_echo_2.nii.gz")} {os.path.join(outpath_temp,f"{id}_echo_3.nii.gz")} -e 5.0 19.315 33.63 --out-dir {tedana_out_dir}'
+        tedana_command = f'tedana -d {os.path.join(outpath_temp,f"{id}_echo_1.nii.gz")} {os.path.join(outpath_temp,f"{id}_echo_2.nii.gz")} {os.path.join(outpath_temp,f"{id}_echo_3.nii.gz")} -e 5.0 19.315 33.63 --mask {mask_threshold_path} --out-dir {tedana_out_dir}'
         #maskpath = '/Volumes/Data/Badea/Lab/jacques/APOE_func_proc/mask.nii.gz'
         #tedana_command = f'tedana -d {os.path.join(outpath_temp, f"{id}_echo_1.nii.gz")} {os.path.join(outpath_temp, f"{id}_echo_2.nii.gz")} {os.path.join(outpath_temp, f"{id}_echo_3.nii.gz")} -e 5.0 19.315 33.63 --mask {maskpath} --out-dir {tedana_out_dir}'
         os.system(tedana_command)
@@ -154,16 +165,3 @@ for folder in processed_folders:
         elif os.path.isdir(remove_file):
             if is_subpath(remove_file,tedana_out_dir):
                 shutil.rmtree(remove_file)
-
-
-    #cp ${tedana_out_dir} / desc - optcom_bold.nii.gz ${output_dir} /${subject} / ses - 1 / func /${imgname}
-
-"""
-rm - r ${split_echos_dir}
-rm - r ${tedana_out_dir}
-done
-done
-
-duration =$((SECONDS - start))
-echo ${duration}
-"""
