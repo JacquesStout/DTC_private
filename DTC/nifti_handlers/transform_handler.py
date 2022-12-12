@@ -605,6 +605,31 @@ def recenter_to_eye(nii,output_path,verbose=False):
     nib.save(new_nii, output_path)
 
 
+def sameSigns(x, y):
+    return ((float(x) * float(y)) > 0);
+
+
+def img_transform_affreset(orig_path, affine_dwi, output_path=None):
+    if output_path is None:
+        output_path = orig_path.replace('.nii','reset.nii')
+    affine_orig = nib.load(orig_path).affine
+    orientation_out = 'RAS'
+    orientation_in = ''
+    if sameSigns(float(np.sum(affine_orig[0,:3])), np.sum(affine_dwi[0,:3])):
+        orientation_in += 'R'
+    else:
+        orientation_in += 'L'
+    if sameSigns(np.sum(affine_orig[1,:3]), np.sum(affine_dwi[1,:3])):
+        orientation_in += 'A'
+    else:
+        orientation_in += 'P'
+    if sameSigns(np.sum(affine_orig[2,:3]), np.sum(affine_dwi[2,:3])):
+        orientation_in += 'S'
+    else:
+        orientation_in += 'I'
+    img_transform_exec(orig_path, orientation_in, orientation_out, output_path = output_path)
+
+
 def img_transform_exec(img, current_vorder, desired_vorder, output_path=None, write_transform=0, rename = True, recenter=False, recenter_test= False, recenter_eye=False, recenter_flipaffine=False, verbose=False):
 
     is_RGB = 0;

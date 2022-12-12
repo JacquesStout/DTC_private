@@ -59,14 +59,14 @@ inpath, _, _, sftp = get_mainpaths(remote,project = project, username=username,p
 
 #subjects = ['N58214', 'N58215', 'N58216', 'N58217', 'N58218', 'N58219', 'N58221', 'N58222', 'N58223', 'N58224', 'N58225', 'N58226', 'N58228', 'N58229', 'N58230', 'N58231', 'N58232', 'N58302', 'N58303', 'N58305', 'N58309', 'N58310', 'N58344', 'N58346', 'N58350', 'N58355', 'N58359', 'N58361', 'N58394', 'N58396', 'N58398', 'N58400', 'N58402', 'N58404', 'N58406', 'N58408', 'N58477', 'N58500', 'N58510', 'N58512', 'N58514', 'N58516', 'N58604', 'N58606', 'N58608', 'N58611', 'N58613', 'N58633', 'N58634', 'N58635', 'N58636', 'N58649', 'N58650', 'N58651', 'N58653', 'N58654', 'N58655', 'N58706', 'N58708', 'N58712', 'N58714', 'N58732', 'N58733', 'N58734', 'N58735', 'N58740', 'N58742', 'N58745', 'N58747', 'N58749', 'N58751', 'N58779', 'N58780', 'N58784', 'N58788', 'N58790', 'N58792', 'N58794', 'N58813', 'N58815', 'N58819', 'N58821', 'N58829', 'N58831', 'N58851', 'N58853', 'N58855', 'N58857', 'N58859', 'N58861', 'N58877', 'N58879', 'N58881', 'N58883', 'N58885', 'N58887', 'N58889', 'N58906', 'N58909', 'N58913', 'N58917', 'N58919', 'N58935', 'N58941', 'N58952', 'N58995', 'N58997', 'N58999', 'N59003', 'N59010', 'N59022', 'N59026', 'N59033', 'N59035', 'N59039', 'N59041', 'N59065', 'N59066', 'N59072', 'N59076', 'N59078', 'N59080', 'N59097', 'N59099', 'N59109', 'N59116', 'N59118', 'N59120']
 
-outpath = '/mnt/paros2_work/jacques/APOE'
+outpath = '/mnt/paros_WORK/jacques/APOE'
 if project == "APOE":
     path_DWI = os.path.join(inpath, 'DWI_RAS')
     path_DWI_MDT = os.path.join(inpath, 'DWI_MDT')
     path_transforms = os.path.join(inpath, 'Transforms')
     path_TRK = os.path.join(inpath, 'TRK_RAS')
     path_trk_tempdir = os.path.join(outpath, 'TRK_transition')
-    path_TRK_output = os.path.join(outpath, 'TRK_MDT_real_testtemp')
+    path_TRK_output = os.path.join(outpath, 'TRK_MDT')
     ref = "md"
     DWI_save = os.path.join(outpath, 'NII_trans_save')
     mkcdir([DWI_save, path_DWI_MDT, path_TRK_output, path_trk_tempdir],sftp=sftp)

@@ -14,15 +14,14 @@ from DTC.file_manager.argument_tools import parse_arguments
 munin=False
 if munin:
     gunniespath = "~/wuconnectomes/gunnies"
-    mainpath = "/mnt/munin6/Badea/ADdecode.01/"
-    outpath = "/mnt/munin6/Badea/Lab/human/AD_Decode/diffusion_prep_locale/"
+    mainpath = "/mnt/munin6/Jasien/ADSB.01/"
+    outpath = "/mnt/munin6/Badea/Lab/human/Jasien/diffusion_prep_locale/"
     SAMBA_inputs_folder = "/mnt/munin6/Badea/Lab/mouse/ADDeccode_symlink_pool/"
     shortcuts_all_folder = "/mnt/munin6/Badea/Lab/human/ADDeccode_symlink_pool_allfiles/"
-
 else:
     gunniespath = "/Users/alex/bass/gitfolder/wuconnectomes/gunnies/"
-    mainpath="/Volumes/Data/Badea/ADdecode.01/"
-    outpath = "/Volumes/Data/Badea/Lab/human/AD_Decode/diffusion_prep_locale/"
+    mainpath="/Volumes/Data/Jasien/ADSB.01/"
+    outpath = "/Volumes/Data/Badea/Lab/human/Jasien/diffusion_prep_locale/"
     #bonusshortcutfolder = "/Volumes/Data/Badea/Lab/mouse/ADDeccode_symlink_pool/"
     SAMBA_inputs_folder = None
     shortcuts_all_folder = None
@@ -47,11 +46,10 @@ subjects = ['02230','02231','02490','02523','02745','02266','02289','02320','023
 subjects = ['01912', '02110', '02224', '02227', '02230', '02231', '02266', '02289', '02320', '02361', '02363', '02373', '02386', '02390', '02402', '02410', '02421', '02424', '02446', '02451', '02469', '02473', '02485', '02491', '02490', '02506', '02523', '02524']
 subjects.reverse()
 """
-subjects = ['01912', '02110', '02224', '02227', '02230', '02231', '02266', '02289', '02320', '02361', '02363', '02373', '02386', '02390', '02402', '02410', '02421', '02424', '02446', '02451', '02469', '02473', '02485', '02491', '02490', '02506', '02523', '02524', '02535', '02654', '02666', '02670', '02686', '02690', '02695', '02715', '02720', '02737', '02745', '02753', '02765', '02771', '02781', '02802', '02804', '02813', '02812', '02817', '02840', '02842', '02871', '02877', '02898', '02926', '02938', '02939', '02954', '02967', '02987', '03010', '03017', '03028', '03033', '03034', '03045', '03048', '03069', '03225', '03265', '03293', '03308', '03321', '03343', '03350', '03378', '03391', '03394', '03847', '03866', '03867', '03889', '03890', '03896']
-subjects = ['00775']
+subjects = ['04086', '04129']
 
-removed_list = ['02230','02490','02523','02745']
-#subjects = ['01912']
+removed_list = []
+
 for remove in removed_list:
     if remove in subjects:
         subjects.remove(remove)
@@ -68,7 +66,7 @@ print(subjects)
 
 subject_processes, function_processes, firstsubj, lastsubj = parse_arguments(sys.argv,subjects)
 
-proc_subjn="S"
+proc_subjn="J"
 proc_name ="diffusion_prep_"+proc_subjn
 denoise = "mpca"
 masking = "bet"
@@ -77,7 +75,7 @@ cleanup = True
 atlas = None
 gettranspose=False
 verbose=True
-nominal_bval=1000
+nominal_bval=2000
 if gettranspose:
     transpose = get_transpose(atlas)
 ref = "md"
@@ -108,11 +106,13 @@ if btables=="extract":
         subject_outpath = os.path.join(outpath, 'diffusion_prep_' + proc_subjn + subject)
         mkcdir(subject_outpath)
         #fbvals, fbvecs = extractbvals(subjectpath, subject, outpath=subject_outpath, writeformat=writeformat, overwrite=overwrite)
+        overwrite=True
         if not os.path.exists(os.path.join(subject_outpath,proc_subjn + subject+"_bvals.txt")) or overwrite:
             fbvals, fbvecs, _, _, _, _ = extractbvals_fromheader(bxh_file,
                                                                 fileoutpath=os.path.join(subject_outpath,proc_subjn + subject),
                                                                 writeformat=writeformat,
                                                                 save="all")
+            fix_bvals_bvecs(fbvals, fbvecs, writeformat = 'dsi', writeover=True)
 
         #fbvals, fbvecs = rewrite_subject_bvalues(diffpath, subject, outpath=outpath, writeformat=writeformat, overwrite=overwrite)
 elif btables=="copy":

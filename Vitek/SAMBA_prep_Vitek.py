@@ -52,7 +52,9 @@ denoise="None"
 recenter=0
 proc_name ="diffusion_prep_"+proc_subjn
 cleanup = True
+masking = "None"
 masking = "median"
+masking = 'premade'
 makebtables = False
 gettranspose=False
 copybtables = True
@@ -70,8 +72,9 @@ btables="copy"
 #copy takes one known good file for bval and bvec and copies it over to all subjects
 
 if btables=="extract":
-    for subject in subjects:
+    for old_subject in subjects:
         #outpathsubj = "/Volumes/dusom_dibs_ad_decode/all_staff/APOE_temp/diffusion_prep_58214/"
+        subject = old_subject.replace('-','_')
         writeformat="tab"
         writeformat="dsi"
         subjectpath = glob.glob(os.path.join(os.path.join(diffpath, "diffusion*"+subject+"*")))[0]
@@ -80,8 +83,9 @@ if btables=="extract":
         fbvals, fbvecs = extractbvals(subjectpath, subject, outpath=subject_outpath, writeformat=writeformat, overwrite=overwrite) #extractbvals_research
         #fbvals, fbvecs = rewrite_subject_bvalues(diffpath, subject, outpath=outpath, writeformat=writeformat, overwrite=overwrite)
 elif btables=="copy":
-    for subject in subjects:
+    for old_subject in subjects:
         #outpathsubj = "/Volumes/dusom_dibs_ad_decode/all_staff/APOE_temp/diffusion_prep_58214/"
+        subject = old_subject.replace('-','_')
         outpathsubj = os.path.join(outpath,proc_name+subject)
         outpathbval= os.path.join(outpathsubj, proc_subjn + subject+"_bvals.txt")
         outpathbvec= os.path.join(outpathsubj, proc_subjn + subject+"_bvecs.txt")
@@ -107,6 +111,7 @@ verbose=True
 results=[]
 
 toremove = []
+overwrite=False
 
 if subject_processes>1:
     if function_processes>1:
@@ -117,12 +122,14 @@ if subject_processes>1:
                                  shortcuts_all_folder, gunniespath, function_processes, masking, ref, transpose, overwrite, denoise, recenter,
                              recenter, verbose) for subject in subjects]).get()
 else:
-    for subject in subjects:
+    for old_subject in subjects:
         max_size=0
-        subjectpath = glob_remote(os.path.join(diffpath, "Vitek_"+subject+"*"), sftp)[0]
+        subject = old_subject.replace('-','_')
+        subjectpath = glob_remote(os.path.join(diffpath, "Vitek_"+old_subject+"*"), sftp)[0]
         subject_outpath = os.path.join(outpath, 'diffusion_prep_' + proc_subjn + subject)
         max_file=largerfile(subjectpath, sftp)
         toremove = []
+        overwrite=True
         if sftp is not None:
             temp_path = make_temppath(max_file,to_fix=True)
             if not os.path.exists(temp_path):
@@ -134,7 +141,6 @@ else:
             if not os.path.exists(new_temp_path):
                 average_4dslices(temp_path, new_temp_path, split=2)
             max_file = new_temp_path
-        overwrite=True
         if os.path.exists(os.path.join(subject_outpath, f'{subject}_subjspace_fa.nii.gz')) and not overwrite:
             print(f'already did subject {subject}, created {subject}_subjspace_fa.nii.gz')
         elif os.path.exists(os.path.join("/Volumes/Data/Badea/Lab/mouse/APOE_symlink_pool_allfiles/", f'{subject}_subjspace_coreg.nii.gz')) and not overwrite:

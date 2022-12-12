@@ -33,7 +33,7 @@ for subject_folder in subjects_folders:
 
 subject_processes, function_processes, firstsubj, lastsubj = parse_arguments(sys.argv, subjects)
 
-subjects = ['N58610']
+#subjects = ['N58610']
 
 removed_list = ['N58613']
 for remove in removed_list:
@@ -116,7 +116,7 @@ else:
         subjectpath = glob.glob(os.path.join(os.path.join(diffpath, "diffusion*"+subject+"*")))[0]
         subject_outpath = os.path.join(outpath, 'diffusion_prep_' + proc_subjn + subject)
         max_file=largerfile(subjectpath)
-        overwrite=True
+        overwrite=False
         if os.path.exists(os.path.join(subject_outpath, f'{subject}_subjspace_fa.nii.gz')) and not overwrite:
             print(f'already did subject {subject}, created {subject}_subjspace_fa.nii.gz')
         elif os.path.exists(os.path.join("/Volumes/Data/Badea/Lab/mouse/APOE_symlink_pool_allfiles/", f'{subject}_subjspace_coreg.nii.gz')) and not overwrite:

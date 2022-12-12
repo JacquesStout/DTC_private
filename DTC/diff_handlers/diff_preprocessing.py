@@ -33,9 +33,10 @@ from DTC.nifti_handlers.transform_handler import *
 import subprocess
 from DTC.file_manager.file_tools import largerfile, mkcdir, getext, buildlink
 import glob
-from DTC.nifti_handlers.atlas_handlers.mask_handler import applymask_samespace, median_mask_make
+from DTC.nifti_handlers.atlas_handlers.mask_handler import applymask_samespace, median_mask_make, mask_fixer
 import time
 from DTC.gunnies.basic_LPCA_denoise import basic_LPCA_denoise_func
+from numpy import sum
 
 
 def string_inclusion(string_option,allowed_strings,option_name):
@@ -331,7 +332,15 @@ def launch_preprocessing(subj, raw_nii, outpath, cleanup=False, nominal_bval=400
         os.system(bvec_cmd)
 
     # Make dwi for mask generation purposes.
-    tmp_mask = os.path.join(work_dir,f"{subj}_tmp_mask{ext}")
+    if np.size(masking.split('_')) > 1:
+        median_radius = int(masking.split('_')[1])
+    else:
+        median_radius = 4
+    binary_dilation = 8
+    #tmp_mask = os.path.join(work_dir,f"{subj}_tmp_{str(median_radius)}_bd_{binary_dilation}_mask{ext}")
+    tmp_mask = os.path.join(work_dir, f"{subj}_tmp_mask{ext}")
+    tmp = tmp_mask.replace("_mask", "")
+
     raw_dwi = os.path.join(work_dir,f"{subj}_raw_dwi.nii.gz")
     b0_dwi = os.path.join(work_dir,f"{subj}_b0_dwi.nii.gz")  #test average of the b0 images to make a better mask
     orient_string = os.path.join(work_dir,"relative_orientation.txt")
@@ -349,7 +358,8 @@ def launch_preprocessing(subj, raw_nii, outpath, cleanup=False, nominal_bval=400
     final_mask = os.path.join(work_dir, f'{subj}_mask{ext}')
 
     #if (not os.path.exists(final_mask) and not os.path.exists(tmp_mask)) or overwrite:
-    if not os.path.exists(tmp_mask) or overwrite:
+    if not os.path.exists(tmp_mask) or not os.path.exists(tmp) or overwrite:
+        overwrite=False
         if not os.path.exists(raw_dwi) or overwrite:
             select_cmd = f"select_dwi_vols {raw_nii} {bvals} {raw_dwi} {nominal_bval} -m"
             os.system(select_cmd)
@@ -361,20 +371,24 @@ def launch_preprocessing(subj, raw_nii, outpath, cleanup=False, nominal_bval=400
                 b0_val += 50
         if not os.path.exists(tmp_mask) or overwrite:
             if 'median' in masking:
-                tmp = tmp_mask.replace("_mask", "")
-                if np.size(masking.split('_'))>1:
-                    median_radius = int(masking.split('_')[1])
-                else:
-                    median_radius = 4
-                median_mask_make(raw_dwi, tmp, numpass=7, outpathmask=tmp_mask)
+                median_mask_make(raw_dwi, tmp, median_radius = median_radius, binary_dilation = binary_dilation, numpass=7, outpathmask=tmp_mask)
                 #median_mask_make(b0_dwi, tmp, outpathmask=tmp_mask, median_radius = median_radius, numpass=median_radius)
                 #Rmedian_mask_make(b0_dwi, tmp, outpathmask='/Users/jas/jacques/Chavez_test_temp/b0_test.nii.gz', median_radius = median_radius, numpass=median_radius)
                 #median_mask_make(raw_dwi, tmp, outpathmask='/Users/jas/jacques/Chavez_test_temp/007_mask_rad7.nii.gz',
                 #                 median_radius=4, numpass=7)
             elif masking=="bet":
-                tmp=tmp_mask.replace("_mask", "")
                 bet_cmd = f"bet {raw_dwi} {tmp} -m -n -R"
                 os.system(bet_cmd)
+            elif masking=='None':
+                shutil.copy(raw_dwi, tmp)
+                data, affine, _, hdr, _ = load_nifti_remote(raw_dwi)
+                data_mask = np.ones(np.shape(data))
+                newnii = nib.Nifti1Image(data_mask, affine, hdr)
+                nib.save(newnii, tmp_mask)
+            elif masking=='premade': #temp solution for when matlab or other method made the mask
+                mask_fixer(tmp_mask)
+                if not os.path.exists(tmp) or overwrite:
+                    applymask_samespace(raw_nii, tmp_mask, outpath=tmp)
             else:
                 raise Exception("Unrecognized masking type")
 
@@ -388,6 +402,11 @@ def launch_preprocessing(subj, raw_nii, outpath, cleanup=False, nominal_bval=400
     #    os.remove(raw_dwi)
     #overwrite=False
     # Run Local PCA Denoising algorithm on 4D nifti:
+
+
+
+    
+
     masked_nii = os.path.join(work_dir, nii_name)
     if not "nii.gz" in masked_nii:
         masked_nii = masked_nii.replace(".nii", ".nii.gz")
@@ -618,10 +637,21 @@ def launch_preprocessing(subj, raw_nii, outpath, cleanup=False, nominal_bval=400
         contrast=contrast.replace('0','')
         #linked_file=os.path.join(shortcut_dir,f'{subj}_{contrast}{ext}')
         linked_file_w=os.path.join(work_dir,f'{subj}_{contrast}{ext}')
-
-        made_newfile = affine_superpose(dwi_out, real_file, outpath = inputspace, transpose=transpose)
-        if not made_newfile:
-            inputspace = real_file
+        if not os.path.exists(inputspace) or overwrite:
+            if orientation_out != orientation_in:
+                affine_dwi = nib.load(dwi_out).affine
+                if sum(affine_dwi[0,:3])<0 or sum(affine_dwi[1,:3])<0 or sum(affine_dwi[2,:3])<0:
+                    real_reorient = real_file.replace(f'nii4D', f'nii4D_tmp')
+                    real_reorient_2 = real_file.replace(f'nii4D', f'nii4D_tmp_2')
+                    img_transform_affreset(real_file, affine_dwi, output_path=real_reorient)
+                    img_transform_exec(real_reorient, orientation_in, orientation_out, real_reorient_2)
+                    made_newfile = affine_superpose(dwi_out, real_reorient_2, outpath=inputspace, transpose=transpose)
+                    os.remove(real_reorient)
+                    os.remove(real_reorient_2)
+                else:
+                    raise Exception('Avoid copying same file without backup')
+            else:
+                made_newfile = affine_superpose(dwi_out, real_file, outpath = inputspace, transpose=transpose)
         if not os.path.isfile(linked_file_w) or overwrite:
             buildlink(inputspace, linked_file_w)
         if SAMBA_inputs_folder is not None:

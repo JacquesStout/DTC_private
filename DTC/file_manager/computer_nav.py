@@ -271,7 +271,7 @@ def glob_remote(path, sftp):
             pathdir, pathname = os.path.split(path)
             allfiles = sftp.listdir(pathdir)
             for file in allfiles:
-                if re.search(pathname, file) is not None:
+                if re.search(pathname.replace('*','.*'), file) is not None:
                     match_files.append(os.path.join(pathdir,file))
         elif '.' not in path:
             allfiles = sftp.listdir(path)

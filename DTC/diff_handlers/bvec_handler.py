@@ -22,7 +22,7 @@ from gc import get_referents
 import numpy as np
 
 from os.path import splitext
-
+import warnings
 from nibabel.tmpdirs import InTemporaryDirectory
 import os, re, sys, io, struct, socket, datetime
 from DTC.file_manager.file_tools import largerfile
@@ -181,7 +181,8 @@ def cut_bvals_bvecs(fbvals, fbvecs, tocut, format="classic"):
     return(fbvals_new)
 
 
-def fix_bvals_bvecs(fbvals, fbvecs, b0_threshold=50, atol=1e-2, outpath=None, identifier = "_fix", writeformat="classic",sftp=None):
+def fix_bvals_bvecs(fbvals, fbvecs, b0_threshold=50, atol=1e-2, outpath=None, identifier = "_fix",
+                    writeformat="classic", writeover = False, sftp=None):
     """
     Read b-values and b-vectors from disk
 
@@ -250,6 +251,13 @@ def fix_bvals_bvecs(fbvals, fbvecs, b0_threshold=50, atol=1e-2, outpath=None, id
         correctvals = [i for i,val in enumerate(bvecs_close_to_1) if val and dwi_mask[i]]
         incorrectvals = [i for i,val in enumerate(bvecs_close_to_1) if not val and dwi_mask[i]]
         baseline_bval = bvals[correctvals[0]]
+        if np.any(bvals[incorrectvals]==baseline_bval):
+            warnings.warn('Bvalues are wrong, will try to rewrite to appropriate values')
+            bvals_new = bvals
+            for i in incorrectvals:
+                if dwi_mask[i]:
+                    bvals_new[i] = round(bvals[i] * np.power(vector_norm(bvecs[i,:]),2),1)
+            bvals = bvals_new
         for i in incorrectvals:
             if dwi_mask[i]:
                 bvecs[i,:] = bvecs[i,:] / np.sqrt(bvals[i]/baseline_bval)
@@ -264,8 +272,11 @@ def fix_bvals_bvecs(fbvals, fbvecs, b0_threshold=50, atol=1e-2, outpath=None, id
     else:
         base=os.path.join(outpath,os.path.basename(fbvals).replace(".txt",""))
         ext=".txt"
-
-    fbvals = base + identifier + ext
+    if writeover==True:
+        txt = f'copying over the bval file {fbvals} and bvec file {fbvecs}'
+        warnings.warn(txt)
+    else:
+        fbvals = base + identifier + ext
     if writeformat == "classic":
         if sftp is None:
             np.savetxt(fbvals, bvals)
@@ -283,7 +294,8 @@ def fix_bvals_bvecs(fbvals, fbvecs, b0_threshold=50, atol=1e-2, outpath=None, id
                 File_object.write(str(bval) + "\t")
     #base, ext = splitext(fbvecs)
     basevecs = base.replace("bvals","bvecs")
-    fbvecs = basevecs + identifier + ext
+    if not writeover:
+        fbvecs = basevecs + identifier + ext
     if writeformat=="classic":
         if sftp is None:
             np.savetxt(fbvecs, bvecs)
