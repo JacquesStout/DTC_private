@@ -295,7 +295,6 @@ def launch_preprocessing(subj, raw_nii, outpath, cleanup=False, nominal_bval=400
 
     proc_name ="diffusion_prep_" # Not gonna call it diffusion_calc so we don't assume it does the same thing as the civm pipeline
     work_dir=os.path.join(outpath,proc_name+subj)
-    overwrite=False
     """
     for filePath in glob.glob(os.path.join(work_dir,'*')):
         modTimesinceEpoc = os.path.getmtime(filePath)

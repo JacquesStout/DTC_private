@@ -129,7 +129,6 @@ else:
         subject_outpath = os.path.join(outpath, 'diffusion_prep_' + proc_subjn + subject)
         max_file=largerfile(subjectpath, sftp)
         toremove = []
-        overwrite=True
         if sftp is not None:
             temp_path = make_temppath(max_file,to_fix=True)
             if not os.path.exists(temp_path):
