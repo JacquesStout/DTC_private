@@ -128,6 +128,17 @@ for folder in processed_folders:
 
         tedana_out_dir = os.path.join(outpath_temp, 'tedana_outputs')
         mkcdir(tedana_out_dir)
+
+        #### Test reslicing of mask section
+        """
+        resliced, reslice_affine = reslice(moved, trans_affine,
+                                           [0.1, 0.1, 0.1], [0.3, 0.3, 0.3])
+        _, targetreslice_affine = reslice(moved[..., 0], target_grid2world,
+                                          [0.1, 0.1, 0.1], [0.3, 0.3, 0.3])
+        """
+        ### End test reslicing
+
+
         tedana_command = f'tedana -d {os.path.join(outpath_temp,f"{id}_echo_1.nii.gz")} {os.path.join(outpath_temp,f"{id}_echo_2.nii.gz")} {os.path.join(outpath_temp,f"{id}_echo_3.nii.gz")} -e 5.0 19.315 33.63 --mask {mask_threshold_path} --out-dir {tedana_out_dir}'
         #maskpath = '/Volumes/Data/Badea/Lab/jacques/APOE_func_proc/mask.nii.gz'
         #tedana_command = f'tedana -d {os.path.join(outpath_temp, f"{id}_echo_1.nii.gz")} {os.path.join(outpath_temp, f"{id}_echo_2.nii.gz")} {os.path.join(outpath_temp, f"{id}_echo_3.nii.gz")} -e 5.0 19.315 33.63 --mask {maskpath} --out-dir {tedana_out_dir}'

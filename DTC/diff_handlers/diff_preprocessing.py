@@ -293,6 +293,7 @@ def launch_preprocessing(subj, raw_nii, outpath, cleanup=False, nominal_bval=400
                          shortcuts_all_folder = None, gunniespath="~/gunnies/", processes=1, masking="bet", ref=None,
                          transpose=None, overwrite=False, denoise='None', recenter=0, verbose=False):
 
+    overwrite=False
     proc_name ="diffusion_prep_" # Not gonna call it diffusion_calc so we don't assume it does the same thing as the civm pipeline
     work_dir=os.path.join(outpath,proc_name+subj)
     """
@@ -644,13 +645,13 @@ def launch_preprocessing(subj, raw_nii, outpath, cleanup=False, nominal_bval=400
                     real_reorient_2 = real_file.replace(f'nii4D', f'nii4D_tmp_2')
                     img_transform_affreset(real_file, affine_dwi, output_path=real_reorient)
                     img_transform_exec(real_reorient, orientation_in, orientation_out, real_reorient_2)
-                    made_newfile = affine_superpose(dwi_out, real_reorient_2, outpath=inputspace, transpose=transpose)
+                    affine_superpose(dwi_out, real_reorient_2, outpath=inputspace, transpose=transpose)
                     os.remove(real_reorient)
                     os.remove(real_reorient_2)
                 else:
-                    raise Exception('Avoid copying same file without backup')
+                    affine_superpose(dwi_out, real_file, outpath=inputspace, transpose=transpose)
             else:
-                made_newfile = affine_superpose(dwi_out, real_file, outpath = inputspace, transpose=transpose)
+                affine_superpose(dwi_out, real_file, outpath = inputspace, transpose=transpose)
         if not os.path.isfile(linked_file_w) or overwrite:
             buildlink(inputspace, linked_file_w)
         if SAMBA_inputs_folder is not None:

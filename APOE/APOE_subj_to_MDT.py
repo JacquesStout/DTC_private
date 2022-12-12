@@ -17,6 +17,8 @@ from DTC.file_manager.computer_nav import get_mainpaths, load_nifti_remote, load
 from DTC.file_manager.file_tools import mkcdir, getfromfile
 import time
 from DTC.file_manager.argument_tools import parse_arguments
+from datetime import datetime
+
 
 """
 from dipy.io.utils import get_reference_info, is_header_compatible
@@ -301,7 +303,9 @@ for subj in subjects:
         tf = time.perf_counter()
         del mni_streamlines
 
-        print(f'Saved MDT image to {trk_MDT_space}, took {tf - twarp:0.2f} seconds, subject {subj} run took {tf - tstart:0.2f} seconds total')
+        print(f'Saved MDT image to {trk_MDT_space}, took {tf - twarp:0.2f} seconds, subject {subj} run took {tf - tstart:0.2f} seconds total\n')
+        current_time = datetime.datetime.now()
+        print("Current Time =", current_time)
         print('\n')
 
     else:
