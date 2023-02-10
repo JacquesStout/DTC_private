@@ -17,7 +17,7 @@ from nifti_handlers.atlas_handlers.convert_atlas_mask import atlas_converter
 import errno
 import socket
 from tract_manager.tract_save import save_trk_header
-from diff_handlers.connectome_handlers.excel_management import M_grouping_excel_save, extract_grouping
+from DTC.diff_handlers.connectome_handlers.excel_management import M_grouping_excel_save, extract_grouping
 import sys
 from file_manager.argument_tools import parse_arguments_function
 from diff_handlers.connectome_handlers.connectome_handler import connectivity_matrix_func

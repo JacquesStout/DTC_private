@@ -12,6 +12,8 @@ from DTC.file_manager.argument_tools import parse_arguments
 import platform
 from DTC.file_manager.computer_nav import get_mainpaths, glob_remote, copy_loctoremote, checkfile_exists_remote, load_nifti_remote
 from DTC.file_manager.file_tools import mkcdir, getfromfile
+from DTC.nifti_handlers.atlas_handlers.mask_handler import applymask_samespace, median_mask_make, mask_fixer
+import warnings
 
 subjects = ['sub22040413', 'sub22040411', 'sub2204041', 'sub22040410', 'sub2204042', 'sub2204043', 'sub2204044',
             'sub2204045', 'sub2204046', 'sub2204047', 'sub2204048', 'sub2204049', 'sub2205091', 'sub22050910',
@@ -72,7 +74,7 @@ else:
 
 if remote:
     _, _, _, sftp = get_mainpaths(remote,project = project, username=username,password=passwd)
-    orig_dir = '/mnt/paros_WORK/daniel/project/BRUKER_organized_JS_combined_v2/'
+    orig_dir = '/mnt/paros_WORK/daniel/project/BRUKER_organized_JS_combined_v3/'
     new_dir = '/mnt/paros_WORK/daniel/project/BRUKER_organized_JS_SAMBAD_5'
 else:
     orig_dir = '/Users/jas/jacques/Daniel_test/BRUKER_organized_JS_combined/'
@@ -117,10 +119,14 @@ transf_level = 'torigid'
 csv_summary_path = '/Volumes/Data/Badea/Lab/jacques/APOE_func_proc/FMRI_mastersheet.xlsx'
 csv_summary = pd.read_excel(csv_summary_path)
 
+apply_mask = True
+
 temp_check = True
 toclean = False
 
 num_images = 600
+
+overwrite=True
 
 for subj in subjects:
 
@@ -141,6 +147,8 @@ for subj in subjects:
 
     subj_anat = os.path.join(orig_dir, subj.replace('b', 'b-'), 'ses-1', 'anat',
                             f'{subj.replace("b", "b-")}_ses-1_T1w{ext}')
+    subj_mask = os.path.join(orig_dir, subj.replace('b', 'b-'), 'ses-1', 'anat',
+                            f'{subj.replace("b", "b-")}_mask{ext}')
     subj_func = os.path.join(orig_dir, subj.replace('b', 'b-'), 'ses-1', 'func',
                              f'{subj.replace("b", "b-")}_ses-1_bold{ext}')
 
@@ -158,7 +166,9 @@ for subj in subjects:
     #else:
     #    continue
 
-    if not checkfile_exists_remote(subj_anat_sambad, sftp) or not checkfile_exists_remote(subj_func_sambad, sftp):
+    if not checkfile_exists_remote(subj_anat_sambad, sftp) or not checkfile_exists_remote(subj_func_sambad, sftp) or \
+            overwrite:
+        overwrite=False
         func_reorient = os.path.join(nii_temp_dir, f'{subj}_func_reorient{ext}')
         func_reorient_affined = os.path.join(nii_temp_dir, f'{subj}_func_reorient_affined{ext}')
         target_base = os.path.join(MDT_baseimages, f'{newid}_T1_masked.nii.gz')
@@ -241,6 +251,7 @@ for subj in subjects:
                 os.remove(tmpfile)
 
         if transf_level=='torigid':
+            overwrite=True
             if not checkfile_exists_remote(subj_anat_sambad, sftp) or overwrite:
                 if sftp is not None:
                     subj_anat_sambad_temp = os.path.join(nii_temp_dir, os.path.basename(subj_anat_sambad))
@@ -248,10 +259,17 @@ for subj in subjects:
                     subj_anat_sambad_temp = subj_anat_sambad
                 cmd = f"antsApplyTransforms -v 1 -d 3 -i {SAMBA_preprocess} -o {subj_anat_sambad_temp} -r {SAMBA_preprocess} -n MultiLabel -t [{rigid},0] [{trans},0]"
                 os.system(cmd)
+                if apply_mask:
+                    if checkfile_exists_remote(subj_mask, sftp):
+                        mask_nii = load_nifti_remote(subj_mask, sftp, return_nii=True)
+                        applymask_samespace(subj_anat_sambad_temp, mask_nii, outpath=subj_anat_sambad_temp)
+                    else:
+                        warnings.warn('Could not apply mask, continue')
                 if sftp is not None:
                     sftp.put(subj_anat_sambad_temp,subj_anat_sambad)
                     os.remove(subj_anat_sambad_temp)
 
+            overwrite=False
             if not os.path.exists(subj_func_sambad) or overwrite:
                 split_subject_folder = os.path.join(nii_temp_dir,f'{subj}_split')
                 mkcdir(split_subject_folder)

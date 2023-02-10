@@ -10,6 +10,7 @@ from dipy.io.image import load_nifti, save_nifti
 from dipy.segment.mask import median_otsu
 import numpy as np
 import warnings, shutil
+import os
 
 
 def mask_fixer(maskpath, outpath=None):
@@ -47,13 +48,92 @@ def mask_fixer(maskpath, outpath=None):
         for i in np.arange(mask_shape[0]):
             for j in np.arange(mask_shape[1]):
                 for k in np.arange(mask_shape[2]):
-                    if mask_data[i, j, k] >= 1:
-                        mask_data_new = 1
+                    if mask_data[i, j, k] > 0:
+                        mask_data_new[i,j,k] = 1
 
     img_nii_new = nib.Nifti1Image(mask_data_new, mask_nii.affine, mask_nii.header)
     if outpath is None:
         outpath = maskpath
     nib.save(img_nii_new, outpath)
+
+
+def unite_labels(list_atlases, outpath):
+    cur_max=0
+    for atlas_path in list_atlases:
+        atlas_nii = nib.load(atlas_path)
+        mask_data = atlas_nii.get_fdata()
+        mask_shape = np.shape(mask_data)
+        if not 'atlas_mask' in locals():
+            atlas_mask = np.zeros(mask_shape)
+
+        for i in np.arange(mask_shape[0]):
+            for j in np.arange(mask_shape[1]):
+                for k in np.arange(mask_shape[2]):
+                    if mask_data[i, j, k] > 0 and atlas_mask[i,j,k]==0:
+                        atlas_mask[i,j,k] = cur_max + mask_data[i,j,k]
+
+        vals = cur_max + np.unique(mask_data)
+        cur_max = np.max(vals)
+
+    img_nii_new = nib.Nifti1Image(atlas_mask, atlas_nii.affine, atlas_nii.header)
+    nib.save(img_nii_new, outpath)
+    return outpath
+
+
+def create_basemask(imgpath, outpath=None):
+    if outpath is None:
+        outpath = imgpath.replace('.nii','_mask.nii')
+    if outpath==imgpath:
+        raise Exception('Cant replace nifti by mask of nifti')
+    if 'mask' in imgpath:
+        warnings.warn('Creating a mask from a mask, seems dicey')
+        return outpath
+    if os.path.exists(outpath):
+        print(f'Already created mask {outpath}')
+        return outpath
+    img_nii = nib.load(imgpath)
+    img_data = img_nii.get_fdata()
+    if np.size(np.shape(img_data))==4:
+        img_data = img_data[:,:,:,0]
+    mask_shape = np.shape(img_data)
+    mask_data = np.zeros(mask_shape)
+    for i in np.arange(mask_shape[0]):
+        for j in np.arange(mask_shape[1]):
+            for k in np.arange(mask_shape[2]):
+                if img_data[i, j, k] > 0:
+                    mask_data[i,j,k] = 1
+
+    img_nii_new = nib.Nifti1Image(mask_data, img_nii.affine, img_nii.header)
+    nib.save(img_nii_new, outpath)
+    return outpath
+
+
+def create_mask_threshold(imgpath, threshold = 1, outpath = None):
+    if outpath is None:
+        outpath = imgpath.replace('.nii','_mask.nii')
+    if outpath==imgpath:
+        raise Exception('Cant replace nifti by mask of nifti')
+    if 'mask' in imgpath:
+        warnings.warn('Creating a mask from a mask, seems dicey')
+        return outpath
+    if os.path.exists(outpath):
+        print(f'Already created mask {outpath}')
+        return outpath
+
+    img_nii = nib.load(imgpath)
+    img_data = img_nii.get_fdata()
+    mask_shape = np.shape(img_data)
+    mask_data = np.zeros(mask_shape)
+    for i in np.arange(mask_shape[0]):
+        for j in np.arange(mask_shape[1]):
+            for k in np.arange(mask_shape[2]):
+                if img_data[i, j, k] >= threshold:
+                    mask_data[i,j,k] = 1
+
+    img_nii_new = nib.Nifti1Image(mask_data, img_nii.affine, img_nii.header)
+    nib.save(img_nii_new, outpath)
+    return outpath
+
 
 def applymask_array(data, mask):
 
@@ -84,7 +164,10 @@ def applymask_samespace(file, mask, outpath=None):
     #note: there should definitely be a bet option which would probably end up faster, but for some insane reason there is no
     #obvious documentation on it, so this will do for now -_-
     img_nii= nib.load(file)
-    mask_nii = nib.load(mask)
+    if mask is str:
+        mask_nii = nib.load(mask)
+    else:
+        mask_nii = mask
     img_data = img_nii.get_fdata()
     img_data_new = img_data
     mask_data = mask_nii.get_fdata()
@@ -102,12 +185,28 @@ def applymask_samespace(file, mask, outpath=None):
     nib.save(img_nii_new, outpath)
 
 
-def median_mask_make(inpath, outpath, outpathmask=None, median_radius=4, numpass=4,binary_dilation=None, vol_idx = None):
+def median_mask_make(inpath, outpath=None, outpathmask=None, median_radius=4, numpass=4,binary_dilation=None, vol_idx = None, affine=None):
 
-    if outpathmask is None:
-        outpathmask=outpath.replace(".nii","_mask.nii")
-    data, affine = load_nifti(inpath)
+    if type(inpath)==str:
+        data, affine = load_nifti(inpath)
+        if outpath is None:
+            outpath = inpath.replace(".nii", "_masked.nii")
+        elif outpath is None and outpathmask is None:
+            outpath = inpath.replace(".nii", "_masked.nii")
+            outpathmask = inpath.replace(".nii", "_mask.nii")
+        elif outpathmask is None:
+            outpathmask = outpath.replace(".nii", "_mask.nii")
+    else:
+        data = inpath
+        if affine is None:
+            raise Exception('Needs affine')
+        if outpath is None:
+            raise Exception('Needs outpath')
+    if os.path.exists(outpath) and os.path.exists(outpathmask):
+        print('Already wrote mask')
+        return outpath, outpathmask
     data = np.squeeze(data)
     data_masked, mask = median_otsu(data, median_radius=median_radius, numpass=numpass, dilate=binary_dilation, vol_idx=vol_idx)
     save_nifti(outpath, data_masked.astype(np.float32), affine)
     save_nifti(outpathmask, mask.astype(np.float32), affine)
+    return outpath, outpathmask

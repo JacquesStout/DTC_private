@@ -904,7 +904,7 @@ def reducetractnumber(oldtrkfile, newtrkfilepath, getdata=False, ratio=10, retur
 
     if verbose:
         print("Beginning to read " + oldtrkfile)
-    trkdata = load_trk(oldtrkfile, "same")
+    trkdata = load_trk(oldtrkfile, "same", bbox_valid_check = False)
     if verbose:
         print("loaded the file " + oldtrkfile)
     trkdata.to_vox()

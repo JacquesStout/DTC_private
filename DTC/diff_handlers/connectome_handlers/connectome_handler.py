@@ -5,6 +5,7 @@ from collections import defaultdict, OrderedDict
 from dipy.tracking.streamline import Streamlines
 import warnings
 import multiprocessing as mp
+from nibabel import load as load_nifti
 
 def _mapping_to_voxel(affine):
     """Inverts affine and returns a mapping so voxel coordinates. This
@@ -209,11 +210,14 @@ def connectivity_matrix_custom(streamlines, affine, label_volume,
     # Error checking on label_volume
     from itertools import combinations, groupby
 
+    if isinstance(label_volume, str):
+        label_volume = load_nifti(label_volume).get_fdata()
     if volume_weighting:
         volume_weights = label_weights_matrix(label_volume)
 
     kind = label_volume.dtype.kind
     if label_volume.dtype.kind=='f':
+        label_volume = np.round(label_volume,2)
         label_volume = np.array(label_volume,dtype='int')
         kind = label_volume.dtype.kind
     labels_positive = ((kind == 'u') or
@@ -260,7 +264,10 @@ def connectivity_matrix_custom(streamlines, affine, label_volume,
             else:
                 # Create list of all labels streamline passes through, keeping
                 # order and whether a label was entered multiple times
-                entirelabels = list(groupby(label_volume[i, j, k]))
+                try:
+                    entirelabels = list(groupby(label_volume[i, j, k]))
+                except:
+                    print('hi')
                 # Append connection combinations along with streamline number,
                 # removing duplicates and connections from a label to itself
                 combs = set(combinations([z[0] for z in entirelabels], 2))

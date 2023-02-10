@@ -16,6 +16,7 @@ from DTC.file_manager.computer_nav import getremotehome
 
 def get_info_SAMBA_headfile(SAMBA_headfile, verbose=False):
 
+    mymax=-1
     if os.path.exists(SAMBA_headfile):
         with open(SAMBA_headfile, 'rb') as source:
             if verbose: print('INFO    : Extracting acquisition parameters')
@@ -26,14 +27,18 @@ def get_info_SAMBA_headfile(SAMBA_headfile, verbose=False):
             stopsign = 200
             for line in source:
                 pattern1 = 'original_study_orientation'
-                rx1 = re.compile(pattern1, re.IGNORECASE | re.MULTILINE | re.DOTALL)
+                #rx1 = re.compile(pattern1, re.IGNORECASE | re.MULTILINE | re.DOTALL)
                 pattern2 = 'working_image_orientation'
-                rx2 = re.compile(pattern2, re.IGNORECASE | re.MULTILINE | re.DOTALL)
-                pattern3 = 'original_study_orientation'
+                #rx2 = re.compile(pattern2, re.IGNORECASE | re.MULTILINE | re.DOTALL)
+                #pattern3 = 'original_study_orientation'
+                pattern3 = 'mdt_iterations'
                 rx1 = re.compile(pattern1, re.IGNORECASE | re.MULTILINE | re.DOTALL)
-                pattern4 = 'working_image_orientation'
+                #pattern4 = 'working_image_orientation'
                 rx2 = re.compile(pattern2, re.IGNORECASE | re.MULTILINE | re.DOTALL)
+                rx3 = re.compile(pattern3, re.IGNORECASE | re.MULTILINE | re.DOTALL)
+
                 discount = re.compile('#', re.IGNORECASE | re.MULTILINE | re.DOTALL)
+
                 i += 1
                 if i == stopsign:
                     print("hi")
@@ -45,36 +50,40 @@ def get_info_SAMBA_headfile(SAMBA_headfile, verbose=False):
                     if len(discount.findall(str(line))) == 0:
                         working_orientation = str(line).split('=')[1]
                         working_orientation = working_orientation.split('\\')[0]
+                for a in rx3.findall(str(line)):
+                    if len(discount.findall(str(line))) == 0:
+                        maxiteration = str(line).split('=')[1]
+                        maxiteration = int(maxiteration.split('\\')[0])
     else:
         raise Exception('Cannot find SAMBA_headfile')
 
-    return orig_orientation, working_orientation
+    return orig_orientation, working_orientation, maxiteration
 
 
-def create_MDT_labels(subject, mainpath, project_name, atlas_labels, overwrite=False, verbose=True):
+def create_MDT_labels(subject, mainpath, project_name, atlas_labels, reg_type = 'dwi', overwrite=False, myiteration = -1, verbose=True):
     out_dir_base = os.path.join(mainpath, f"{project_name}-results")
     out_dir = os.path.join(out_dir_base,'atlas_to_MDT')
     mkcdir([out_dir_base,out_dir])
     work_dir = os.path.join(mainpath, f"{project_name}-work")
 
-    template_type_prefix = os.path.basename(os.path.dirname(glob.glob(os.path.join(work_dir,"dwi","SyN*/"))[0]))
-    template_runs = glob.glob((os.path.join(work_dir,"dwi",template_type_prefix,"*/")))
+    template_type_prefix = os.path.basename(os.path.dirname(glob.glob(os.path.join(work_dir,reg_type,"SyN*/"))[0]))
 
-    mymax=-1
-    if mymax==-1:
-        for template_run in template_runs:
-            if "NoNameYet" in template_run and template_run[-4:-2] == "_i":
-                if int(template_run[-2]) > mymax:
-                    mymax = int(template_run[-2])
-                    final_template_run = template_run
-    if mymax==-1:
-        for template_run in template_runs:
-            if "dwiMDT_Control_n72" in template_run and template_run[-4:-2]=="_i":
-                if int(template_run[-2])>mymax:
-                    mymax=int(template_run[-2])
-                    final_template_run=template_run
-    if mymax == -1:
-        raise Exception(f"Could not find template runs in {os.path.join(mainpath, f'{project_name}-work','dwi',template_type_prefix)}")
+    if myiteration == -1:
+        template_runs = glob.glob((os.path.join(work_dir, reg_type, template_type_prefix, "*/")))
+        if myiteration==-1:
+            for template_run in template_runs:
+                if "NoNameYet" in template_run and template_run[-4:-2] == "_i":
+                    if int(template_run[-2]) > myiteration:
+                        myiteration = int(template_run[-2])
+        if myiteration==-1:
+            for template_run in template_runs:
+                if "dwiMDT_Control_n72" in template_run and template_run[-4:-2]=="_i":
+                    if int(template_run[-2])>myiteration:
+                        myiteration=int(template_run[-2])
+        if myiteration == -1:
+            raise Exception(f"Could not find template runs in {os.path.join(mainpath, f'{project_name}-work','dwi',template_type_prefix)}")
+
+    final_template_run = glob.glob(os.path.join(work_dir, reg_type, template_type_prefix, f"*i{myiteration}*/"))[0]
 
     MDT_ref = os.path.join(final_template_run, 'median_images',f"MDT_dwi.nii.gz")
     label_name = os.path.basename(atlas_labels)
@@ -107,7 +116,7 @@ def create_MDT_labels(subject, mainpath, project_name, atlas_labels, overwrite=F
         print(f"Already calculated the label file for subject {subject}")
 
 
-def create_backport_labels(subject, mainpath, project_name, prep_folder, atlas_labels, headfile=None, overwrite=False, verbose=True):
+def create_backport_labels(subject, mainpath, project_name, prep_folder, atlas_labels, reg_type = 'dwi', headfile=None, overwrite=False, verbose=True):
 
     out_dir_base = os.path.join(mainpath, f"{project_name}-results","connectomics")
     out_dir = os.path.join(out_dir_base,subject)
@@ -116,30 +125,36 @@ def create_backport_labels(subject, mainpath, project_name, prep_folder, atlas_l
     dirty_dir = os.path.join(mainpath,"burn_after_reading")
     mkcdir(dirty_dir)
 
-    template_type_prefix = os.path.basename(os.path.dirname(glob.glob(os.path.join(work_dir,"dwi","SyN*/"))[0]))
-    template_runs = glob.glob((os.path.join(work_dir,"dwi",template_type_prefix,"*/")))
+    template_type_prefix = os.path.basename(os.path.dirname(glob.glob(os.path.join(work_dir,reg_type,"SyN*/"))[0]))
+    template_runs = glob.glob((os.path.join(work_dir,reg_type,template_type_prefix,"*/")))
 
-    mymax=-1
-    if mymax==-1:
+    myiteration = -1
+    if headfile is not None:
+        SAMBA_orientation_in, SAMBA_orientation_out, myiteration = get_info_SAMBA_headfile(headfile)
+    else:
+        SAMBA_orientation_in, SAMBA_orientation_out = 'RAS', 'RAS'
+
+    if myiteration==-1:
         for template_run in template_runs:
             if "NoNameYet" in template_run and template_run[-4:-2] == "_i":
-                if int(template_run[-2]) > mymax:
-                    mymax = int(template_run[-2])
-                    final_template_run = template_run
-    if mymax==-1:
+                if int(template_run[-2]) > myiteration:
+                    myiteration = int(template_run[-2])
+    if myiteration==-1:
         for template_run in template_runs:
             if "dwiMDT_Control_n72" in template_run and template_run[-4:-2]=="_i":
-                if int(template_run[-2])>mymax:
-                    mymax=int(template_run[-2])
-                    final_template_run=template_run
-    if mymax == -1:
-        raise Exception(f"Could not find template runs in {os.path.join(mainpath, f'{project_name}-work','dwi',template_type_prefix)}")
+                if int(template_run[-2])>myiteration:
+                    myiteration=int(template_run[-2])
+    if myiteration == -1:
+        raise Exception(f"Could not find template runs in {os.path.join(mainpath, f'{project_name}-work',reg_type,template_type_prefix)}")
+
+    final_template_run = glob.glob(os.path.join(work_dir, reg_type, template_type_prefix, f"*i{myiteration}*/"))[0]
+
     #template_type_prefix = "faMDT_NoNameYet_n37_i6"
     #final_template_run = "SyN_0p5_3_0p5_fa"
 
     orient_string = os.path.join(prep_folder, f'{subject}_relative_orientation.txt')
     if not os.path.exists(orient_string):
-        orient_strings = glob.glob(os.path.join(prep_folder, f'*_relative_orientation.txt'))
+        orient_strings = glob.glob(os.path.join(prep_folder, f'*relative_orientation.txt'))
         if np.size(orient_strings)>0:
             orient_string = orient_strings[0]
     if os.path.exists(orient_string):
@@ -153,11 +168,6 @@ def create_backport_labels(subject, mainpath, project_name, prep_folder, atlas_l
         warnings.warn("Could not find orientation file, may cause errors later")
         orientation_in = "RAS"
         orientation_out = "RAS"
-
-    if headfile is not None:
-        SAMBA_orientation_in, SAMBA_orientation_out= get_info_SAMBA_headfile(headfile)
-    else:
-        SAMBA_orientation_in, SAMBA_orientation_out = 'RAS', 'RAS'
 
 
     trans = os.path.join(work_dir,"preprocess","base_images","translation_xforms",f"{subject}_0DerivedInitialMovingTranslation.mat")
@@ -272,7 +282,7 @@ def create_backport_labels(subject, mainpath, project_name, prep_folder, atlas_l
             os.system(cmd)
             shutil.copy(final_labels, final_labels_backup)
     else:
-        print(f"Already calculated the label file for subject {subject}")
+        print(f"Already calculated the label file for subject {subject} at {final_labels}")
 
     skip_making_data_package_for_tractography = True
 

@@ -32,16 +32,15 @@ for subject_folder in subjects_folders:
 #removed_list = ['N58794','N58514','N58305','N58613','N58346','N58344','N58788']
 
 subject_processes, function_processes, firstsubj, lastsubj = parse_arguments(sys.argv, subjects)
-
-#subjects = ['N58610']
+subjects = ['N58610', 'N58612']
 
 removed_list = ['N58613']
 for remove in removed_list:
     if remove in subjects:
         subjects.remove(remove)
 
-subjects = subjects[firstsubj:lastsubj]
 subjects.sort()
+subjects = subjects[firstsubj:lastsubj]
 print(subjects)
 
 proc_subjn=""
@@ -55,7 +54,7 @@ gettranspose=False
 copybtables = True
 verbose=True
 transpose=None
-overwrite=False
+overwrite=True
 ref="coreg"
 #btables=["extract","copy","None"]
 btables="extract"
@@ -116,12 +115,11 @@ else:
         subjectpath = glob.glob(os.path.join(os.path.join(diffpath, "diffusion*"+subject+"*")))[0]
         subject_outpath = os.path.join(outpath, 'diffusion_prep_' + proc_subjn + subject)
         max_file=largerfile(subjectpath)
-        overwrite=False
         if os.path.exists(os.path.join(subject_outpath, f'{subject}_subjspace_fa.nii.gz')) and not overwrite:
             print(f'already did subject {subject}, created {subject}_subjspace_fa.nii.gz')
         elif os.path.exists(os.path.join("/Volumes/Data/Badea/Lab/mouse/APOE_symlink_pool_allfiles/", f'{subject}_subjspace_coreg.nii.gz')) and not overwrite:
             print(f'Could not find subject {subject} in main diffusion folder but result was found in SAMBA prep folder')
-        elif os.path.exists(os.path.join("/Volumes/Data/Badea/Lab/mouse/APOE_symlink_pool_allfiles/",f'{proc_subjn + subject}_fa.nii.gz')) and os.path.exists(os.path.join(SAMBA_inputs_folder, f'{proc_subjn + subject}_fa.nii.gz')):
+        elif not overwrite and os.path.exists(os.path.join("/Volumes/Data/Badea/Lab/mouse/APOE_symlink_pool_allfiles/",f'{proc_subjn + subject}_fa.nii.gz')) and os.path.exists(os.path.join(SAMBA_inputs_folder, f'{proc_subjn + subject}_fa.nii.gz')):
             print(f'already did subject {proc_subjn + subject} shortcuts')
         #elif os.path.exists(os.path.join('/Volumes/Data/Badea/Lab/mouse/VBM_20APOE01_chass_symmetric3_allAPOE-work/dwi/SyN_0p5_3_0p5_dwi/dwiMDT_NoNameYet_n32_i5/reg_images/',f'{subject}_rd_to_MDT.nii.gz')) and not overwrite:
         #    print(f'Could not find subject {subject} in main diff folder OR samba init but was in results of SAMBA')

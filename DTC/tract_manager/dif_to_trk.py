@@ -13,8 +13,8 @@ import os
 from time import time
 from dipy.io.image import save_nifti
 from dipy.reconst.shm import CsaOdfModel
-from dipy.direction import peaks_from_model
-from dipy.tracking.local_tracking import LocalTracking
+from dipy.direction import peaks_from_model, ProbabilisticDirectionGetter
+from dipy.tracking.local_tracking import LocalTracking, ParticleFilteringTracking
 from dipy.direction import peaks
 # We must import this explicitly, it is not imported by the top-level
 # multiprocessing module.
@@ -26,20 +26,21 @@ from dipy.io.streamline import load_trk
 import DTC.tract_manager.tract_save
 from DTC.tract_manager.tract_handler import get_trk_params, get_tract_params
 import glob
-from dipy.tracking.stopping_criterion import BinaryStoppingCriterion, ThresholdStoppingCriterion
-from dipy.reconst.csdeconv import ConstrainedSphericalDeconvModel
+from dipy.tracking.stopping_criterion import BinaryStoppingCriterion, ThresholdStoppingCriterion, ActStoppingCriterion
+from dipy.reconst.csdeconv import ConstrainedSphericalDeconvModel, auto_response_ssst
+from dipy.io.stateful_tractogram import Space, StatefulTractogram
 #from dipy.denoise.localpca import mppca
 #import dipy.tracking.life as life
 #import dipy.reconst.dti as dti
 #from dipy.reconst.dti import fractional_anisotropy
-
+from dipy.io.streamline import save_trk
 from dipy.io.image import load_nifti
 import matplotlib.pyplot as plt
 
 from DTC.tract_manager.tract_handler import target, prune_streamlines
 import nibabel as nib
 from dipy.tracking.streamline import Streamlines
-
+from dipy.data import small_sphere, default_sphere
 
 
 def save_roisubset(trkfile, roislist, roisexcel, labelmask):
@@ -176,7 +177,7 @@ def QCSA_tractmake(data, affine, vox_size, gtab, mask, classifier_mask, header, 
 
     if verbose:
         print('Computing seeds')
-    seeds = utils.seeds_from_mask(seedmask, density=1,
+    seeds = utils.seeds_from_mask(seedmask, density=2,
                                   affine=np.eye(4))
 
     #streamlines_generator = local_tracking.local_tracker(csa_peaks,classifier,seeds,affine=np.eye(4),step_size=step_size)
@@ -247,3 +248,184 @@ def QCSA_tractmake(data, affine, vox_size, gtab, mask, classifier_mask, header, 
 
     return outpathtrk, streamlines_generator, params
 
+def QCSA_tractmake_test(data, affine, vox_size, gtab, whitemask, header, step_size, peak_processes, outpathtrk, subject='NA',
+                   ratio=1, threshold ='binary', overwrite=False, get_params=False, doprune=False, classifier_mask = None, figspath=None, verbose=None, seedmask = None, sftp=None):
+    # Compute odfs in Brain Mask
+    t2 = time()
+    if os.path.isfile(outpathtrk) and not overwrite:
+        txt = "Subject already saved at "+outpathtrk
+        print(txt)
+        streamlines_generator = None
+        params = None
+        return outpathtrk, streamlines_generator, params
+
+    csa_model = CsaOdfModel(gtab, 6)
+    if peak_processes == 1:
+        parallel = False
+    else:
+        parallel = True
+    if verbose:
+        send_mail("Starting calculation of Constant solid angle model for subject " + subject,subject="CSA model start")
+
+    white_mask_b = np.where(whitemask == 0, False, True)
+    print(f"There are {peak_processes} and {parallel} here")
+
+    tracking_type = 'probabilistic'
+    if tracking_type == 'deterministic':
+        peaks_streams = peaks_from_model(model=csa_model,
+                                     data=data,
+                                     sphere=peaks.default_sphere,  # issue with complete sphere
+                                     mask=white_mask_b,
+                                     relative_peak_threshold=.5,
+                                     min_separation_angle=25,
+                                     parallel=parallel,
+                                     nbr_processes=peak_processes)
+
+    if tracking_type == 'probabilistic':
+        response, ratio = auto_response_ssst(gtab, data, roi_radii=10, fa_thr=0.7)
+        csd_model = ConstrainedSphericalDeconvModel(gtab, response, sh_order=6)
+        csd_fit = csd_model.fit(data, mask=whitemask)
+        peaks_streams = ProbabilisticDirectionGetter.from_shcoeff(csd_fit.shm_coeff, max_angle=30.,
+                                                        sphere=default_sphere)
+
+    duration = time() - t2
+    if verbose:
+        print(subject + ' CSA duration %.3f' % (duration,))
+
+    t3 = time()
+
+
+    if verbose:
+        send_mail('Computing classifier for local tracking for subject ' + subject +
+                  ',it has been ' + str(round(duration)) + 'seconds since the start of tractmaker',subject="Seed computation" )
+
+        print('Computing classifier for local tracking for subject ' + subject)
+
+    threshold= 'binary'
+    if threshold == "FA":
+        #tensor_model = dti.TensorModel(gtab)
+        #tenfit = tensor_model.fit(data, mask=labels > 0)
+        #FA = fractional_anisotropy(tenfit.evals)
+        FA_threshold = 0.05
+        stopping_criterion = ThresholdStoppingCriterion(classifier_mask, FA_threshold)
+
+        if figspath is not None:
+            fig = plt.figure()
+            mask_fa = classifier_mask.copy()
+            mask_fa[mask_fa < FA_threshold] = 0
+            plt.xticks([])
+            plt.yticks([])
+            plt.imshow(mask_fa[:, :, data.shape[2] // 2].T, cmap='gray', origin='lower',
+                       interpolation='nearest')
+            fig.tight_layout()
+            fig.savefig(figspath + 'threshold_fa.png')
+    elif threshold == 'binary':
+        stopping_criterion = BinaryStoppingCriterion(whitemask==1)
+    elif threshold == 'act':
+        stopping_criterion = ActStoppingCriterion(classifier_mask==1, classifier_mask==2) #if classifier = 1, it is include mask (gm or outside of brainmask, if classifier =2, it is exclude mask, csf)
+
+    if seedmask is None:
+        seedmask = whitemask
+    elif isinstance(seedmask,np.ndarray):
+        if seedmask.dtype != bool:
+            seedmask = seedmask>0
+    else:
+        raise TypeError('seedmask is not good')
+
+
+    # generates about 2 seeds per voxel
+    # seeds = utils.random_seeds_from_mask(fa > .2, seeds_count=2,
+    #                                      affine=np.eye(4))
+
+    # generates about 2 million streamlines
+    # seeds = utils.seeds_from_mask(fa > .2, density=1,
+    #                              affine=np.eye(4))
+
+    if verbose:
+        print('Computing seeds')
+    seeds = utils.seeds_from_mask(seedmask, density=[2,2,2],
+                                  affine=np.eye(4))
+
+
+    #streamlines_generator = local_tracking.local_tracker(peaks_streams,classifier,seeds,affine=np.eye(4),step_size=step_size)
+    if verbose:
+        print('Computing the local tracking')
+        duration = time() - t2
+        send_mail('Start of the local tracking ' + ',it has been ' + str(round(duration)) +
+                  'seconds since the start of tractmaker', subject="Seed computation")
+
+    #stepsize = 2 #(by default)
+    stringstep = str(step_size)
+    stringstep = stringstep.replace(".", "_")
+    if verbose:
+        print("stringstep is "+stringstep)
+
+    filtering = False
+    if tracking_type == 'probabilistic' and filtering and threshold == 'act':
+        streamlines_generator = ParticleFilteringTracking(peaks,
+                                                             stopping_criterion,
+                                                             seeds,
+                                                             affine,
+                                                             max_cross=1,
+                                                             step_size=step_size,
+                                                             maxlen=1000,
+                                                             pft_back_tracking_dist=2,
+                                                             pft_front_tracking_dist=1,
+                                                             particle_count=15,
+                                                             return_all=False)
+    else:
+        streamlines_generator = LocalTracking(peaks_streams, stopping_criterion,
+                                              seeds, affine=np.eye(4), step_size=step_size)
+
+    if verbose:
+        duration = time() - t2
+        txt = 'About to save streamlines at ' + outpathtrk + ',it has been ' + str(round(duration)) + \
+              'seconds since the start of tractmaker',
+        send_mail(txt,subject="Tract saving" )
+
+    cutoff = 2
+    if doprune:
+        streamlines_generator = prune_streamlines(list(streamlines_generator), data[:, :, :, 0], cutoff=cutoff,
+                                                  verbose=verbose)
+        myheader = create_tractogram_header(outpathtrk, *header)
+        sg = lambda: (s for i, s in enumerate(streamlines_generator) if i % ratio == 0)
+        save_trk_heavy_duty(outpathtrk, streamlines=sg,
+                            affine=affine, header=myheader,
+                            shape=whitemask.shape, vox_size=vox_size, sftp=sftp)
+    else:
+        sg = lambda: (s for i, s in enumerate(streamlines_generator) if i % ratio == 0)
+        myheader = create_tractogram_header(outpathtrk, *header)
+        save_trk_heavy_duty(outpathtrk, streamlines=sg,
+                            affine=affine, header=myheader,
+                            shape=whitemask.shape, vox_size=vox_size, sftp=sftp)
+        """
+        streamlines = Streamlines(streamlines_generator)
+        sft = StatefulTractogram(streamlines, header, Space.RASMM)
+        save_trk(sft, outpathtrk, bbox_valid_check=False)
+        """
+
+    if verbose:
+        duration = time() - t2
+        txt = "Tract files were saved at "+outpathtrk + ',it has been ' + str(round(duration)) + \
+              'seconds since the start of tractmaker'
+        print(txt)
+        send_mail(txt,subject="Tract saving" )
+
+    duration3 = time() - t2
+    if verbose:
+        print(duration3)
+        print(subject + ' Tracking duration %.3f' % (duration3,))
+        send_mail("Finished file save at "+outpathtrk+" with tracking duration of " + str(duration3) + "seconds",
+                  subject="file save update" )
+
+    if get_params:
+        numtracts, minlength, maxlength, meanlength, stdlength = get_trk_params(streamlines_generator, verbose)
+        params = [numtracts, minlength, maxlength, meanlength, stdlength]
+        if verbose:
+            print("For subject " + str(subject) + " the number of tracts is " + str(numtracts) + ", the minimum length is " +
+                  str(minlength) + ", the maximum length is " + str(maxlength) + ", the mean length is " +
+                  str(meanlength) + ", the std is " + str(stdlength))
+    else:
+        params = None
+
+    return outpathtrk, streamlines_generator, params

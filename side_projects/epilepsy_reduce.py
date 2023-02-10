@@ -1,4 +1,4 @@
-from tract_manager.tract_handler import target, prune_streamlines, get_trk_params, get_tract_params, gettrkpath, reducetractnumber, reducetractnumber_all
+from DTC.tract_manager.tract_handler import target, prune_streamlines, get_trk_params, get_tract_params, gettrkpath, reducetractnumber, reducetractnumber_all
 import os
 
 folder = "/Volumes/Data/Badea/Lab/human/Sinha_epilepsy/TRK_basedondenoise/"

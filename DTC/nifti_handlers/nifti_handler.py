@@ -341,7 +341,7 @@ def get_bvals_bvecs(mypath, subject,sftp=None):
             fbvecs = glob.glob(mypath + '/' + subject + '*_bvec*.txt')[0]
             fbvals, fbvecs = fix_bvals_bvecs(fbvals,fbvecs)
         print(fbvecs)
-        bvals, bvecs = read_bvals_bvecs(fbvals, fbvecs)
+        bvals, bvecs = read_bvals_bvecs_remote(fbvals, fbvecs, sftp=sftp)
 
     else:
         try:
@@ -459,7 +459,8 @@ def getlabelmask(mypath, subject, verbose=None, sftp=None):
         if sftp is None:
             img = nib.load(labelspath)
             labels = np.asanyarray(img.dataobj)
-            affine_labels = img.header.get_zooms()[:3]
+            #affine_labels = img.header.get_zooms()[:3]
+            affine_labels = img.affine
         else:
             labels, affine_labels, _, _,_ = load_nifti_remote(labelspath, sftp)
 

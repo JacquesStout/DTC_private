@@ -34,7 +34,7 @@ else:
 if remote:
     _, _, _, sftp = get_mainpaths(remote,project = project, username=username,password=passwd)
     BRUKER_processed = '/mnt/paros_DB/BRUKER/niftis/'
-    BRUKER_f = '/mnt/paros_WORK/daniel/project/BRUKER_organized_JS_combined_v2/'
+    BRUKER_f = '/mnt/paros_WORK/daniel/project/BRUKER_organized_JS_combined_v3/'
 else:
     BRUKER_processed = '/Users/jas/jacques/Daniel_test/BRUKER/'
     BRUKER_f = '/Users/jas/jacques/Daniel_test/BRUKER_organized_JS_combined/'
@@ -46,7 +46,6 @@ bonus_rare_folder = '/mnt/paros_WORK/jacques/RARE/'
 
 timings = []
 timings.append(time.perf_counter())
-
 
 #Here, reorganize Bruker processed data into BIDS format
 overwrite = False
@@ -118,7 +117,10 @@ for folder in processed_folders:
         for i in np.arange(TEs):
             single_echo_path = os.path.join(outpath_temp, f'{id}_echo_' + str(i + 1) + '.nii.gz')
             if not os.path.exists(single_echo_path):
-                data_single_echo = data_multi_echo[:,:,:,i::3]
+                try:
+                    data_single_echo = data_multi_echo[:,:,:,i::3]
+                except:
+                    print('hi')
                 single_echo_nii = nib.Nifti1Image(data_single_echo, affine, hdr)
                 nib.save(single_echo_nii, single_echo_path)
                 timings.append(time.perf_counter())
@@ -138,17 +140,22 @@ for folder in processed_folders:
         """
         ### End test reslicing
 
-
-        tedana_command = f'tedana -d {os.path.join(outpath_temp,f"{id}_echo_1.nii.gz")} {os.path.join(outpath_temp,f"{id}_echo_2.nii.gz")} {os.path.join(outpath_temp,f"{id}_echo_3.nii.gz")} -e 5.0 19.315 33.63 --mask {mask_threshold_path} --out-dir {tedana_out_dir}'
+        """         
+        #Tedana run with masking
         #maskpath = '/Volumes/Data/Badea/Lab/jacques/APOE_func_proc/mask.nii.gz'
         #tedana_command = f'tedana -d {os.path.join(outpath_temp, f"{id}_echo_1.nii.gz")} {os.path.join(outpath_temp, f"{id}_echo_2.nii.gz")} {os.path.join(outpath_temp, f"{id}_echo_3.nii.gz")} -e 5.0 19.315 33.63 --mask {maskpath} --out-dir {tedana_out_dir}'
+        """
+        """
+        #Classic Tedana Run
+        tedana_command = f'tedana -d {os.path.join(outpath_temp,f"{id}_echo_1.nii.gz")} {os.path.join(outpath_temp,f"{id}_echo_2.nii.gz")} {os.path.join(outpath_temp,f"{id}_echo_3.nii.gz")} -e 5.0 19.315 33.63 --mask {mask_threshold_path} --out-dir {tedana_out_dir}'
         os.system(tedana_command)
         timings.append(time.perf_counter())
         print(f'Combined echos, took {timings[-1] - timings[-2]} seconds')
-        tedanafile_path = os.path.join(tedana_out_dir, 'desc-optcom_bold.nii.gz')
+        finalechofile_path = os.path.join(tedana_out_dir, 'desc-optcom_bold.nii.gz')
+        """
 
-        #shutil.copy(tedanafile_path, func_newpath)
-        copy_loctoremote(tedanafile_path, func_newpath, sftp)
+        finalechofile_path = os.path.join(outpath_temp,f"{id}_echo_1.nii.gz")
+        copy_loctoremote(finalechofile_path, func_newpath, sftp)
         if checkfile_exists_remote(func_newpath, sftp):
             timings.append(time.perf_counter())
             print(f'Saved file at {func_newpath}, took {timings[-1] - timings[-2]} seconds')

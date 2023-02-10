@@ -304,7 +304,7 @@ for subj in subjects:
         del mni_streamlines
 
         print(f'Saved MDT image to {trk_MDT_space}, took {tf - twarp:0.2f} seconds, subject {subj} run took {tf - tstart:0.2f} seconds total\n')
-        current_time = datetime.datetime.now()
+        current_time = datetime.now()
         print("Current Time =", current_time)
         print('\n')
 

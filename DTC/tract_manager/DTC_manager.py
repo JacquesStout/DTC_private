@@ -52,7 +52,7 @@ from DTC.tract_manager.streamline_nocheck import load_trk
 from DTC.tract_manager.tract_save import save_trk_heavy_duty
 import pickle
 import pathlib
-from DTC.tract_manager.dif_to_trk import QCSA_tractmake
+from DTC.tract_manager.dif_to_trk import QCSA_tractmake, QCSA_tractmake_test
 from DTC.file_manager.file_tools import mkcdir
 import os
 import glob
@@ -81,7 +81,7 @@ import shutil
 import dipy.reconst.msdki as msdki
 
 from multiprocessing import Pool
-from DTC.nifti_handlers.atlas_handlers.convert_atlas_mask import convert_labelmask, atlas_converter
+from DTC.nifti_handlers.atlas_handlers.convert_atlas_mask import convert_labelmask, atlas_converter, get_mask_labels, create_label_mask, make_act_classifier
 from DTC.diff_handlers.connectome_handlers.excel_management import connectomes_to_excel, grouping_to_excel
 from DTC.file_manager.computer_nav import load_trk_remote, checkfile_exists_remote, glob_remote, load_nifti_remote, pickledump_remote, \
     remove_remote
@@ -667,7 +667,7 @@ def tract_connectome_analysis(diffpath, trkpath, str_identifier, outpath, subjec
             matrix_sl[i, j] = []
     for key in grouping.keys():
         matrix_sl[key] = grouping[key]
-        matrix_sl[tuple(np.flip(key))] = grouping[key]
+        #matrix_sl[tuple(np.flip(key))] = grouping[key]
 
     matrix = np.delete(matrix, 0, 0)
     matrix = np.delete(matrix, 0, 1)
@@ -1070,6 +1070,7 @@ def check_dif_ratio(trkpath, subject, strproperty, ratio,sftp = None):
                 return
     #trkfilepath = gettrkpath(trkpath, subject, strproperty, verbose)
 
+
 def create_tracts(diffpath, outpath, subject, figspath, step_size, peak_processes, strproperty = "", ratio = 1, masktype="binary",
                       classifier="FA", labelslist=None, bvec_orient=[1,2,3], doprune=False, overwrite=False,
                   get_params=False, denoise="", seedmasktype = None, verbose=None, sftp=None):
@@ -1168,6 +1169,158 @@ def create_tracts(diffpath, outpath, subject, figspath, step_size, peak_processe
         labelmask=mask
         roiname = "_hyptsept_"
         strproperty = roiname
+        ratios = [1]
+        roislist = [['fimbria'], ['corpus_callosum'], ['hypothalamus', 'septum'], ['primary_motor_cortex']]
+        print("reached this spot")
+        #save_roisubset(streamlines_generator, roislist, roisexcel, labelmask, stringstep, ratios, trkpath, subject, affine, header)
+        from dipy.tracking.utils import length
+        lengths = length(sg)
+        del trkdata
+        # lengths = list(length(trkstreamlines))
+        lengths = list(lengths)
+        numtracts = np.size(lengths)
+        minlength = np.min(lengths)
+        maxlength = np.max(lengths)
+        meanlength = np.mean(lengths)
+        stdlength = np.std(lengths)
+        print("Numtracts is "+ numtracts + ", minlength is "+minlength+", maxlength is "+maxlength+", meanlength is "+meanlength+", stdlength is"+stdlength)
+        """
+
+    return subject, outpathtrk, params
+
+
+def create_tracts_test(diffpath, outpath, subject, figspath, step_size, peak_processes, ROI_excel, strproperty = "", ratio = 1, masktype="binary",
+                      classifier="FA", labelslist=None, bvec_orient=[1,2,3], doprune=False, overwrite=False,
+                  get_params=False, denoise="", seedmasktype = 'white', labeltype = 'lrordered', verbose=None, sftp=None):
+
+    check_dif_ratio(outpath, subject, strproperty, ratio)
+    outpathtrk, trkexists = gettrkpath(outpath, subject, strproperty, pruned=doprune, verbose=False,sftp=sftp)
+    outpathtrk = outpathtrk.replace('.trk','_prob_binary_heavyduty.trk')
+
+    if os.path.exists(outpathtrk) and overwrite is False:
+        print("The tract creation of subject " + subject + " is already done")
+        if get_params:
+            subject, numtracts, minlength, maxlength, meanlength, stdlength, _, _, _ = \
+                get_tract_params(outpathtrk, subject, strproperty, verbose = verbose)
+            params = [numtracts, minlength, maxlength, meanlength, stdlength]
+            return outpathtrk, None, params
+        else:
+            return outpathtrk, None, None
+
+    if verbose:
+        print('Running the ' + subject + ' file')
+
+    fullmask, _ = getmask(diffpath, subject, masktype, verbose,sftp=sftp)
+
+    white_mask_path = os.path.join(diffpath, f'{subject}_whitematter.nii.gz')
+    csf_mask_path = os.path.join(diffpath, f'{subject}_csf.nii.gz')
+    act_outpath = os.path.join(diffpath, f'{subject}_actmask.nii.gz')
+
+    overwrite=False
+    if not os.path.exists(white_mask_path) or not os.path.exists(csf_mask_path) or overwrite:
+        labels_dir = get_mask_labels(ROI_excel)
+        labelmask, labelaffine, labelpath = getlabelmask(diffpath, subject, verbose, sftp=sftp)
+        converter_lr, converter_comb, index_to_struct_lr, index_to_struct_comb = atlas_converter(ROI_excel, sftp)
+        if labeltype == 'combined':
+            labeloutpath = labelpath.replace('.nii.gz', '_comb.nii.gz')
+            if not checkfile_exists_remote(labeloutpath, sftp):
+                labelmask = convert_labelmask(labelmask, converter_comb, atlas_outpath=labeloutpath,
+                                              affine_labels=labelaffine, sftp=sftp)
+            else:
+                labelmask, labelaffine = load_nifti(labeloutpath)
+            index_to_struct = index_to_struct_comb
+        elif labeltype == 'lrordered':
+            labeloutpath = labelpath.replace('.nii.gz', '_lr_ordered.nii.gz')
+            if not checkfile_exists_remote(labeloutpath, sftp):
+                convert_labelmask(labelmask, converter_lr, atlas_outpath=labeloutpath,
+                                              affine_labels=labelaffine, sftp=sftp)
+            index_to_struct = index_to_struct_lr
+        else:
+            raise TypeError("Cannot recognize label type (this error raise is a THEORETICALLY a temp patch")
+
+        create_label_mask(labeloutpath, labels_dir['white matter'], mask_outpath = white_mask_path , conserve_val = False)
+        create_label_mask(labeloutpath, labels_dir['CSF'], mask_outpath = csf_mask_path, conserve_val = False)
+
+    diff_data, affine, gtab, vox_size, fdiffpath, header, ref_info = getdiffdata_all(diffpath, subject, bvec_orient, denoise=denoise, verbose=verbose,sftp=sftp)
+
+    """
+    if masktype == "dwi" and mask is None:
+        warnings.warn(f'Did not find mask, assuming that the diffusion path {fdiffpath} is already masked')
+        mask,_ = dwi_to_mask(diff_data, subject, affine, diffpath, masking='extract', makefig=False, header=header, verbose=True, sftp=sftp)
+    """
+    white_mask, labelaffine, _, _,_ = load_nifti_remote(white_mask_path, sftp)
+
+    print("Mask shape is " + str(np.shape(white_mask)))
+
+    if seedmasktype =='label':
+        seedmask, _, _ = getlabelmask(diffpath, subject, verbose, sftp=sftp)
+    else:
+        seedmask=None
+
+    threshold = classifier
+    if threshold == "FA":
+        outpathbmfa, classifier_mask = make_tensorfit(diff_data,mask,gtab,affine,subject,outpath=diffpath,verbose=verbose)
+    elif threshold == 'act':
+        if not os.path.exists(act_outpath):
+            csf_mask, labelaffine, _, _, _ = load_nifti_remote(csf_mask_path, sftp)
+            classifier_mask, _ = make_act_classifier(fullmask, white_mask, csf_mask, labelaffine, act_outpath)
+        else:
+            white_mask, _, _, _, _ = load_nifti_remote(act_outpath, sftp)
+    else:
+        classifier_mask = None
+
+    print(verbose)
+    if verbose:
+        txt = ("The QCSA Tractmake is ready to launch for subject " + subject)
+        print(txt)
+        send_mail(txt,subject="QCSA main function start")
+        print("email sent")
+
+    if doprune:
+        outpathtrk_noprune = os.path.join(outpath, subject + strproperty + '.trk')
+        if os.path.exists(outpathtrk_noprune) and not os.path.exists(outpathtrk):
+            cutoff = 2
+            trkdata = load_trk_remote(outpathtrk_noprune, "same",sftp=sftp)
+            affine = trkdata._affine
+            trkdata.to_vox()
+            trkstreamlines = trkdata.streamlines
+            if np.size(np.shape(diff_data)) == 1:
+                diff_data = diff_data[0]
+            if np.size(np.shape(diff_data)) == 4:
+                diff_data = diff_data[:, :, :, 0]
+            print("Mask shape is " + str(np.shape(diff_data)))
+            pruned_streamlines = prune_streamlines(list(trkstreamlines), fullmask, cutoff=cutoff, verbose=verbose)
+            pruned_streamlines_SL = Streamlines(pruned_streamlines)
+            if hasattr(trkdata, 'space_attribute'):
+                ref_info = trkdata.space_attribute
+            elif hasattr(trkdata, 'space_attributes'):
+                ref_info = trkdata.space_attributes
+            myref = create_tractogram_header(outpathtrk, *ref_info)
+            prune_sl = lambda: (s for s in pruned_streamlines)
+            DTC.tract_manager.tract_save.save_trk_heavy_duty(outpathtrk, streamlines=prune_sl, affine=affine, header=myref)
+            del (prune_sl, pruned_streamlines, trkdata)
+            if get_params:
+                numtracts, minlength, maxlength, meanlength, stdlength = get_tract_params(outpathtrk, subject,
+                                                                                          strproperty,
+                                                                                          verbose)
+                params = [numtracts, minlength, maxlength, meanlength, stdlength]
+                return subject, outpathtrk, params
+            else:
+                params = None
+                return subject, outpathtrk, params
+
+    outpathtrk, trkstreamlines, params = QCSA_tractmake_test(diff_data, affine, vox_size, gtab, white_mask, ref_info,
+                                                            step_size, peak_processes, outpathtrk, subject=subject, ratio=ratio,
+                                                            threshold=threshold, overwrite=overwrite, get_params=get_params, doprune=doprune,
+                                                            classifier_mask = classifier_mask, figspath=figspath,
+                                                            verbose=verbose, seedmask=seedmask, sftp=sftp)
+    if labelslist:
+        print('In process of implementing')
+        """
+        labelslist= [59, 1059, 62, 1062]
+        labelmask=mask
+        roiname = "_hyptsept_"
+        strproperty = roiname
 
         ratios = [1]
         roislist = [['fimbria'], ['corpus_callosum'], ['hypothalamus', 'septum'], ['primary_motor_cortex']]
@@ -1188,7 +1341,6 @@ def create_tracts(diffpath, outpath, subject, figspath, step_size, peak_processe
         """
 
     return subject, outpathtrk, params
-
 
 def evaluate_coherence(dwipath,trkpath,subject,stepsize, tractsize, labelslist=None, outpathpickle=None,
                        outpathfig=None, processes=1, allsave=False, display=True, strproperty="", ratio=1,

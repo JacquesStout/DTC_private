@@ -69,8 +69,9 @@ def IIT_converter(ROI_excel):
         index_to_struct_comb[index3[i]] = structures[i]
     return converter_lr, converter_comb, index_to_struct_lr, index_to_struct_comb
 
-def convert_labelmask(atlas, converter, atlas_outpath = None, affine_labels=None, sftp=None):
 
+def convert_labelmask(atlas, converter, atlas_outpath = None, affine_labels=None, sftp=None):
+#Use the converter output from atlas_converter to switch the nomenclature of a labels set from one to another
     if isinstance(atlas, str):
         labels, affine_labels, _, _, _ = load_nifti_remote(atlas, None)
     else:
@@ -96,6 +97,67 @@ def convert_labelmask(atlas, converter, atlas_outpath = None, affine_labels=None
         save_nifti(atlas_outpath, labels_new, affine_labels)
 
     return(labels_new)
+
+
+def get_mask_labels(ROI_excel, atlas_type='chass', sftp=None):
+
+    if atlas_type == 'chass':
+        if not os.path.exists(ROI_excel):
+            if checkfile_exists_remote(ROI_excel, sftp):
+                temp_ROI_excel = make_temppath(ROI_excel)
+                sftp.get(ROI_excel, temp_ROI_excel)
+                df = pd.read_excel(temp_ROI_excel, sheet_name='Sheet1')
+                os.remove(temp_ROI_excel)
+        else:
+            df = pd.read_excel(ROI_excel, sheet_name='Sheet1')
+        df['Structure'] = df['Structure'].str.lower()
+        index1 = df['index']
+        index2 = df['index2']
+        structures = df['Structure']
+        hemispheres = df['Hemisphere']
+        divisions = df['Subdivisions_7']
+
+        dir = {}
+        rslt_whitem = df.loc[divisions == "7_whitematter"]
+        list_whitem = list(rslt_whitem.index)
+        rslt_csf = df.loc[divisions == "8_CSF"]
+        list_csf = list(rslt_csf.index)
+        rslt_gm_list = [index for index in df.index if index not in list_whitem and index not in list_csf]
+        dir.update({'white matter': list(rslt_whitem.index), 'CSF': list(rslt_csf.index), 'grey matter': rslt_gm_list})
+        return dir
+
+def make_act_classifier(fullmask, whitemask, csfmask, affine, act_outpath):
+    act_mask = np.ones(np.shape(fullmask))
+    act_mask = act_mask - whitemask
+    act_mask = act_mask + csfmask
+    act_mask = np.array(act_mask, dtype='int')
+    return act_mask, act_outpath
+
+def create_label_mask(atlas, label, mask_outpath, conserve_val = False):
+
+    if os.path.exists(mask_outpath):
+        print(f'already wrote {mask_outpath}, exiting')
+        return
+
+    if isinstance(atlas, str):
+        labels, affine_labels, _, _, _ = load_nifti_remote(atlas, None)
+    else:
+        labels = atlas
+        affine_labels = np.eye(4)
+
+    labels = np.round(labels,2)
+
+    mask = np.zeros(np.shape(labels))
+    for i in range(np.shape(labels)[0]):
+        for j in range(np.shape(labels)[1]):
+            for k in range(np.shape(labels)[2]):
+                if labels[i,j,k]>0 and labels[i,j,k] in label:
+                    if conserve_val:
+                        mask[i,j,k] = labels[i,j,k]
+                    else:
+                        mask[i,j,k] = 1
+
+    save_nifti(mask_outpath, mask, affine_labels)
 
 
 def run_onall():

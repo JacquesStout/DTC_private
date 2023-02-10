@@ -8,6 +8,7 @@ from DTC.tract_manager.streamline_nocheck import load_trk
 from DTC.file_manager.computer_nav import splitpath
 import shutil
 import os
+import numpy as np
 import nibabel as nib
 import warnings
 from dipy.align.reslice import reslice
@@ -189,6 +190,29 @@ def header_superpose(target_path, origin_path, outpath=None, verbose=False):
             print('Same header for target_path and origin_path, skipping')
 
 
+def affine_superpose(target_path, origin_path, outpath=None, verbose=False):
+    target_nii=nib.load(target_path)
+    origin_nii=nib.load(origin_path)
+    if np.shape(target_nii._data)[0:3] != np.shape(origin_nii._data)[0:3]:
+        raise TypeError('not implemented')
+    else:
+        target_affine=target_nii._affine
+        origin_header = origin_nii._header
+        if np.any(target_affine != origin_nii._affine):
+            new_nii = nib.Nifti1Image(origin_nii._data, target_affine, origin_header)
+            if outpath is None:
+                outpath = origin_path
+                txt= (f'Overwriting original file {origin_path}')
+                warnings.warn(txt)
+            if verbose:
+                print(f'Saving nifti file to {outpath}')
+            nib.save(new_nii, outpath)
+            if verbose:
+                print(f'Saved')
+        else:
+            print('Same header for target_path and origin_path, skipping')
+
+
 def get_affine_transform_nii(target_path, origin_path, verbose=False):
 
     target_nii=nib.load(target_path)
@@ -325,6 +349,28 @@ def affine_superpose(target_path, origin_path, outpath=None, transpose=None, ver
         else:
             shutil.copy(origin_path,outpath)
             return 0
+
+def affine_recenter(origin_path, outpath=None, fullrecenter = False, verbose=False):
+    origin_nii=nib.load(origin_path)
+
+    origin_affine=origin_nii._affine
+    #added this to add a little translocation onto the atlas whenever necessary (like space_transpose). A bit convoluted
+    # but didnt want to save a nifti file over itself multiple times.
+    new_affine = np.eye(4)
+    if not fullrecenter:
+        new_affine[:3,:3] = origin_affine[:3,:3]
+
+    if np.any(new_affine != origin_nii._affine):
+        new_nii = nib.Nifti1Image(origin_nii._data, new_affine, origin_nii._header)
+        if outpath is None:
+            outpath = origin_path
+        nib.save(new_nii, outpath)
+        if verbose:
+            print(f'Used recentered affine for data in {origin_path} to create {outpath}')
+        return 1 #returns 1 if it saved a new file
+    else:
+        shutil.copy(origin_path,outpath)
+        return 0
 
 
 def space_transpose(origin_path, transpose=[0,0,0], outpath=None):

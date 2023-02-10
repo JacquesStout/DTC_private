@@ -125,7 +125,7 @@ def make_temppath(path, to_fix=False):
         return temppath
 
 
-def load_nifti_remote(niipath, sftp=None):
+def load_nifti_remote(niipath, sftp=None, return_nii = False):
     from DTC.nifti_handlers.nifti_handler import get_reference_info
 
     if sftp is None:
@@ -149,7 +149,10 @@ def load_nifti_remote(niipath, sftp=None):
         except Exception as e:
             os.remove(temp_path)
             raise Exception(e)
-    return data, affine, vox_size, header, ref_info
+    if return_nii:
+        return img
+    else:
+        return data, affine, vox_size, header, ref_info
 
 
 def save_nifti_remote(niiobject,niipath, sftp):
@@ -172,18 +175,22 @@ def remove_remote(path, sftp=None):
 
 def read_bvals_bvecs_remote(fbvals, fbvecs, sftp):
     from dipy.io.gradients import read_bvals_bvecs
-    temp_path_bval = f'{os.path.join(os.path.expanduser("~"), os.path.basename(fbvals))}'
-    temp_path_bvec = f'{os.path.join(os.path.expanduser("~"), os.path.basename(fbvecs))}'
-    sftp.get(fbvals, temp_path_bval)
-    sftp.get(fbvecs, temp_path_bvec)
-    try:
-        bvals, bvecs = read_bvals_bvecs(temp_path_bval, temp_path_bvec)
-        os.remove(temp_path_bval)
-        os.remove(temp_path_bvec)
-    except Exception as e:
-        os.remove(temp_path_bval)
-        os.remove(temp_path_bvec)
-        raise Exception(e)
+
+    if sftp is not None:
+        temp_path_bval = f'{os.path.join(os.path.expanduser("~"), os.path.basename(fbvals))}'
+        temp_path_bvec = f'{os.path.join(os.path.expanduser("~"), os.path.basename(fbvecs))}'
+        sftp.get(fbvals, temp_path_bval)
+        sftp.get(fbvecs, temp_path_bvec)
+        try:
+            bvals, bvecs = read_bvals_bvecs(temp_path_bval, temp_path_bvec)
+            os.remove(temp_path_bval)
+            os.remove(temp_path_bvec)
+        except Exception as e:
+            os.remove(temp_path_bval)
+            os.remove(temp_path_bvec)
+            raise Exception(e)
+    else:
+        bvals, bvecs = read_bvals_bvecs(fbvals,fbvecs)
     return bvals, bvecs
 
 
@@ -263,15 +270,19 @@ def scp_multiple(list,outpath,sftp=None,overwrite=False):
                 import shutil
                 shutil.copy(filepath, newfilepath)
 
+def regexify(string):
+    newstring = ('^'+string+'$').replace('*','.*')
+    return newstring
 
-def glob_remote(path, sftp):
+def glob_remote(path, sftp=None):
     match_files = []
     if sftp is not None:
         if '*' in path:
             pathdir, pathname = os.path.split(path)
+            pathname = regexify(pathname)
             allfiles = sftp.listdir(pathdir)
             for file in allfiles:
-                if re.search(pathname.replace('*','.*'), file) is not None:
+                if re.search(pathname, file) is not None:
                     match_files.append(os.path.join(pathdir,file))
         elif '.' not in path:
             allfiles = sftp.listdir(path)

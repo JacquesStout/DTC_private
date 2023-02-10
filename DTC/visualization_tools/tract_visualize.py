@@ -362,7 +362,7 @@ def view_test(scene,testtype='interactive',record_path = None):
 
 
 def setup_view(trk_object, colors=None, world_coords=False, show=True, fname=None, str_tube=False, ref=None,
-               objectvals = None, colorbar=False, record = None, scene = None, plane = 'all', interactive = True):
+               objectvals = None, colorbar=False, record = None, scene = None, plane = 'all', interactive = True, addedmask = None):
 
     from dipy.viz import actor, window, ui
 
@@ -370,28 +370,41 @@ def setup_view(trk_object, colors=None, world_coords=False, show=True, fname=Non
         if os.path.exists(ref):
             data, affine = load_nifti(ref)
             shape = data.shape
-            if np.size(shape)>3:
-                data = np.squeeze(data)[:,:,:,0]
+            warnings.warn('changed data')
+            if addedmask is not None:
+                addedmask_data = nib.load(addedmask).get_fdata()
+                data[addedmask_data==0] = 0
+            """
+            valsurround = 50
+            valincrease = 1000
+            data[round(shape[0] / 2) - valsurround: round(shape[0] / 2) + valsurround, round(shape[1] / 2) - valsurround: round(shape[1] / 2) + valsurround,
+            round(shape[2] / 2) - valsurround: round(shape[2] / 2) + valsurround, 0] = 0
+            """
+            #data = np.ones(data.shape)
             # data, affine = load_nifti('/Volumes/Data/Badea/Lab/mouse/VBM_19IntractEP01_IITmean_RPI-work/dwi/SyN_0p5_3_0p5_dwi/dwiMDT_NoNameYet_n7_i6/median_images/MDT_fa.nii.gz')
         else:
             txt = f'Was asked to find reference file for background at {ref} but path did not exist'
             raise Exception(txt)
-    if isinstance(ref, np.ndarray):
+    elif isinstance(ref, np.ndarray):
         data = ref
         shape = np.shape(ref)
-    if isinstance(ref, nib.Nifti1Image):
+    elif isinstance(ref, nib.Nifti1Image):
         data = np.asarray(ref.dataobj)
         shape = np.shape(data)
         affine = ref._affine
-    if np.size(shape)==4:
+    elif ref is None:
+        data = None
+        shape = None
+    if shape is not None and np.size(shape)==4:
         data = np.squeeze(data[:,:,:,0])
         shape = shape[:3]
-    value_range = (0,1500)
+    value_range = (0,2)
     #value_range = None
-    if not world_coords:
-        image_actor_z = actor.slicer(data, affine=np.eye(4),value_range = value_range)
-    else:
-        image_actor_z = actor.slicer(data, affine,value_range = value_range)
+    if data is not None:
+        if not world_coords:
+            image_actor_z = actor.slicer(data, affine=np.eye(4),value_range = value_range)
+        else:
+            image_actor_z = actor.slicer(data, affine,value_range = value_range)
 
     object_actors_toremove = []
 
@@ -410,10 +423,10 @@ def setup_view(trk_object, colors=None, world_coords=False, show=True, fname=Non
         elif plane == 'z':
             show_z=True
         else:
-            warnings.warn('Plane was not a recognized parameter, showing all planes by default')
-            show_x = True
-            show_y = True
-            show_z = True
+            warnings.warn('Plane was not a recognized parameter, showing no planes by default')
+            show_x = False
+            show_y = False
+            show_z = False
         return show_x, show_y, show_z
 
     def change_slice_z(slider):
@@ -455,35 +468,37 @@ def setup_view(trk_object, colors=None, world_coords=False, show=True, fname=Non
         #    objectvals = np.random(np.shape(trk_object)[0])
 
         slicer_opacity = 0.7
-        image_actor_z.opacity(slicer_opacity)
-
-        # adding slicer sliders
-
-        image_actor_x = image_actor_z.copy()
-        x_midpoint = int(np.round(shape[0] / 2))
-        image_actor_x.display_extent(x_midpoint,
-                                     x_midpoint, 0,
-                                     shape[1],
-                                     0,
-                                     shape[1])
-
-        image_actor_y = image_actor_z.copy()
-        y_midpoint = int(np.round(shape[1] / 2))
-        image_actor_y.display_extent(0,
-                                     shape[0],
-                                     y_midpoint,
-                                     y_midpoint,
-                                     0,
-                                     shape[1])
-
         show_x, show_y, show_z = select_plane(plane)
 
-        if show_z:
-            scene.add(image_actor_z)
-        if show_x:
-            scene.add(image_actor_x)
-        if show_y:
-            scene.add(image_actor_y)
+        if data is not None:
+            image_actor_z.opacity(slicer_opacity)
+
+            # adding slicer sliders
+
+            image_actor_x = image_actor_z.copy()
+            x_midpoint = int(np.round(shape[0] / 2))
+            image_actor_x.display_extent(x_midpoint,
+                                         x_midpoint, 0,
+                                         shape[1],
+                                         0,
+                                         shape[1])
+
+            image_actor_y = image_actor_z.copy()
+            y_midpoint = int(np.round(shape[1] / 2))
+            image_actor_y.display_extent(0,
+                                         shape[0],
+                                         y_midpoint,
+                                         y_midpoint,
+                                         0,
+                                         shape[1])
+
+
+            if show_z:
+                scene.add(image_actor_z)
+            if show_x:
+                scene.add(image_actor_x)
+            if show_y:
+                scene.add(image_actor_y)
 
         if colorbar:
             if colors is not None:
@@ -501,29 +516,29 @@ def setup_view(trk_object, colors=None, world_coords=False, show=True, fname=Non
 
         show_m = window.ShowManager(scene, size=(2000, 900))
         show_m.initialize()
+        if data is not None:
+            line_slider_z = ui.LineSlider2D(min_value=0,
+                                            max_value=shape[2] - 1,
+                                            initial_value=shape[2] / 2,
+                                            text_template="{value:.0f}",
+                                            length=140)
 
-        line_slider_z = ui.LineSlider2D(min_value=0,
-                                        max_value=shape[2] - 1,
-                                        initial_value=shape[2] / 2,
-                                        text_template="{value:.0f}",
-                                        length=140)
+            line_slider_x = ui.LineSlider2D(min_value=0,
+                                            max_value=shape[0] - 1,
+                                            initial_value=shape[0] / 2,
+                                            text_template="{value:.0f}",
+                                            length=140)
 
-        line_slider_x = ui.LineSlider2D(min_value=0,
-                                        max_value=shape[0] - 1,
-                                        initial_value=shape[0] / 2,
-                                        text_template="{value:.0f}",
-                                        length=140)
+            line_slider_y = ui.LineSlider2D(min_value=0,
+                                            max_value=shape[1] - 1,
+                                            initial_value=shape[1] / 2,
+                                            text_template="{value:.0f}",
+                                            length=140)
 
-        line_slider_y = ui.LineSlider2D(min_value=0,
-                                        max_value=shape[1] - 1,
-                                        initial_value=shape[1] / 2,
-                                        text_template="{value:.0f}",
-                                        length=140)
-
-        opacity_slider = ui.LineSlider2D(min_value=0.0,
-                                         max_value=1.0,
-                                         initial_value=slicer_opacity,
-                                         length=140)
+            opacity_slider = ui.LineSlider2D(min_value=0.0,
+                                             max_value=1.0,
+                                             initial_value=slicer_opacity,
+                                             length=140)
 
         panel = ui.Panel2D(size=(300, 200),
                            color=(1, 1, 1),
@@ -611,8 +626,9 @@ def setup_view(trk_object, colors=None, world_coords=False, show=True, fname=Non
                 object_actor = actor.line(bundle, colors_points, linewidth=0.2, lookup_colormap=colors)
                 scene.add(object_actor)
     """
-
-    if isinstance(trk_object, ClusterCentroid):
+    if trk_object is None:
+        warnings.warn('Empty trk object, only showing the reference image')
+    elif isinstance(trk_object, ClusterCentroid):
         if isinstance(colors, vtk.vtkLookupTable) and objectvals[0] is not None:
             object_actor = actor.line(trk_object, objectvals, linewidth=0.1,
                                       lookup_colormap=colors)
@@ -665,18 +681,20 @@ def setup_view(trk_object, colors=None, world_coords=False, show=True, fname=Non
                 scene.add(object_actor)
                 object_actors_toremove.append(object_actor)
     elif isinstance(trk_object, Streamlines):
-        if objectvals[0] is not None:
+        if objectvals is not None and objectvals[0] is not None:
             object_actor = actor.line(trk_object, objectvals, linewidth=0.1,
                                       lookup_colormap=colors)
         else:
-            trk_object = trk_object[0]
+            object_actor = actor.line(trk_object)
+            scene.add(object_actor)
+            object_actors_toremove.append(object_actor)
             #object_actor = actor.line(trk_object)
         #scene.add(object_actor)
         #object_actors_toremove.append(object_actor)
 
     elif isinstance(trk_object[0], Streamlines):
         #if isinstance(colors, vtk.vtkLookupTable) and objectvals[0] is not None:
-        if objectvals[0] is not None:
+        if objectvals is not None and objectvals[0] is not None:
             if np.size(np.shape(objectvals[0]))>1:      #treat objet vals as point coloring
                 for bundle, vals in zip(trk_object, objectvals):
                     colors_points = []
@@ -698,7 +716,6 @@ def setup_view(trk_object, colors=None, world_coords=False, show=True, fname=Non
             object_actor = actor.line(trk_object)
             scene.add(object_actor)
             object_actors_toremove.append(object_actor)
-
     else:
         raise Exception('Unindentified object')
 

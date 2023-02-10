@@ -11,9 +11,11 @@ import os
 from DTC.file_manager.computer_nav import get_mainpaths, checkfile_exists_remote, getremotehome
 from DTC.nifti_handlers.atlas_handlers.convert_atlas_mask import convert_labelmask, atlas_converter
 from DTC.file_manager.argument_tools import parse_arguments
+from DTC.nifti_handlers.atlas_handlers.create_backported_labels import get_info_SAMBA_headfile
+
 #project = "APOE"
 #project = "AMD"
-project = 'AD_Decode'
+project = 'APOE'
 #project = 'AMD'
 #project = 'Chavez'
 verbose = True
@@ -24,6 +26,7 @@ file_ids = ["subjspace_coreg","coreg", "subjspace_fa", "subjspace_b0", "bval", "
 #if project == 'AMD':
 #    file_ids = ["relative_orientation"]
 
+mymax=-1
 
 if project == 'Chavez':
     SAMBA_mainpath = os.path.join(mainpath, "mouse")
@@ -186,7 +189,13 @@ elif project == "APOE":
         subjects.append(subject_name[:6])
 
     subjects = ['N58408', 'N59072', 'N58610', 'N58398', 'N58935', 'N58714', 'N58740', 'N58477', 'N59003', 'N58734', 'N58309', 'N58792', 'N58819', 'N58302', 'N59078', 'N59116', 'N58909', 'N58612', 'N59136', 'N59140', 'N58784', 'N58919', 'N58706', 'N58889', 'N58361', 'N58355', 'N59066', 'N58712', 'N58790', 'N59010', 'N58859', 'N58946', 'N58917', 'N58606', 'N58815', 'N59118', 'N58997', 'N58350', 'N59022', 'N58999', 'N59141', 'N58881', 'N59026', 'N58608', 'N58853', 'N58779', 'N58995', 'N58500', 'N58604', 'N58749', 'N58877', 'N58883', 'N58915', 'N59109', 'N59120', 'N58510', 'N58885', 'N58906', 'N59065', 'N58394', 'N58821', 'N58855', 'N58346', 'N58861', 'N59005', 'N58344', 'N58954', 'N59099', 'N58857', 'N58788', 'N58305', 'N58514', 'N58851', 'N59076', 'N59097', 'N58794', 'N58733', 'N58655', 'N58887', 'N58735', 'N58310', 'N59035', 'N58879', 'N58400', 'N59041', 'N58952', 'N58708', 'N58780', 'N58512', 'N58747', 'N58303', 'N58404', 'N58751', 'N58611', 'N58829', 'N58913', 'N58745', 'N58831', 'N58406', 'N58359', 'N58742', 'N58396', 'N58948', 'N58941', 'N59033', 'N58732', 'N58516', 'N59080', 'N58813', 'N59039', 'N58402']
+    #subjects = ['N58784']
+    #subjects = ['N59066']
     #subjects = ['N58612','N59136','N59140','N58946','N59141','N58915','N59005','N58954','N58948']
+    subjects = ['N60188', 'N60190', 'N60192', 'N60194', 'N60198', 'N60219', 'N60221', 'N60223', 'N60225', 'N60229', 'N60231']
+    subjects = ['N57442', 'N57504', 'N58400', 'N58611', 'N58613', 'N58859', 'N60101', 'N60056', 'N60064', 'N60092', 'N60088', 'N60093', 'N60097', 'N60095', 'N60068', 'N60072', 'N60058', 'N60103', 'N60060', 'N60190', 'N60225', 'N60198', 'N58612', 'N60062', 'N60070', 'N60221', 'N60223', 'N58610', 'N60229', 'N60188', 'N60192', 'N60194', 'N60219', 'N60231']
+
+    #subjects = ['N58302', 'N58303']
     subjects = subjects[:]
     #removed_list = ['N58610', 'N58613', 'N58732']
     #removed_list = ['N58948','N59005','N58612','N58613','N59136','N59140','N58946','N59141','N58915','N58954']
@@ -230,11 +239,11 @@ elif project == "AMD":
                 "H26890", "H26958", "H26974", "H27017", "H27111", "H27164", "H27381", "H27391", "H27495", "H27610", "H27640",
                 "H27680", "H27778", "H27982", "H28115", "H28308", "H28338", "H28373", "H28377", "H28433", "H28437", "H28463",
                 "H28532", "H28662", "H28698", "H28748", "H28809", "H28857", "H28861", "H29013", "H29020", "H29025"]
-    #subjects = ["H27999"]
+
 else:
     raise Exception("Unknown project name")
 
-remote=True
+remote=False
 if remote:
     username, passwd = getfromfile(os.path.join(os.path.expanduser('~'),'remote_connect.rtf'))
 else:
@@ -251,7 +260,9 @@ mkcdir([outpath,DTC_DWI_folder,DTC_labels_folder,DTC_transforms],sftp)
 
 print(subjects)
 
-create_MDT_labels(subject, SAMBA_mainpath, SAMBA_projectname, atlas_labels, overwrite=overwrite)
+_, _, myiteration = get_info_SAMBA_headfile(SAMBA_headfile)
+
+create_MDT_labels(subject, SAMBA_mainpath, SAMBA_projectname, atlas_labels, myiteration= myiteration, overwrite=overwrite)
 
 subjects_notdone = []
 for subject in subjects:
@@ -299,25 +310,32 @@ for filename in os.listdir(SAMBA_prep_folder):
                             print('test')
                             #os.remove(filepath)
                 else:
+                    print(f'Copying {filepath} to {filenewpath}')
                     shutil.copy(filepath, filenewpath)
+        else:
+            if verbose:
+                print(f'File {filenewpath} already exists')
 
-
+reg_type = 'dwi'
 template_type_prefix = os.path.basename(os.path.dirname(glob.glob(os.path.join(SAMBA_work_folder,"dwi","SyN*/"))[0]))
-template_runs = glob.glob((os.path.join(SAMBA_work_folder,"dwi",template_type_prefix,"*/")))
-mymax = -1
-for template_run in template_runs:
-    if "NoNameYet" in template_run and template_run[-4:-2]=="_i":
-        if int(template_run[-2])>mymax:
-            mymax=int(template_run[-2])
-            final_template_run=template_run
-if mymax==-1:
+
+if myiteration == -1:
+    template_runs = glob.glob((os.path.join(SAMBA_work_folder, reg_type, template_type_prefix, "*/")))
     for template_run in template_runs:
-        if "dwiMDT_Control_n72" in template_run and template_run[-4:-2]=="_i":
-            if int(template_run[-2])>mymax:
-                mymax=int(template_run[-2])
+        if "NoNameYet" in template_run and template_run[-4:-2]=="_i":
+            if int(template_run[-2])>myiteration:
+                myiteration=int(template_run[-2])
                 final_template_run=template_run
-if mymax == -1:
-    raise Exception(f"Could not find template runs in {os.path.join(mainpath, f'{SAMBA_projectname}-work','dwi',template_type_prefix)}")
+    if myiteration==-1:
+        for template_run in template_runs:
+            if "dwiMDT_Control_n72" in template_run and template_run[-4:-2]=="_i":
+                if int(template_run[-2])>myiteration:
+                    myiteration=int(template_run[-2])
+                    final_template_run=template_run
+    if myiteration == -1:
+        raise Exception(f"Could not find template runs in {os.path.join(mainpath, f'{SAMBA_projectname}-work','dwi',template_type_prefix)}")
+
+final_template_run = glob.glob(os.path.join(SAMBA_work_folder, reg_type, template_type_prefix, f"*i{myiteration}*/"))[0]
 
 if project != "AMD":
     for subject in subjects:
@@ -470,6 +488,7 @@ elif project == "AMD":
                 print(f"File already exists at {new_coregpath}")
 
 overwrite=False
+
 for subject in subjects:
     trans = os.path.join(SAMBA_work_folder, "preprocess", "base_images", "translation_xforms",
                          f"{subject}_0DerivedInitialMovingTranslation.mat")
@@ -491,10 +510,6 @@ for subject in subjects:
                 filepath=Path(filepath).resolve()
             filename = os.path.basename(filepath)
             filenewpath = os.path.join(DTC_transforms, filename)
-            try:
-                sftp.chdir(DTC_transforms)
-            except IOError:
-                sftp.mkdir(DTC_transforms)
             if not os.path.isfile(filenewpath) or overwrite:
                 if copytype=="shortcut":
                     if remote:

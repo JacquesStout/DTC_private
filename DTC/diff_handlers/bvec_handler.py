@@ -28,6 +28,7 @@ import os, re, sys, io, struct, socket, datetime
 from DTC.file_manager.file_tools import largerfile
 import glob
 from DTC.file_manager.computer_nav import make_temppath
+import copy
 """"
 from dipy.tracking.utils import unique_rows
 
@@ -206,8 +207,13 @@ def fix_bvals_bvecs(fbvals, fbvecs, b0_threshold=50, atol=1e-2, outpath=None, id
 
     # Loop over the provided inputs, reading each one in turn and adding them
     # to this list:
-    bvals, bvecs = read_bvals(fbvals,fbvecs, sftp)
-
+    if type(fbvals)==str and type(fbvecs)==str:
+        bvals, bvecs = read_bvals(fbvals,fbvecs, sftp)
+    else:
+        bvals = fbvals
+        bvecs = fbvecs
+        if outpath is None:
+            raise Exception('Must feed some path information for saving the fixed files')
     # If bvecs is None, you can just return now w/o making more checks:
     if bvecs is None:
         return bvals, bvecs
@@ -247,6 +253,23 @@ def fix_bvals_bvecs(fbvals, fbvecs, b0_threshold=50, atol=1e-2, outpath=None, id
     if bvecs.shape[1] != 3:
         raise ValueError("bvecs should be (N, 3)")
     dwi_mask = bvals > b0_threshold
+
+    correctvals = [i for i, val in enumerate(bvecs_close_to_1) if val and dwi_mask[i]]
+    incorrectvals = [i for i, val in enumerate(bvecs_close_to_1) if not val and dwi_mask[i]]
+    if np.size(correctvals) == 0:
+        warnings.warn('Bvalues are wrong, will try to rewrite to appropriate values')
+        vector_norm(bvecs[dwi_mask])[0]
+        bvals_new = copy.copy(bvals)
+        bvals_new[dwi_mask] = bvals[dwi_mask] * vector_norm(bvecs[dwi_mask])[0] * vector_norm(bvecs[dwi_mask])[0]
+        #bvals = bvals_new
+        #baseline_bval = bvals[dwi_mask][0]
+        for i in incorrectvals:
+            if dwi_mask[i]:
+                bvecs[i,:] = bvecs[i,:] / np.sqrt(bvals_new[i]/bvals[i])
+
+        bvecs_close_to_1 = abs(vector_norm(bvecs) - 1) <= atol
+        bvals = bvals_new
+
     if not np.all(bvecs_close_to_1[dwi_mask]):
         correctvals = [i for i,val in enumerate(bvecs_close_to_1) if val and dwi_mask[i]]
         incorrectvals = [i for i,val in enumerate(bvecs_close_to_1) if not val and dwi_mask[i]]
@@ -266,6 +289,7 @@ def fix_bvals_bvecs(fbvals, fbvecs, b0_threshold=50, atol=1e-2, outpath=None, id
             incorrectvals = [i for i, val in enumerate(bvecs_close_to_1) if not val and dwi_mask[i]]
             raise ValueError("The vectors in bvecs should be unit (The tolerance "
                              "can be modified as an input parameter)")
+
 
     if outpath is None:
         base, ext = splitext(fbvals)
@@ -442,6 +466,92 @@ def extractbvals_fromgrads(source_file,fileoutpath=None,tonorm=True,verbose=Fals
                 File_object.write(str(dro[i]) + " " + str(dpe[i]) + " " + str(dsl[i]) + "\n")
             File_object.close()
         return bval_file, bvecs_file, bvals, dsl, dpe, dro
+
+
+def extractbvals_from_method(source_file,fileoutpath=None,tonorm=True,verbose=False):
+
+    bvals = bvecs = None
+
+    filename = os.path.split(source_file)[1]
+    if fileoutpath is None:
+        basepath = os.path.split(source_file)[0]
+        fileoutpath = basepath + filename.split('.')[0] + "_"
+    with open(source_file, 'rb') as source:
+        if verbose: print('INFO    : Extracting acquisition parameters')
+        bvals = []
+        bvecs = []
+        i=0
+        num_bvec_found = 0
+        num_bval_found = 0
+
+        bvec_start = False
+        bval_start = False
+        for line in source:
+
+            pattern1 = 'PVM_DwDir='
+            rx1 = re.compile(pattern1, re.IGNORECASE|re.MULTILINE|re.DOTALL)
+
+            pattern2 = 'PVM_DwEffBval'
+            rx2 = re.compile(pattern2, re.IGNORECASE|re.MULTILINE|re.DOTALL)
+
+            if bvec_start:
+                if num_bvec_found < num_bvecs:
+                    vals = str(line).split("\'")[1].split(' \\')[0].split('\\n')[0].split(' ')
+                    for val in vals:
+                        bvecs.append(val)
+                        num_bvec_found = np.size(bvecs)
+                else:
+                    bvec_start = False
+                if num_bvec_found == num_bvecs:
+                    bvecs = np.reshape(bvecs,bvec_shape)
+                """
+                pattern_end = '$$'
+                rxend = re.compile(pattern_end, re.IGNORECASE | re.MULTILINE | re.DOTALL)
+                for a in rxend.findall(str(line)):
+                    bvec_start = False
+                """
+            if bval_start:
+                if num_bval_found < num_bvals:
+                    vals = str(line).split("\'")[1].split(' \\')[0].split('\\n')[0].split(' ')
+                    for val in vals:
+                        bvals.append(val)
+                        num_bval_found = np.size(bvals)
+                else:
+                    bval_start = False
+
+            for a in rx1.findall(str(line)):
+                bvec_start = True
+                shape = str(line).split('(')[1]
+                shape = str(shape).split(')')[0]
+                bvec_shape = shape.split(',')
+                bvec_shape = [int(i) for i in bvec_shape]
+                num_bvecs = bvec_shape[0] * bvec_shape[1]
+
+            for a in rx2.findall(str(line)):
+                if 'num_bvals' not in locals():
+                    bval_start = True
+                    shape = str(line).split('(')[1]
+                    shape = str(shape).split(')')[0]
+                    num_bvals = int(shape)
+
+    if fileoutpath is not None:
+        """
+        bval_file = fileoutpath + "_bvals.txt"
+        print(bval_file)
+        File_object = open(bval_file, "w")
+        File_object.write(bvals)
+        File_object.close()
+        """
+        while np.shape(bvecs)[0] < np.size(bvals):
+            bvecs = np.insert(bvecs, 0, 0, axis=0)
+        if 'bvecs' in locals() and np.size(bvecs) > 0:
+            bvecs_file = os.path.join(basepath, "methodJS_bvecs.txt")
+            File_object = open(bvecs_file, "w")
+            for bvec in bvecs:
+                File_object.write(str(bvec[0]) + " " + str(bvec[1]) + " " + str(bvec[2]) + "\n")
+            File_object.close()
+
+        return bvecs_file
 
 
 def extractbvals_fromheader(source_file,fileoutpath=None,save=None,writeformat= 'classic', verbose=True):
