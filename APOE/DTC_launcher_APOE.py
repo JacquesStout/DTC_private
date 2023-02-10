@@ -58,7 +58,7 @@ subjects = ['N58214', 'N58215', 'N58216', 'N58217', 'N58218', 'N58219', 'N58221'
 subjects = ['N58612', 'N59136', 'N59140', 'N58946', 'N59141', 'N58915', 'N59005', 'N58954', 'N58948']
 """
 subjects = ['N57442', 'N57504', 'N58400', 'N58611', 'N58613', 'N58859', 'N60101', 'N60056', 'N60064', 'N60092', 'N60088', 'N60093', 'N60097', 'N60095', 'N60068', 'N60072', 'N60058', 'N60103', 'N60060', 'N60190', 'N60225', 'N60198', 'N58612', 'N60062', 'N60070', 'N60221', 'N60223', 'N58610', 'N60229', 'N60188', 'N60192', 'N60194', 'N60219', 'N60231']
-
+#subjects = ['N60221']
 subjects = sorted(subjects)
 
 #removed_list = ['N58398', 'N58634', 'N58610', 'N58613', 'N58732', 'N58999','N58219', 'N58394','N58708','N58712','N58747']
@@ -107,7 +107,7 @@ denoise='none'
 savefa= True
 
 make_tracts = True
-make_connectomes = True
+make_connectomes = False
 
 reference_weighting = None
 volume_weighting = True

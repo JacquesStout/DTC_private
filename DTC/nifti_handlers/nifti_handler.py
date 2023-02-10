@@ -326,9 +326,11 @@ def getrefdata(mypath, subject, reference, verbose=None, sftp=None):
 def getdiffdata(mypath, subject, denoise="", verbose=None,sftp=None):
 
     diff_fpath = getdiffpath(mypath, subject, denoise=denoise, verbose=verbose,sftp=sftp)
-    diff_data, affine, vox_size, header, ref_info = extract_nii_info(diff_fpath, verbose,sftp=sftp)
-
-    return diff_data, affine, vox_size, diff_fpath, header, ref_info
+    if diff_fpath is not None:
+        diff_data, affine, vox_size, header, ref_info = extract_nii_info(diff_fpath, verbose,sftp=sftp)
+        return diff_data, affine, vox_size, diff_fpath, header, ref_info
+    else:
+        return None, None, None, None, None, None
 
 def get_bvals_bvecs(mypath, subject,sftp=None):
     if sftp is None:
@@ -382,6 +384,8 @@ def getb0s(mypath, subject,sftp):
 def getdiffdata_all(mypath, subject, bvec_orient=[1,2,3], denoise="", verbose=None,sftp=None):
 
     fdiff_data, affine, vox_size, fdiffpath, header, ref_info = getdiffdata(mypath, subject, denoise=denoise, verbose=verbose,sftp=sftp)
+    if fdiffpath is None:
+        return None, None, None, None, None, None, None
     mypath = str(pathlib.Path(fdiffpath).parent.absolute())
 
     if bvec_orient is None:

@@ -38,9 +38,14 @@ for subject in subjects_all:
     subject_name = os.path.basename(subject)
     subjects_list.append(subject_name[:6])
 subjects_list.sort()
-subjects_list = subjects_list[:]
+subjects_list = subjects_list[-5:]
 #subjects_list = ['N60188', 'N60190', 'N60192', 'N60194', 'N60198', 'N60219', 'N60221', 'N60223', 'N60225', 'N60229', 'N60231']
 #subjects_list = ['N58784']
+removed_list = ['N57504', 'N58889']
+for remove in removed_list:
+    if remove in subjects_list:
+        subjects_list.remove(remove)
+
 print(subjects_list)
 mkcdir(output_folder)
 

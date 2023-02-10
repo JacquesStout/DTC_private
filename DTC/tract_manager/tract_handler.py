@@ -27,7 +27,6 @@ from dipy.io.utils import create_tractogram_header
 from DTC.tract_manager.tract_save import save_trk_heavy_duty
 from dipy.io.streamline import load_trk
 from dipy.tracking.utils import length
-from dipy.viz import window, actor
 import glob
 import os, shutil
 from DTC.tract_manager.tract_save import save_trk_header
@@ -556,6 +555,8 @@ def get_trk_params(streamlines, verbose = False):
 
 def viewclusters(clusters,streamlines, outpath=None, interactive=False):
     #Linked to viewing clusters. If outpath given, will save info to right location, if interactive, will show window
+    from dipy.viz import window, actor
+
     colormap = actor.create_colormap(np.ravel(clusters.centroids))
     colormap_full = np.ones((len(streamlines), 3))
     for cluster, color in zip(clusters, colormap):

@@ -68,7 +68,7 @@ from scipy.ndimage.morphology import binary_dilation
 from dipy.tracking import utils
 from dipy.tracking.stopping_criterion import BinaryStoppingCriterion, ThresholdStoppingCriterion
 from dipy.tracking.streamline import Streamlines
-from DTC.visualization_tools.figures_handler import shore_scalarmaps
+#from DTC.visualization_tools.figures_handler import shore_scalarmaps
 from DTC.tract_manager.tract_eval import bundle_coherence, LiFEvaluation
 from DTC.file_manager.BIAC_tools import send_mail, isempty
 from DTC.tract_manager.tract_handler import target, prune_streamlines, get_trk_params, get_tract_params, gettrkpath, reducetractnumber, reducetractnumber_all
@@ -217,7 +217,7 @@ def testsnr():
             print("SNR for direction", direction, " ",
                   gtab.bvecs[direction], "is :", SNR)
 
-
+"""
 def analysis_diffusion_figures(dwipath,outpath,subject, bvec_orient=[1,2,3], verbose=None):
 
     if verbose:
@@ -226,6 +226,7 @@ def analysis_diffusion_figures(dwipath,outpath,subject, bvec_orient=[1,2,3], ver
     diff_data, affine, gtab, labelmask, vox_size, fdwipath, _, ref_info = getdiffdata_all(dwipath, subject, bvec_orient)
     outpath_fig = outpath + subject + "SHORE_maps.png"
     shore_scalarmaps(diff_data, gtab, outpath_fig, verbose = verbose)
+"""
 
 def dwiconnectome_analysis(dwipath,outpath,subject, whitematter_labels, targetrois, labelslist, bvec_orient=[1,2,3], verbose=None):
 
@@ -1094,6 +1095,10 @@ def create_tracts(diffpath, outpath, subject, figspath, step_size, peak_processe
     mask, _ = getmask(diffpath, subject, masktype, verbose,sftp=sftp)
 
     diff_data, affine, gtab, vox_size, fdiffpath, header, ref_info = getdiffdata_all(diffpath, subject, bvec_orient, denoise=denoise, verbose=verbose,sftp=sftp)
+    if diff_data is None:
+        warningtxt = f'Could not find data at {diffpath}, canceling tract creation of subject {subject}'
+        warnings.warn(warningtxt)
+        return None, None, None
     #fdiffpath = getdiffpath(diffpath, subject, denoise=denoise, verbose=verbose)
 
     if masktype == "dwi" and mask is None:
@@ -1195,7 +1200,7 @@ def create_tracts_test(diffpath, outpath, subject, figspath, step_size, peak_pro
 
     check_dif_ratio(outpath, subject, strproperty, ratio)
     outpathtrk, trkexists = gettrkpath(outpath, subject, strproperty, pruned=doprune, verbose=False,sftp=sftp)
-    outpathtrk = outpathtrk.replace('.trk','_prob_binary_heavyduty.trk')
+    outpathtrk = outpathtrk.replace('.trk','_prob_binary_normaltractogram.trk')
 
     if os.path.exists(outpathtrk) and overwrite is False:
         print("The tract creation of subject " + subject + " is already done")

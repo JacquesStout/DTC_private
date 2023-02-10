@@ -393,6 +393,7 @@ def QCSA_tractmake_test(data, affine, vox_size, gtab, whitemask, header, step_si
                             affine=affine, header=myheader,
                             shape=whitemask.shape, vox_size=vox_size, sftp=sftp)
     else:
+        """
         sg = lambda: (s for i, s in enumerate(streamlines_generator) if i % ratio == 0)
         myheader = create_tractogram_header(outpathtrk, *header)
         save_trk_heavy_duty(outpathtrk, streamlines=sg,
@@ -402,7 +403,6 @@ def QCSA_tractmake_test(data, affine, vox_size, gtab, whitemask, header, step_si
         streamlines = Streamlines(streamlines_generator)
         sft = StatefulTractogram(streamlines, header, Space.RASMM)
         save_trk(sft, outpathtrk, bbox_valid_check=False)
-        """
 
     if verbose:
         duration = time() - t2
