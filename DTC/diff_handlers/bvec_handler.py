@@ -872,17 +872,24 @@ def writebval(bvals, outpath, subject=None, writeformat = "line", overwrite=Fals
     else:
         bval_file = outpath
     
-    if os.path.exists(bval_file) and overwrite:
-        os.remove(bval_file)
+    if os.path.exists(bval_file):
+        if overwrite:
+            os.remove(bval_file)
+        else:
+            print(f'already wrote {bval_file}')
+            return bval_file
     File_object = open(bval_file, "w")
     for bval in bvals:
-        if writeformat == "line":
+        if writeformat == "line" or writeformat == 'classic':
             File_object.write(str(bval) + "\n")
         if writeformat == "tab":
             File_object.write(str(bval) + "\t")
         if writeformat == "dsi":
-            bval = int(round(bval))
+            bval = int(round(int(bval)))
             File_object.write(str(bval) + "\t")
+        if writeformat == 'mrtrix':
+            bval = int(round(int(bval)))
+            File_object.write(str(bval) + " ")
     File_object.close()
     return bval_file
 
@@ -893,18 +900,21 @@ def writebvec(bvecs, outpath, subject=None, writeformat = "line", overwrite=Fals
         bvec_file = os.path.join(outpath, subject+"_bvecs.txt")
     else:
         bvec_file = outpath
+    if np.size(np.shape(bvecs))==1:
+        bvecs = np.resize(bvecs,[3,int(np.size(bvecs)/3)]).transpose()
     if np.shape(bvecs)[0] == 3:
         bvecs = bvecs.transpose()
-    if overwrite and os.path.exists(outpath):
-        os.remove(outpath)
+    if os.path.exists(bvec_file):
+        if overwrite:
+            os.remove(bvec_file)
+        else:
+            print(f'already wrote {bvec_file}')
+            return bvec_file
     if writeformat=="dsi":
         with open(bvec_file, 'w') as File_object:
             for i in [0,1,2]:
                 for j in np.arange(np.shape(bvecs)[0]):
-                    if bvecs[j,i]==0:
-                        bvec=0
-                    else:
-                        bvec=round(bvecs[j,i],5)
+                    bvec=round(float(bvecs[j,i]),5)
                     File_object.write(str(bvec)+"\t")
                 File_object.write("\n")
             File_object.close()
@@ -940,8 +950,8 @@ def writebvec(bvecs, outpath, subject=None, writeformat = "line", overwrite=Fals
 
 def writebfiles(bvals, bvecs, outpath, subject, writeformat = "line", overwrite=False):
 
-    bval_file = writebval(bvals, outpath, subject, writeformat = writeformat, overwrite=False)
-    bvec_file = writebvec(bvecs, outpath, subject, writeformat = writeformat, overwrite=False)
+    bval_file = writebval(bvals, outpath, subject, writeformat = 'tab', overwrite=overwrite)
+    bvec_file = writebvec(bvecs, outpath, subject, writeformat = 'classic', overwrite=overwrite)
     """
     bvec_file = os.path.join(outpath, subject+"_bvecs.txt")
     bval_file = os.path.join(outpath, subject+"_bvals.txt")

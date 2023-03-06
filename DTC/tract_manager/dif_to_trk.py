@@ -36,6 +36,7 @@ from dipy.io.stateful_tractogram import Space, StatefulTractogram
 from dipy.io.streamline import save_trk
 from dipy.io.image import load_nifti
 import matplotlib.pyplot as plt
+from dipy.tracking.stopping_criterion import ThresholdStoppingCriterion
 
 from DTC.tract_manager.tract_handler import target, prune_streamlines
 import nibabel as nib
@@ -248,8 +249,9 @@ def QCSA_tractmake(data, affine, vox_size, gtab, mask, classifier_mask, header, 
 
     return outpathtrk, streamlines_generator, params
 
-def QCSA_tractmake_test(data, affine, vox_size, gtab, whitemask, header, step_size, peak_processes, outpathtrk, subject='NA',
-                   ratio=1, threshold ='binary', overwrite=False, get_params=False, doprune=False, classifier_mask = None, figspath=None, verbose=None, seedmask = None, sftp=None):
+def QCSA_tractmake_test(data, affine, vox_size, gtab, whitemask, seedmask, header, step_size, peak_processes, outpathtrk, subject='NA',
+                   ratio=1, threshold ='binary', overwrite=False, get_params=False, doprune=False, classifier_mask = None, figspath=None, verbose=None, sftp=None):
+
     # Compute odfs in Brain Mask
     t2 = time()
     if os.path.isfile(outpathtrk) and not overwrite:
@@ -270,7 +272,10 @@ def QCSA_tractmake_test(data, affine, vox_size, gtab, whitemask, header, step_si
     white_mask_b = np.where(whitemask == 0, False, True)
     print(f"There are {peak_processes} and {parallel} here")
 
-    tracking_type = 'probabilistic'
+    tracking_type = 'deterministic' #tracking_type = ['probabilistic', deterministic']
+    threshold= 'binary' #threshold=['binary','FA', 'act']
+    savetype = 'normal' #savetype=['normal','heavy']
+
     if tracking_type == 'deterministic':
         peaks_streams = peaks_from_model(model=csa_model,
                                      data=data,
@@ -301,7 +306,6 @@ def QCSA_tractmake_test(data, affine, vox_size, gtab, whitemask, header, step_si
 
         print('Computing classifier for local tracking for subject ' + subject)
 
-    threshold= 'binary'
     if threshold == "FA":
         #tensor_model = dti.TensorModel(gtab)
         #tenfit = tensor_model.fit(data, mask=labels > 0)
@@ -324,9 +328,7 @@ def QCSA_tractmake_test(data, affine, vox_size, gtab, whitemask, header, step_si
     elif threshold == 'act':
         stopping_criterion = ActStoppingCriterion(classifier_mask==1, classifier_mask==2) #if classifier = 1, it is include mask (gm or outside of brainmask, if classifier =2, it is exclude mask, csf)
 
-    if seedmask is None:
-        seedmask = whitemask
-    elif isinstance(seedmask,np.ndarray):
+    if isinstance(seedmask,np.ndarray):
         if seedmask.dtype != bool:
             seedmask = seedmask>0
     else:
@@ -334,8 +336,6 @@ def QCSA_tractmake_test(data, affine, vox_size, gtab, whitemask, header, step_si
 
 
     # generates about 2 seeds per voxel
-    # seeds = utils.random_seeds_from_mask(fa > .2, seeds_count=2,
-    #                                      affine=np.eye(4))
 
     # generates about 2 million streamlines
     # seeds = utils.seeds_from_mask(fa > .2, density=1,
@@ -343,10 +343,16 @@ def QCSA_tractmake_test(data, affine, vox_size, gtab, whitemask, header, step_si
 
     if verbose:
         print('Computing seeds')
-    seeds = utils.seeds_from_mask(seedmask, density=[2,2,2],
-                                  affine=np.eye(4))
 
+    seedcount = 3*(np.power(10,4))
+    if seedcount is not None:
+        seeds = utils.random_seeds_from_mask(seedmask, seeds_count=seedcount,
+                                              affine=np.eye(4))
+    else:
+        seeds = utils.seeds_from_mask(seedmask, density=[2,2,2],
+                                      affine=np.eye(4))
 
+    print('Done seeding')
     #streamlines_generator = local_tracking.local_tracker(peaks_streams,classifier,seeds,affine=np.eye(4),step_size=step_size)
     if verbose:
         print('Computing the local tracking')
@@ -393,16 +399,16 @@ def QCSA_tractmake_test(data, affine, vox_size, gtab, whitemask, header, step_si
                             affine=affine, header=myheader,
                             shape=whitemask.shape, vox_size=vox_size, sftp=sftp)
     else:
-        """
-        sg = lambda: (s for i, s in enumerate(streamlines_generator) if i % ratio == 0)
-        myheader = create_tractogram_header(outpathtrk, *header)
-        save_trk_heavy_duty(outpathtrk, streamlines=sg,
-                            affine=affine, header=myheader,
-                            shape=whitemask.shape, vox_size=vox_size, sftp=sftp)
-        """
-        streamlines = Streamlines(streamlines_generator)
-        sft = StatefulTractogram(streamlines, header, Space.RASMM)
-        save_trk(sft, outpathtrk, bbox_valid_check=False)
+        if savetype == 'heavy':
+            sg = lambda: (s for i, s in enumerate(streamlines_generator) if i % ratio == 0)
+            myheader = create_tractogram_header(outpathtrk, *header)
+            save_trk_heavy_duty(outpathtrk, streamlines=sg,
+                                affine=affine, header=myheader,
+                                shape=whitemask.shape, vox_size=vox_size, sftp=sftp)
+        elif savetype == 'normal':
+            streamlines = Streamlines(streamlines_generator)
+            sft = StatefulTractogram(streamlines, header, Space.RASMM)
+            save_trk(sft, outpathtrk, bbox_valid_check=False)
 
     if verbose:
         duration = time() - t2

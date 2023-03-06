@@ -5,7 +5,7 @@ Created by Jacques Stout
 
 from DTC.nifti_handlers.nifti_handler import *
 from DTC.tract_manager.streamline_nocheck import load_trk
-from DTC.file_manager.computer_nav import splitpath
+from DTC.file_manager.computer_nav import splitpath, make_temppath
 import shutil
 import os
 import numpy as np
@@ -168,6 +168,7 @@ def rigid_reg(static, static_grid2world,
 
 
 def header_superpose(target_path, origin_path, outpath=None, verbose=False):
+
     target_nii=nib.load(target_path)
     origin_nii=nib.load(origin_path)
     if np.shape(target_nii._data)[0:3] != np.shape(origin_nii._data)[0:3]:
@@ -684,8 +685,6 @@ def img_transform_exec(img, current_vorder, desired_vorder, output_path=None, wr
 
     if not os.path.exists(img):
         raise('Nifti img file does not exists')
-
-
     for char in current_vorder:
         if char.islower():
             warnings.warn("Use uppercase for current order")
@@ -730,10 +729,8 @@ def img_transform_exec(img, current_vorder, desired_vorder, output_path=None, wr
     flip_string = 'LRPAIS';
     orig_current_vorder = current_vorder;
 
-    try:
-        nii = nib.load(img)
-    except:
-        raise('Could not load img at '+img)
+    nii = nib.load(img)
+
     nii_data = nii.get_data()
     hdr = nii.header
 

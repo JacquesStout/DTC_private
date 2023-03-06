@@ -3,6 +3,9 @@ from DTC.file_manager.file_tools import mkcdir
 import os, socket, glob, shutil
 import warnings
 import numpy as np
+import nibabel as nib
+import sys
+from DTC.file_manager.argument_tools import parse_arguments
 
 """
 subjects_list = ["N58214", "N58215",
@@ -32,30 +35,40 @@ if 'samos' in computer_name:
     labels_folder = '/mnt/paros_MRI/jacques/APOE/DWI_allsubj/'
     output_folder = '/mnt/paros_MRI/jacques/APOE/DWI_allsubj_RAS/'
 
-subjects_all = glob.glob(os.path.join(DWI_folder,'*_subjspace_coreg.nii.gz'))
+subjects_all = glob.glob(os.path.join(DWI_folder,'*coreg.nii.gz'))
 subjects_list = []
 for subject in subjects_all:
     subject_name = os.path.basename(subject)
     subjects_list.append(subject_name[:6])
 subjects_list.sort()
-subjects_list = subjects_list[-5:]
-#subjects_list = ['N60188', 'N60190', 'N60192', 'N60194', 'N60198', 'N60219', 'N60221', 'N60223', 'N60225', 'N60229', 'N60231']
-#subjects_list = ['N58784']
-removed_list = ['N57504', 'N58889']
+subjects_list = subjects_list[:]
+
+subjects_list = ['N60188', 'N60190', 'N60192', 'N60194', 'N60198', 'N60219', 'N60221', 'N60223', 'N60225', 'N60229', 'N60231']
+
+removed_list = []
 for remove in removed_list:
     if remove in subjects_list:
         subjects_list.remove(remove)
 
-print(subjects_list)
+subjects_list = ['N58889']
 mkcdir(output_folder)
 
 
+subject_processes, function_processes, firstsubj, lastsubj = parse_arguments(sys.argv, subjects_list)
+
+subjects_list = subjects_list[firstsubj: lastsubj]
+
+print(subjects_list)
+
 for subject in subjects_list:
+    print(f'Running subject {subject}')
     coreg_file = os.path.join(DWI_folder,f'{subject}_subjspace_coreg.nii.gz')
+    dwi_file = os.path.join(DWI_folder,f'{subject}_subjspace_dwi.nii.gz')
     labels_file = os.path.join(labels_folder,f'{subject}_labels.nii.gz')
     labels_lr_file = os.path.join(labels_folder,f'{subject}_labels_lr_ordered.nii.gz')
     mask_file = os.path.join(DWI_folder, f'{subject}_subjspace_mask.nii.gz')
     coreg_RAS_file = os.path.join(output_folder,f'{subject}_coreg_RAS.nii.gz')
+    dwi_RAS_file = os.path.join(output_folder,f'{subject}_dwi_RAS.nii.gz')
     labels_RAS_file = os.path.join(output_folder,f'{subject}_labels_RAS.nii.gz')
     labels_RAS_lr_file = os.path.join(output_folder,f'{subject}_labels_lr_ordered_RAS.nii.gz')
     mask_RAS_file = os.path.join(output_folder, f'{subject}_RAS_mask.nii.gz')
@@ -66,8 +79,13 @@ for subject in subjects_list:
             shutil.copy(txt_file, output_folder)
         transferred=1
     if not os.path.exists(coreg_RAS_file):
-        img_transform_exec(coreg_file,'ARI','RAS',coreg_RAS_file)
-        transferred=1
+        if os.path.exists(coreg_file):
+            try:
+                img_transform_exec(coreg_file,'ARI','RAS',coreg_RAS_file)
+            except nib.filebasedimages.ImageFileError:
+                print(f'Wrong file that is unreadable, erasing {coreg_file}')
+                os.remove(coreg_file)
+            transferred=1
     if not os.path.exists(labels_RAS_file):
         if not os.path.exists(labels_file):
             txt = f'Label file {labels_file} not found, skip'
@@ -78,6 +96,16 @@ for subject in subjects_list:
     if not os.path.exists(labels_RAS_lr_file): 
         if os.path.exists(labels_lr_file):
             img_transform_exec(labels_lr_file,'ARI','RAS',labels_RAS_lr_file)
+        transferred=1
+    if not os.path.exists(dwi_RAS_file):
+        if os.path.exists(dwi_file):
+            try:
+                img_transform_exec(dwi_file,'ARI','RAS',dwi_RAS_file)
+            except nib.filebasedimages.ImageFileError:
+                print(f'Wrong file that is unreadable, erasing {dwi_file}')
+                os.remove(dwi_file)
+        else:
+            print(f'cannot find file path {dwi_file}')
         transferred=1
     if not os.path.exists(mask_RAS_file):
         if not os.path.exists(mask_file):

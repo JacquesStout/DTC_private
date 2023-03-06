@@ -14,28 +14,35 @@ from DTC.nifti_handlers.nifti_handler import average_4dslices
 gunniespath = "/Users/jas/bass/gitfolder/gunnies/"
 
 project = 'Vitek'
-remote = True
+remote = False
 if remote:
     username, passwd = getfromfile(os.path.join(os.environ['HOME'],'remote_connect.rtf'))
 if remote:
     _, _, _, sftp = get_mainpaths(remote,project = project, username=username,password=passwd)
+else:
+    sftp=None
 
-diffpath = "/mnt/paros_MRI/Vitek_UNC/"
-outpath = "/Volumes/Data/Badea/Lab/mouse/Vitek_series/diffusion_prep_locale/"
+#diffpath = "/mnt/paros_MRI/Vitek_UNC/"
+diffpath = '/Users/jas/jacques/Vitek_UNC_mean/'
+outpath = "/Volumes/Data/Badea/Lab/mouse/Vitek_series_altvals/diffusion_prep_locale/"
 
 SAMBA_inputs_folder = "/Volumes/Data/Badea/Lab/19abb14/"
 SAMBA_inputs_folder = None
 shortcuts_all_folder = "/Volumes/Data/Badea/Lab/mouse/APOE_symlink_pool_allfiles/"
 shortcuts_all_folder = None
 
-subjects_folders = glob_remote(diffpath, sftp)
-subjects_folders = [folder for folder in subjects_folders if 'Vitek_' in os.path.basename(folder)]
+subjects_folders = glob_remote(os.path.join(diffpath,'Vitek*/'), sftp)
+subjects_folders = [folder for folder in subjects_folders if 'Vitek_' in os.path.basename(folder[:-1])]
 subjects = []
 for subject_folder in subjects_folders:
-    subjects.append(subject_folder.split('UNC/')[1][6:12])
+    subjects.append(subject_folder.split('UNC_mean/')[1][6:12])
 #subjects = ['N58309']
 #removed_list = ['N58794','N58514','N58305','N58613','N58346','N58344','N58788']
 
+#subjects = ['02_7_17']
+subjects = ['01_7_8', '02_7_17', '03_7_9', '04_7_16', '05_7_25', '06_8_8', '08_7_30', '09_7_23', '10_7_31', '11_8_13', '12_8_14', '13_8_6', '14_8_15', '15_8_16', '16_8_21', '17_8_22', '18_8_25']
+#subjects = ['02_7_17']
+subjects = ['01_7_8', '02_7_17', '03_7_9', '04_7_16', '05_7_25', '06_8_8', '08_7_30', '09_7_23', '10_7_31']
 subject_processes, function_processes, firstsubj, lastsubj = parse_arguments(sys.argv, subjects)
 
 removed_list = []
@@ -47,14 +54,14 @@ subjects = subjects[firstsubj:lastsubj]
 subjects.sort()
 print(subjects)
 
-proc_subjn=""
+proc_subjn="V"
 denoise="None"
 recenter=0
 proc_name ="diffusion_prep_"+proc_subjn
 cleanup = True
 masking = "None"
 masking = "median"
-masking = 'premade'
+#masking = 'premade'
 makebtables = False
 gettranspose=False
 copybtables = True

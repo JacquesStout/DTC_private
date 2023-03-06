@@ -3,17 +3,11 @@ import multiprocessing as mp
 import glob
 import os, sys
 from DTC.diff_handlers.bvec_handler import extractbvals
-from DTC.diff_handlers.diff_preprocessing import launch_preprocessing
+from DTC.diff_handlers.diff_preprocessing import launch_preprocessing, launch_preprocessing_onlydwi
 from DTC.file_manager.file_tools import mkcdir, largerfile
 import shutil
 from DTC.file_manager.argument_tools import parse_arguments
 
-"""
-from DTC.diff_handlers.bvec_handler import orient_to_str
-from time import time
-import shutil
-#from file_manager.Daemonprocess import MyPool
-"""
 
 gunniespath = "/Users/jas/bass/gitfolder/gunnies/"
 diffpath = "/Volumes/dusom_civm-atlas/18.abb.11/research/"
@@ -30,11 +24,18 @@ for subject_folder in subjects_folders:
     subjects.append(subject_folder.split('diffusion')[1][:6])
 #subjects = ['N58309']
 #removed_list = ['N58794','N58514','N58305','N58613','N58346','N58344','N58788']
+#subjects = ['N60127','N60129','N60131','N60133','N60137','N60139','N60157','N60159','N60161','N60163','N60167','N60169']
+#subjects = ['N58634', 'N58635', 'N58636', 'N58650', 'N58649', 'N58651', 'N58653', 'N58654', 'N58217', 'N58613', 'N58221', 'N58219', 'N58222', 'N58223', 'N58229', 'N58230', 'N58232', 'N58231', 'N58216', 'N58218', 'N58224', 'N58225', 'N58215', 'N58214', 'N58633', 'N58228', 'N58226']
+
+subjects = ['N58408', 'N58610', 'N58398', 'N58714', 'N58740', 'N58477', 'N58734', 'N58309', 'N58302', 'N58612', 'N58706', 'N58889', 'N58361', 'N58355', 'N59066', 'N58712', 'N58606', 'N58350', 'N58608', 'N58733', 'N58655', 'N58735', 'N58310', 'N58400', 'N58708', 'N58780', 'N58512', 'N58747', 'N58303', 'N58404', 'N58751', 'N58611', 'N58745', 'N58406', 'N58359', 'N58742', 'N58396', 'N58732', 'N58516', 'N58402']
+
+subjects = ['N57437', 'N57446','N57447','N57449','N57451','N57496','N57498','N57500','N57502','N57504','N57513','N57515','N57518','N57520','N57522','N57546','N57548','N57550','N57552','N57554','N57559','N57580','N57582','N57584','N57587','N57590','N57692','N57694','N57700','N57702','N57709','N58214','N58215','N58216','N58217' ,'N58218','N58219','N58221','N58222','N58223' ,'N58224','N58225','N58226','N58228','N58229','N58230','N58231','N58232','N58610','N58612','N58633','N58634','N58635','N58636','N58649','N58650','N58651','N58653','N58654','N58889','N59066','N59109']
+
+subjects = ['N58889']
 
 subject_processes, function_processes, firstsubj, lastsubj = parse_arguments(sys.argv, subjects)
-subjects = ['N58610', 'N58612']
 
-removed_list = ['N58613']
+removed_list = ['N58610'] #['N58613']
 for remove in removed_list:
     if remove in subjects:
         subjects.remove(remove)
@@ -64,17 +65,22 @@ btables="extract"
 #go back to this if ANY issue with bvals/bvecs
 #extract is as the name implies here to extract the bvals/bvecs from the files around subject data
 #copy takes one known good file for bval and bvec and copies it over to all subjects
+subjects_toremove = []
 
 if btables=="extract":
     for subject in subjects:
         #outpathsubj = "/Volumes/dusom_dibs_ad_decode/all_staff/APOE_temp/diffusion_prep_58214/"
         writeformat="tab"
         writeformat="dsi"
-        subjectpath = glob.glob(os.path.join(os.path.join(diffpath, "diffusion*"+subject+"*")))[0]
-        subject_outpath = os.path.join(outpath, 'diffusion_prep_' + proc_subjn + subject)
-        mkcdir(subject_outpath)
-        fbvals, fbvecs = extractbvals(subjectpath, subject, outpath=subject_outpath, writeformat=writeformat, overwrite=overwrite) #extractbvals_research
-        #fbvals, fbvecs = rewrite_subject_bvalues(diffpath, subject, outpath=outpath, writeformat=writeformat, overwrite=overwrite)
+        try:
+            subjectpath = glob.glob(os.path.join(os.path.join(diffpath, "diffusion*"+subject+"*")))[0]
+            subject_outpath = os.path.join(outpath, 'diffusion_prep_' + proc_subjn + subject)
+            mkcdir(subject_outpath)
+            fbvals, fbvecs = extractbvals(subjectpath, subject, outpath=subject_outpath, writeformat=writeformat, overwrite=overwrite) #extractbvals_research
+            #fbvals, fbvecs = rewrite_subject_bvalues(diffpath, subject, outpath=outpath, writeformat=writeformat, overwrite=overwrite)
+        except IndexError:
+            print(f'skipping subject {subject}')
+            subjects_toremove.append(subject)
 elif btables=="copy":
     for subject in subjects:
         #outpathsubj = "/Volumes/dusom_dibs_ad_decode/all_staff/APOE_temp/diffusion_prep_58214/"
@@ -82,6 +88,7 @@ elif btables=="copy":
         outpathbval= os.path.join(outpathsubj, proc_subjn + subject+"_bvals.txt")
         outpathbvec= os.path.join(outpathsubj, proc_subjn + subject+"_bvecs.txt")
         outpathrelative = os.path.join(outpath, "relative_orientation.txt")
+        mkcdir(outpathsubj)
         newoutpathrelative= os.path.join(outpathsubj, "relative_orientation.txt")
         shutil.copy(outpathrelative, newoutpathrelative)
         if not os.path.exists(outpathbval) or not os.path.exists(outpathbvec) or overwrite:
@@ -89,11 +96,17 @@ elif btables=="copy":
             writeformat="tab"
             writeformat="dsi"
             overwrite=True
-            bvals = glob.glob(os.path.join(outpath, "*N58214*bvals*.txt"))
-            bvecs = glob.glob(os.path.join(outpath, "*N58214*bvec*.txt"))
+            #bvals = glob.glob(os.path.join(outpath, "*N58214*bvals*.txt"))
+            #bvecs = glob.glob(os.path.join(outpath, "*N58214*bvec*.txt"))
+            bvals = glob.glob(os.path.join(outpath, "*N60062*bvals*.txt"))
+            bvecs = glob.glob(os.path.join(outpath, "*N60062*bvec*.txt"))
             if np.size(bvals)>0 and np.size(bvecs)>0:
                 shutil.copy(bvals[0], outpathbval)
                 shutil.copy(bvecs[0], outpathbvec)
+
+for rem in subjects_toremove:
+    if rem in subjects:
+        subjects.remove(rem)
 
 # accepted values are "small" for one in ten streamlines, "all or "large" for all streamlines,
 # "none" or None variable for neither and "both" for both of them
@@ -128,4 +141,6 @@ else:
             launch_preprocessing(proc_subjn + subject, max_file, outpath, cleanup, nominal_bval, SAMBA_inputs_folder,
                                  shortcuts_all_folder, gunniespath, function_processes, masking, ref, transpose,
                                  overwrite, denoise, recenter, verbose)
-
+            #launch_preprocessing_onlydwi(proc_subjn + subject, max_file, outpath, cleanup, nominal_bval, SAMBA_inputs_folder,
+            #                     shortcuts_all_folder, gunniespath, function_processes, masking, ref, transpose,
+            #                     overwrite, denoise, recenter, verbose)

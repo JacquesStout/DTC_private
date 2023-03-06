@@ -13,15 +13,18 @@ from DTC.nifti_handlers.atlas_handlers.convert_atlas_mask import convert_labelma
 from DTC.file_manager.argument_tools import parse_arguments
 from DTC.nifti_handlers.atlas_handlers.create_backported_labels import get_info_SAMBA_headfile
 
-#project = "APOE"
+project = "APOE"
 #project = "AMD"
-project = 'APOE'
-#project = 'AMD'
+#project = 'AD_Decode'
 #project = 'Chavez'
 verbose = True
 mainpath = getremotehome('Lab')
 SAMBA_headfile_dir = os.path.join(mainpath, "samba_startup_cache")
 file_ids = ["subjspace_coreg","coreg", "subjspace_fa", "subjspace_b0", "bval", "bvec", "subjspace_mask", "reference", "subjspace_dwi", "relative_orientation"]
+file_ids = ["subjspace_coreg","bval", "bvec", "subjspace_mask", "subjspace_dwi", "relative_orientation"]
+#file_ids = ["subjspace_coreg"]
+#file_ids = ["subjspace_mask"]
+#file_ids = ['subjspace_dwi']
 #file_ids = ['subjspace_mask']
 #if project == 'AMD':
 #    file_ids = ["relative_orientation"]
@@ -129,11 +132,15 @@ elif project == "AD_Decode":
                 'S02485', 'S02491', 'S02490', 'S02506']
     subjects = ['S03847', 'S03866', 'S03867', 'S03889', 'S03890', 'S03896']
 
+
     subjects_all = glob.glob(os.path.join(SAMBA_work_folder, 'preprocess','*_dwi_masked.nii.gz'))
     subjects = []
     for subject in subjects_all:
         subject_name = os.path.basename(subject)
         subjects.append(subject_name[:6])
+
+    subjects = ['S02506']
+
     removed_list = ['S02230', 'S02490', 'S02745']
     for remove in removed_list:
         if remove in subjects:
@@ -161,7 +168,10 @@ elif project == "APOE":
     # SAMBA_prep_folder = os.path.join(SAMBA_mainpath, SAMBA_projectname+"-inputs")
     #SAMBA_prep_folder = os.path.join(mainpath, "APOE_symlink_pool")
     #SAMBA_prep_folder = os.path.join(mainpath, '19abb14')
+
+
     SAMBA_prep_folder = os.path.join(mainpath, "mouse","APOE_symlink_pool_allfiles")
+    #SAMBA_prep_folder = os.path.join('/Volumes/Data/Badea/.snapshot/weekly.2023-02-05_0015/Lab/mouse',"APOE_symlink_pool_allfiles")
 
     atlas_labels = os.path.join(mainpath,"atlases","chass_symmetric3","chass_symmetric3_labels.nii.gz")
     atlas_name = 'chass_symmetric3'
@@ -187,19 +197,31 @@ elif project == "APOE":
     for subject in subjects_all:
         subject_name = os.path.basename(subject)
         subjects.append(subject_name[:6])
-
+    """
     subjects = ['N58408', 'N59072', 'N58610', 'N58398', 'N58935', 'N58714', 'N58740', 'N58477', 'N59003', 'N58734', 'N58309', 'N58792', 'N58819', 'N58302', 'N59078', 'N59116', 'N58909', 'N58612', 'N59136', 'N59140', 'N58784', 'N58919', 'N58706', 'N58889', 'N58361', 'N58355', 'N59066', 'N58712', 'N58790', 'N59010', 'N58859', 'N58946', 'N58917', 'N58606', 'N58815', 'N59118', 'N58997', 'N58350', 'N59022', 'N58999', 'N59141', 'N58881', 'N59026', 'N58608', 'N58853', 'N58779', 'N58995', 'N58500', 'N58604', 'N58749', 'N58877', 'N58883', 'N58915', 'N59109', 'N59120', 'N58510', 'N58885', 'N58906', 'N59065', 'N58394', 'N58821', 'N58855', 'N58346', 'N58861', 'N59005', 'N58344', 'N58954', 'N59099', 'N58857', 'N58788', 'N58305', 'N58514', 'N58851', 'N59076', 'N59097', 'N58794', 'N58733', 'N58655', 'N58887', 'N58735', 'N58310', 'N59035', 'N58879', 'N58400', 'N59041', 'N58952', 'N58708', 'N58780', 'N58512', 'N58747', 'N58303', 'N58404', 'N58751', 'N58611', 'N58829', 'N58913', 'N58745', 'N58831', 'N58406', 'N58359', 'N58742', 'N58396', 'N58948', 'N58941', 'N59033', 'N58732', 'N58516', 'N59080', 'N58813', 'N59039', 'N58402']
     #subjects = ['N58784']
     #subjects = ['N59066']
     #subjects = ['N58612','N59136','N59140','N58946','N59141','N58915','N59005','N58954','N58948']
     subjects = ['N60188', 'N60190', 'N60192', 'N60194', 'N60198', 'N60219', 'N60221', 'N60223', 'N60225', 'N60229', 'N60231']
     subjects = ['N57442', 'N57504', 'N58400', 'N58611', 'N58613', 'N58859', 'N60101', 'N60056', 'N60064', 'N60092', 'N60088', 'N60093', 'N60097', 'N60095', 'N60068', 'N60072', 'N60058', 'N60103', 'N60060', 'N60190', 'N60225', 'N60198', 'N58612', 'N60062', 'N60070', 'N60221', 'N60223', 'N58610', 'N60229', 'N60188', 'N60192', 'N60194', 'N60219', 'N60231']
-
+    subjects = ['N58613']
+    """
+    subjects = ['N60167', 'N60133', 'N60200', 'N60131', 'N60139', 'N60163', 'N60159', 'N60157', 'N60127', 'N60161', 'N60169',
+     'N60137', 'N58613', 'N60129']
+    subjects = ['N58408', 'N58610', 'N58398', 'N58714', 'N58740', 'N58477', 'N58734', 'N58309', 'N58302', 'N58612', 'N58706', 'N58889', 'N58361', 'N58355', 'N59066', 'N58712', 'N58606', 'N58350', 'N58608', 'N58733', 'N58655', 'N58735', 'N58310', 'N58400', 'N58708', 'N58780', 'N58512', 'N58747', 'N58303', 'N58404', 'N58751', 'N58611', 'N58745', 'N58406', 'N58359', 'N58742', 'N58396', 'N58732', 'N58516', 'N58402']
+    subjects = ['N58889', 'N59066']
+    subjects = ['N57437', 'N57442', 'N57446', 'N57447', 'N57449', 'N57451', 'N57496', 'N57498', 'N57500', 'N57502', 'N57504', 'N57513', 'N57515', 'N57518', 'N57520', 'N57522', 'N57546', 'N57548', 'N57550', 'N57552', 'N57554', 'N57559', 'N57580', 'N57582', 'N57584', 'N57587', 'N57590', 'N57692', 'N57694', 'N57700', 'N57702', 'N57709']
+    subjects = ['N57437', 'N57446','N57447','N57449','N57451','N57496','N57498','N57500','N57502','N57504','N57513','N57515','N57518','N57520','N57522','N57546','N57548','N57550','N57552','N57554','N57559','N57580','N57582','N57584','N57587','N57590','N57692','N57694','N57700','N57702','N57709','N58214','N58215','N58216','N58217' ,'N58218','N58219','N58221','N58222','N58223' ,'N58224','N58225','N58226','N58228','N58229','N58230','N58231','N58232','N58610','N58612','N58633','N58634','N58635','N58636','N58649','N58650','N58651','N58653','N58654','N58889','N59066','N59109']
+    subjects = ['N58613']
+    #subjects =['N58225', 'N58232', 'N58215', 'N58216', 'N58633', 'N58636', 'N58653', 'N58224', 'N58214', 'N58651', 'N58228', 'N58650', 'N58221', 'N58219', 'N58649', 'N58226', 'N58229', 'N58218', 'N58230', 'N58223', 'N58222', 'N58634', 'N58231', 'N58217', 'N58654', 'N58635']
+    #subjects = ['N57442']
+    #subjects = ['N58214',"N58215"]
+    #subjects = ['N58613']
     #subjects = ['N58302', 'N58303']
     subjects = subjects[:]
     #removed_list = ['N58610', 'N58613', 'N58732']
     #removed_list = ['N58948','N59005','N58612','N58613','N59136','N59140','N58946','N59141','N58915','N58954']
-    removed_list = []
+    removed_list = ['N59109']
     for remove in removed_list:
         if remove in subjects:
             subjects.remove(remove)
@@ -262,17 +284,34 @@ print(subjects)
 
 _, _, myiteration = get_info_SAMBA_headfile(SAMBA_headfile)
 
-create_MDT_labels(subject, SAMBA_mainpath, SAMBA_projectname, atlas_labels, myiteration= myiteration, overwrite=overwrite)
 
 subjects_notdone = []
 for subject in subjects:
+    create_MDT_labels(subject, SAMBA_mainpath, SAMBA_projectname, atlas_labels, myiteration=myiteration,
+                      overwrite=overwrite, verbose=verbose)
     labelspath_remote = os.path.join(DTC_labels_folder, f'{subject}_labels.nii.gz')
-    subject_notdone = create_backport_labels(subject, SAMBA_mainpath, SAMBA_projectname, SAMBA_prep_folder, atlas_labels, headfile = SAMBA_headfile, overwrite=overwrite)
+    subject_notdone = create_backport_labels(subject, SAMBA_mainpath, SAMBA_projectname, SAMBA_prep_folder, atlas_labels, headfile = SAMBA_headfile, overwrite=overwrite, verbose=verbose)
     if subject_notdone is not None:
         subjects_notdone.append(subject_notdone)
 
 print(f'subjects not done by SAMBA: {subjects_notdone}')
-
+"""
+txt2 = 'cp '
+txt1=''
+for subject in subjects_notdone:
+    txt1= txt1 + (f'diffusion_prep_{subject} ')
+    path1 = '/Volumes/Data/Badea/.snapshot/weekly.2023-02-05_0015/Lab/mouse/APOE_series/diffusion_prep_locale'
+    file1 = os.path.join(path1,f'diffusion_prep_{subject}/Reg_{subject}nii4D.nii.gz')
+    path2 = '/Volumes/Data/Badea/Lab/mouse/APOE_series/diffusion_prep_locale'
+    file2 = os.path.join(path2,f'diffusion_prep_{subject}/Reg_{subject}nii4D.nii.gz')
+    #txt2= txt2 + (f'diffusion_prep_{subject}/Reg_{subject}nii4D.nii.gz /Volumes/Data/Badea/Lab/mouse/APOE_series/diffusion_prep_locale/diffusion_prep_{subject}/')
+    try:
+        shutil.copy(file1, file2)
+    except:
+        print(f'cp {file1} {file2}')
+    #shutil.copy(file1, file2)
+    #print(f'cp {file1} {file2}')
+"""
 
 mkcdir([DTC_DWI_folder,DTC_labels_folder],sftp)
 
@@ -351,7 +390,8 @@ if project != "AMD":
         if np.size(labelspath) == 1:
             labelspath = labelspath[0]
         else:
-            warnings.warn(f"Could not find file at {os.path.join(subjectpath, f'{subject}*{atlas_name}*_labels.nii*')}")
+            txt = f"Could not find file at {os.path.join(subjectpath, f'{subject}*{atlas_name}*_labels.nii*')}"
+            warnings.warn(txt)
             continue
         newlabelspath = os.path.join(DTC_labels_folder,f'{subject}_labels.nii.gz')
 
@@ -583,16 +623,15 @@ for subject in subjects:
 if remote:
     sftp.close()
 
-
 """
     APOE
     subjects = ['N57437', 'N57442', 'N57446', 'N57447','N57449','N57451','N57496','N57498','N57500','N57502','N57504', 'N57513',
                 'N57515','N57518','N57520','N57522','N57546','N57548','N57550','N57552','N57554','N57559','N57580','N57582','N57584',
                 'N57587','N57590','N57692','N57694','N57700','N57500','N57702','N57709',
-                "N58214", "N58215", "N58216", "N58217", "N58218", "N58219", "N58221", "N58222", "N58223", "N58224",
-                "N58225", "N58226", "N58228",
-                "N58229", "N58230", "N58231", "N58232", "N58633", "N58634", "N58635", "N58636", "N58649", "N58650",
-                "N58651", "N58653", "N58654",
+                ,'N58214", ,'N58215", ,'N58216", ,'N58217", ,'N58218", ,'N58219", ,'N58221", ,'N58222", ,'N58223", ,'N58224",
+                ,'N58225", ,'N58226", ,'N58228",
+                ,'N58229", ,'N58230", ,'N58231", ,'N58232", ,'N58633", ,'N58634", ,'N58635", ,'N58636", ,'N58649", ,'N58650",
+                ,'N58651", ,'N58653", ,'N58654",
                 'N58408', 'N58398', 'N58714', 'N58740', 'N58477', 'N58734', 'N58309', 'N58792', 'N58302',
                 'N58784', 'N58706', 'N58361', 'N58355', 'N58712', 'N58790', 'N58606', 'N58350', 'N58608',
                 'N58779', 'N58500', 'N58604', 'N58749', 'N58510', 'N58394', 'N58346', 'N58344', 'N58788', 'N58305',

@@ -112,7 +112,7 @@ def create_MDT_labels(subject, mainpath, project_name, atlas_labels, reg_type = 
             cmd = f"antsApplyTransforms -v 1 -d 3 -i {atlas_labels} -o {labels_MDT} -r {MDT_ref} -n MultiLabel -t [{MDT_to_atlas_affine},1] {atlas_to_MDT}"
             #check_files([atlas_labels,preprocess_ref,trans,rigid,affine,MDT_to_subject,MDT_to_atlas_affine,atlas_to_MDT])
             os.system(cmd)
-    else:
+    elif verbose:
         print(f"Already calculated the label file for subject {subject}")
 
 
@@ -197,13 +197,13 @@ def create_backport_labels(subject, mainpath, project_name, prep_folder, atlas_l
     subjspace_coreg = os.path.join(prep_folder, f"{subject}_subjspace_coreg.nii.gz")
     final_refs = [subjspace_coreg]
     dusom_path = getremotehome('dusom')
-    abb20s = glob.glob(os.path.join(dusom_path,f'/20.abb.15/research/diffusion{subject}*/nii4D*{subject}.nii'))
+    abb20s = glob.glob(os.path.join(dusom_path,f'20.abb.15/research/diffusion{subject}*/nii4D*{subject}.nii'))
     if np.size(abb20s)>0:
         final_refs.append(abb20s[0])
-    abb19s = glob.glob(os.path.join(dusom_path,f'/19.abb.14/research/diffusion{subject}*/nii4D*{subject}.nii'))
+    abb19s = glob.glob(os.path.join(dusom_path,f'19.abb.14/research/diffusion{subject}*/nii4D*{subject}.nii'))
     if np.size(abb19s)>0:
         final_refs.append(abb19s[0])
-    abb18s = glob.glob(os.path.join(dusom_path,f'/18.abb.11/research/diffusion{subject}*/nii4D*{subject}.nii'))
+    abb18s = glob.glob(os.path.join(dusom_path,f'18.abb.11/research/diffusion{subject}*/nii4D*{subject}.nii'))
     if np.size(abb18s) > 0:
         final_refs.append(abb18s[0])
     final_ref = None
@@ -218,7 +218,7 @@ def create_backport_labels(subject, mainpath, project_name, prep_folder, atlas_l
     if final_ref is None:
         txt = f"Could not find final registered subject file for subject {subject}"
         warnings.warn(txt)
-        return
+        return subject
 
 
     symbolic_ref = os.path.join(out_dir,f"{subject}_Reg_LPCA_nii4D.nii.gz")
@@ -281,7 +281,7 @@ def create_backport_labels(subject, mainpath, project_name, prep_folder, atlas_l
             cmd = f"fslmaths {final_labels} -add 0 {final_labels} -odt short"
             os.system(cmd)
             shutil.copy(final_labels, final_labels_backup)
-    else:
+    elif verbose:
         print(f"Already calculated the label file for subject {subject} at {final_labels}")
 
     skip_making_data_package_for_tractography = True

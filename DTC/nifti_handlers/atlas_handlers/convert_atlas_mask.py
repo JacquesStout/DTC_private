@@ -133,7 +133,7 @@ def make_act_classifier(fullmask, whitemask, csfmask, affine, act_outpath):
     act_mask = np.array(act_mask, dtype='int')
     return act_mask, act_outpath
 
-def create_label_mask(atlas, label, mask_outpath, conserve_val = False):
+def create_label_mask(atlas, label, mask_outpath, conserve_val = False, exclude = False):
 
     if os.path.exists(mask_outpath):
         print(f'already wrote {mask_outpath}, exiting')
@@ -148,14 +148,25 @@ def create_label_mask(atlas, label, mask_outpath, conserve_val = False):
     labels = np.round(labels,2)
 
     mask = np.zeros(np.shape(labels))
-    for i in range(np.shape(labels)[0]):
-        for j in range(np.shape(labels)[1]):
-            for k in range(np.shape(labels)[2]):
-                if labels[i,j,k]>0 and labels[i,j,k] in label:
-                    if conserve_val:
-                        mask[i,j,k] = labels[i,j,k]
-                    else:
-                        mask[i,j,k] = 1
+
+    if not exclude:
+        for i in range(np.shape(labels)[0]):
+            for j in range(np.shape(labels)[1]):
+                for k in range(np.shape(labels)[2]):
+                    if labels[i,j,k]>0 and labels[i,j,k] in label:
+                        if conserve_val:
+                            mask[i,j,k] = labels[i,j,k]
+                        else:
+                            mask[i,j,k] = 1
+    elif exclude:
+        for i in range(np.shape(labels)[0]):
+            for j in range(np.shape(labels)[1]):
+                for k in range(np.shape(labels)[2]):
+                    if labels[i, j, k] > 0 and labels[i, j, k] not in label:
+                        if conserve_val:
+                            mask[i, j, k] = labels[i, j, k]
+                        else:
+                            mask[i, j, k] = 1
 
     save_nifti(mask_outpath, mask, affine_labels)
 

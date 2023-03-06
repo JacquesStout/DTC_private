@@ -1200,8 +1200,9 @@ def create_tracts_test(diffpath, outpath, subject, figspath, step_size, peak_pro
 
     check_dif_ratio(outpath, subject, strproperty, ratio)
     outpathtrk, trkexists = gettrkpath(outpath, subject, strproperty, pruned=doprune, verbose=False,sftp=sftp)
-    outpathtrk = outpathtrk.replace('.trk','_prob_binary_normaltractogram.trk')
+    outpathtrk = outpathtrk.replace('.trk','10000seeds_stepsize_1_hipposeed_binarythreshold_det_binary_heavytractogram.trk')
 
+    overwrite=True
     if os.path.exists(outpathtrk) and overwrite is False:
         print("The tract creation of subject " + subject + " is already done")
         if get_params:
@@ -1213,16 +1214,19 @@ def create_tracts_test(diffpath, outpath, subject, figspath, step_size, peak_pro
             return outpathtrk, None, None
 
     if verbose:
-        print('Running the ' + subject + ' file')
+        print('Running the ' + subject + f' file to output at {outpathtrk}')
 
+    overwrite=False
     fullmask, _ = getmask(diffpath, subject, masktype, verbose,sftp=sftp)
 
     white_mask_path = os.path.join(diffpath, f'{subject}_whitematter.nii.gz')
     csf_mask_path = os.path.join(diffpath, f'{subject}_csf.nii.gz')
+    gm_mask_path = os.path.join(diffpath, f'{subject}_greymatter.nii.gz')
     act_outpath = os.path.join(diffpath, f'{subject}_actmask.nii.gz')
+    hippocampus_path = os.path.join(diffpath, f'{subject}_hippocampus.nii.gz')
 
     overwrite=False
-    if not os.path.exists(white_mask_path) or not os.path.exists(csf_mask_path) or overwrite:
+    if not os.path.exists(white_mask_path) or not os.path.exists(csf_mask_path) or not os.path.exists(gm_mask_path) or not os.path.exists(hippocampus_path) or overwrite:
         labels_dir = get_mask_labels(ROI_excel)
         labelmask, labelaffine, labelpath = getlabelmask(diffpath, subject, verbose, sftp=sftp)
         converter_lr, converter_comb, index_to_struct_lr, index_to_struct_comb = atlas_converter(ROI_excel, sftp)
@@ -1245,6 +1249,9 @@ def create_tracts_test(diffpath, outpath, subject, figspath, step_size, peak_pro
 
         create_label_mask(labeloutpath, labels_dir['white matter'], mask_outpath = white_mask_path , conserve_val = False)
         create_label_mask(labeloutpath, labels_dir['CSF'], mask_outpath = csf_mask_path, conserve_val = False)
+        create_label_mask(labeloutpath, labels_dir['CSF']+labels_dir['white matter'], mask_outpath = gm_mask_path, conserve_val = False, exclude=True)
+        create_label_mask(labeloutpath, [51,217], mask_outpath = hippocampus_path, conserve_val = False)
+
 
     diff_data, affine, gtab, vox_size, fdiffpath, header, ref_info = getdiffdata_all(diffpath, subject, bvec_orient, denoise=denoise, verbose=verbose,sftp=sftp)
 
@@ -1254,17 +1261,25 @@ def create_tracts_test(diffpath, outpath, subject, figspath, step_size, peak_pro
         mask,_ = dwi_to_mask(diff_data, subject, affine, diffpath, masking='extract', makefig=False, header=header, verbose=True, sftp=sftp)
     """
     white_mask, labelaffine, _, _,_ = load_nifti_remote(white_mask_path, sftp)
+    #grey_mask, labelaffine, _, _,_ = load_nifti_remote(gm_mask_path, sftp)
+    hippo_mask, labelaffine, _, _,_ = load_nifti_remote(hippocampus_path, sftp)
+
+
 
     print("Mask shape is " + str(np.shape(white_mask)))
 
+    """
     if seedmasktype =='label':
         seedmask, _, _ = getlabelmask(diffpath, subject, verbose, sftp=sftp)
     else:
         seedmask=None
+    """
+    seedmask = hippo_mask
 
+    classifier='act'
     threshold = classifier
     if threshold == "FA":
-        outpathbmfa, classifier_mask = make_tensorfit(diff_data,mask,gtab,affine,subject,outpath=diffpath,verbose=verbose)
+        outpathbmfa, classifier_mask = make_tensorfit(diff_data,fullmask,gtab,affine,subject,outpath=diffpath,verbose=verbose)
     elif threshold == 'act':
         if not os.path.exists(act_outpath):
             csf_mask, labelaffine, _, _, _ = load_nifti_remote(csf_mask_path, sftp)
@@ -1306,7 +1321,7 @@ def create_tracts_test(diffpath, outpath, subject, figspath, step_size, peak_pro
             del (prune_sl, pruned_streamlines, trkdata)
             if get_params:
                 numtracts, minlength, maxlength, meanlength, stdlength = get_tract_params(outpathtrk, subject,
-                                                                                          strproperty,
+                                                                                          strprfoperty,
                                                                                           verbose)
                 params = [numtracts, minlength, maxlength, meanlength, stdlength]
                 return subject, outpathtrk, params
@@ -1314,11 +1329,11 @@ def create_tracts_test(diffpath, outpath, subject, figspath, step_size, peak_pro
                 params = None
                 return subject, outpathtrk, params
 
-    outpathtrk, trkstreamlines, params = QCSA_tractmake_test(diff_data, affine, vox_size, gtab, white_mask, ref_info,
+    outpathtrk, trkstreamlines, params = QCSA_tractmake_test(diff_data, affine, vox_size, gtab, white_mask, seedmask, ref_info,
                                                             step_size, peak_processes, outpathtrk, subject=subject, ratio=ratio,
                                                             threshold=threshold, overwrite=overwrite, get_params=get_params, doprune=doprune,
                                                             classifier_mask = classifier_mask, figspath=figspath,
-                                                            verbose=verbose, seedmask=seedmask, sftp=sftp)
+                                                            verbose=verbose, sftp=sftp)
     if labelslist:
         print('In process of implementing')
         """
