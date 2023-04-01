@@ -108,7 +108,7 @@ def trans_reg(static, static_grid2world,
 
 
 def rigid_reg(static, static_grid2world,
-              moving, moving_grid2world):
+              moving, moving_grid2world, return_rigid=False):
 
     moving_orig = moving
     if np.size(np.shape(moving))>3:
@@ -153,17 +153,22 @@ def rigid_reg(static, static_grid2world,
     #transformed = np.zeros(list(np.shape(rigid.transform(moving_orig[...,0])))+[np.shape(moving_orig)[3]])
     #transformed = np.zeros(np.shape(moving_orig))
     #transformed = np.zeros(list(np.shape(reslice(rigid.transform(moving_orig[...,0]), moving_grid2world, [0.1,0.1,0.1], [0.3,0.3,0.3])[0]))+[np.shape(moving_orig)[3]])
-    transformed = np.zeros(list(np.shape(rigid.transform(moving_orig[..., 0]))) + [np.shape(moving_orig)[3]])
-    #if reslice:
-        #transformed, reslice_affine = reslice(rigid.transform(moving_orig), moving_grid2world,
-        #                                             [0.1, 0.1, 0.1], [0.3, 0.3, 0.3])
-    #for i in np.arange(np.shape(moving_orig)[3]):
-    #transformed[..., i], reslice_affine = reslice(rigid.transform(moving_orig[..., i]), moving_grid2world,
-     #                                             [0.1, 0.1, 0.1], [0.3, 0.3, 0.3])
+    if np.size(np.shape(moving_orig))>3:
+        transformed = np.zeros(list(np.shape(rigid.transform(moving_orig[..., 0]))) + [np.shape(moving_orig)[3]])
+        #if reslice:
+            #transformed, reslice_affine = reslice(rigid.transform(moving_orig), moving_grid2world,
+            #                                             [0.1, 0.1, 0.1], [0.3, 0.3, 0.3])
+        #for i in np.arange(np.shape(moving_orig)[3]):
+        #transformed[..., i], reslice_affine = reslice(rigid.transform(moving_orig[..., i]), moving_grid2world,
+         #                                             [0.1, 0.1, 0.1], [0.3, 0.3, 0.3])
 
-    for i in np.arange(np.shape(moving_orig)[3]):
-        transformed[..., i] = rigid.transform(moving_orig[..., i])
+        for i in np.arange(np.shape(moving_orig)[3]):
+            transformed[..., i] = rigid.transform(moving_orig[..., i])
+    else:
+        transformed = rigid.transform(moving_orig)
 
+    if return_rigid:
+        return transformed, rigid.affine, rigid
     return transformed, rigid.affine
 
 

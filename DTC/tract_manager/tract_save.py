@@ -92,6 +92,8 @@ def save_trk_heavy_duty(fname, streamlines, affine, vox_size=None, shape=None, h
         header[Field.VOXEL_ORDER] = "".join(aff2axcodes(affine))
 
     if not isinstance(streamlines,StatefulTractogram):
+        #if type(streamlines)==list:
+        #    streamlines = nib.streamlines.array_sequence.ArraySequence(streamlines)
         tractogram = nib.streamlines.LazyTractogram(streamlines)
         tractogram.affine_to_rasmm = affine
     else:

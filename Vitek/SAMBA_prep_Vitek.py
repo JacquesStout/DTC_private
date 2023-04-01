@@ -24,7 +24,7 @@ else:
 
 #diffpath = "/mnt/paros_MRI/Vitek_UNC/"
 diffpath = '/Users/jas/jacques/Vitek_UNC_mean/'
-outpath = "/Volumes/Data/Badea/Lab/mouse/Vitek_series_altvals/diffusion_prep_locale/"
+outpath = "/Volumes/Data/Badea/Lab/mouse/Vitek_series_altvals_nomask/diffusion_prep_locale/"
 
 SAMBA_inputs_folder = "/Volumes/Data/Badea/Lab/19abb14/"
 SAMBA_inputs_folder = None
@@ -42,7 +42,9 @@ for subject_folder in subjects_folders:
 #subjects = ['02_7_17']
 subjects = ['01_7_8', '02_7_17', '03_7_9', '04_7_16', '05_7_25', '06_8_8', '08_7_30', '09_7_23', '10_7_31', '11_8_13', '12_8_14', '13_8_6', '14_8_15', '15_8_16', '16_8_21', '17_8_22', '18_8_25']
 #subjects = ['02_7_17']
-subjects = ['01_7_8', '02_7_17', '03_7_9', '04_7_16', '05_7_25', '06_8_8', '08_7_30', '09_7_23', '10_7_31']
+subjects = ['01_7_8', '02_7_17', '03_7_9', '04_7_16', '05_7_25', '06_8_8', '08_7_30', '09_7_23', '10_7_31', '11_8_13', '12_8_14', '13_8_6', '14_8_15', '15_8_16', '16_8_21', '17_8_22', '18_8_25']
+#subjects = ['02_7_17']
+#subjects = ['01_7_8', '06_8_8']
 subject_processes, function_processes, firstsubj, lastsubj = parse_arguments(sys.argv, subjects)
 
 removed_list = []
@@ -61,6 +63,7 @@ proc_name ="diffusion_prep_"+proc_subjn
 cleanup = True
 masking = "None"
 masking = "median"
+masking = 'None'
 #masking = 'premade'
 makebtables = False
 gettranspose=False
@@ -118,7 +121,7 @@ verbose=True
 results=[]
 
 toremove = []
-overwrite=False
+overwrite=True
 
 if subject_processes>1:
     if function_processes>1:

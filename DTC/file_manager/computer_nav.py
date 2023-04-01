@@ -241,6 +241,14 @@ def loadmat_remote(matpath, sftp=None):
         mymat = loadmat(matpath)
     return mymat
 
+"""
+def savemat_remote(matpath, mat_dict, sftp = None):
+    from scipy.io import savemat
+    
+    create_ants_transform
+    if sftp is not None:
+        savemat(matpath, mat_dict, appendmat=False, long_field_names=True, do_compression=False, )
+"""
 
 def true_loadmat(matpath, sftp=None):
     struct = loadmat_remote(matpath, sftp)
@@ -252,6 +260,7 @@ def true_loadmat(matpath, sftp=None):
 def ants_loadmat(matpath, sftp=None):
     old_mat = true_loadmat(matpath, sftp=None)
     ants_mat =np.eye(4)
+
     ants_mat[:3,:3] = old_mat[:-3].reshape((3,3))
     ants_mat[:3, 3] = old_mat[-3:].reshape(3)
     return(ants_mat)

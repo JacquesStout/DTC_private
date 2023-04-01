@@ -3,11 +3,13 @@ from DTC.tract_manager.tract_handler import reducetractnumber
 from DTC.file_manager.file_tools import mkcdir
 import random
 
-path = '/Users/jas/jacques/APOE_subj_to_MDT'
-trk_folder = os.path.join(path,'TRK')
-new_trk_folder = os.path.join(path,'TRK')
+#path = '/Users/jas/jacques/APOE_subj_to_MDT'
+#trk_folder = os.path.join(path,'TRK')
+#new_trk_folder = os.path.join(path,'TRK')
 #trk_folder = os.path.join(path,'TRK_MPCA_fixed')
 #new_trk_folder = os.path.join(path,'TRK_MPCA_fixed_100')
+trk_folder = '/Volumes/dusom_mousebrains/All_Staff/Data/AMD/TRK_rigidaff'
+new_trk_folder = '/Volumes/dusom_mousebrains/All_Staff/Data/AMD/TRK_rigidaff_100'
 
 mkcdir(new_trk_folder)
 ratio = 100

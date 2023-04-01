@@ -363,7 +363,9 @@ def launch_preprocessing(subj, raw_nii, outpath, cleanup=False, nominal_bval=400
 
     #if (not os.path.exists(final_mask) and not os.path.exists(tmp_mask)) or overwrite:
 
+    overwrite=True
     if not os.path.exists(tmp_mask) or not os.path.exists(tmp) or overwrite:
+        overwrite=False
         if not os.path.exists(raw_dwi) or overwrite:
             select_cmd = f"select_dwi_vols {raw_nii} {bvals} {raw_dwi} {nominal_bval} -m"
             os.system(select_cmd)
@@ -373,6 +375,7 @@ def launch_preprocessing(subj, raw_nii, outpath, cleanup=False, nominal_bval=400
                 cmd = f'select_dwi_vols {raw_nii} {bvals} {b0_dwi} {b0_val}  -m;'
                 os.system(cmd)
                 b0_val += 50
+        overwrite=True
         if not os.path.exists(tmp_mask) or overwrite:
             if 'median' in masking:
                 median_mask_make(raw_dwi, tmp, median_radius = median_radius, binary_dilation = binary_dilation, numpass=7, outpathmask=tmp_mask)
@@ -543,7 +546,7 @@ def launch_preprocessing(subj, raw_nii, outpath, cleanup=False, nominal_bval=400
 
     #give new header to the non-dti files using md as reference
 
-
+    overwrite=True
     for contrast in ['dwi', 'b0', 'mask']:
         tmp_file=os.path.join(work_dir,f'{subj}_tmp_{contrast}{ext}')
         tmp2_file=os.path.join(work_dir,f'{subj}_tmp2_{contrast}{ext}')
@@ -555,6 +558,7 @@ def launch_preprocessing(subj, raw_nii, outpath, cleanup=False, nominal_bval=400
             else:
                 header_superpose(reference, tmp_file, outpath=tmp2_file)
 
+    overwrite=False
     create_subj_space_files = True
     if create_subj_space_files:
         for contrast in ['dwi', 'b0', 'mask']:
@@ -583,6 +587,8 @@ def launch_preprocessing(subj, raw_nii, outpath, cleanup=False, nominal_bval=400
     else:
         orient_relative = open(orient_string, mode='r').read()
 
+    overwrite=True
+
     if SAMBA_inputs_folder is not None:
         subj_orient_string = os.path.join(SAMBA_inputs_folder, f'{subj}_relative_orientation.txt')
         shutil.copy(orient_string, subj_orient_string)
@@ -599,6 +605,7 @@ def launch_preprocessing(subj, raw_nii, outpath, cleanup=False, nominal_bval=400
     if verbose:
         print(f'flexible orientation: {orientation_in}');
         print(f'reference orientation: {orientation_out}');
+
 
     #apply the orientation modification to specified contrasts
     for contrast in ['dwi', 'b0', 'mask']:
@@ -674,7 +681,6 @@ def launch_preprocessing(subj, raw_nii, outpath, cleanup=False, nominal_bval=400
 
 
 
-
     if create_subj_space_files:
         for contrast in ['fa0', 'rd', 'ad', 'md']:
 
@@ -684,11 +690,11 @@ def launch_preprocessing(subj, raw_nii, outpath, cleanup=False, nominal_bval=400
             subj_file_tmp = os.path.join(work_dir, f'{subj}_subjspace_tmp_{contrast}{ext}')
             subj_file = os.path.join(work_dir, f'{subj}_subjspace_{contrast}{ext}')
             if not os.path.exists(subj_file) or overwrite:
-                if not os.path.exists(subj_file_tmp):
+                if not os.path.exists(subj_file_tmp) or overwrite:
                     if orientation_out != orientation_in:
                         print('TRYING TO REORIENT.ReineR..b0 and dwi and mask')
                         if os.path.exists(real_file) and (not os.path.exists(subj_file) or overwrite):
-                            img_transform_exec(real_file, orientation_out, orientation_in, subj_file_tmp)
+                            img_transform_exec(real_file, orientation_out, orientation_out, subj_file_tmp)
                     else:
                         shutil.copy(real_file,subj_file_tmp)
                 header_superpose(raw_dwi, subj_file_tmp, outpath=subj_file)

@@ -20,17 +20,15 @@ from scipy import stats
 import dill  # pip install dill --user
 import csv
 from math import nan
+from DTC.file_manager.computer_nav import get_mainpaths, get_atlas
+
 
 computer_name = socket.gethostname().split('.')[0]
 mainpath = getremotehome(computer_name)
-if 'os' in computer_name:
-    ROI_legends = "/mnt/paros_MRI/jacques/atlases/IITmean_RPI/IITmean_RPI_index.xlsx"
-elif 'rini' in computer_name:
-    ROI_legends = "/Volumes/Data/Badea/ADdecode.01/Analysis/atlases/IITmean_RPI/IITmean_RPI_index.xlsx"
-elif 'de' in computer_name:
-    ROI_legends = "/mnt/munin6/Badea/Lab/atlases/IITmean_RPI/IITmean_RPI_index.xlsx"
-else:
-    raise Exception('No other computer name yet')
+
+atlas_folder = '/Volumes/Data/Badea/Lab/atlases'
+
+atlas_legends = atlas_legends = get_atlas(atlas_folder, 'IIT')
 
 
 project = 'AMD'

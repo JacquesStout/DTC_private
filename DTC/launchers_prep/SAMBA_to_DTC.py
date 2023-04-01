@@ -13,8 +13,8 @@ from DTC.nifti_handlers.atlas_handlers.convert_atlas_mask import convert_labelma
 from DTC.file_manager.argument_tools import parse_arguments
 from DTC.nifti_handlers.atlas_handlers.create_backported_labels import get_info_SAMBA_headfile
 
-project = "APOE"
-#project = "AMD"
+#project = "APOE"
+project = "AMD"
 #project = 'AD_Decode'
 #project = 'Chavez'
 verbose = True
@@ -22,6 +22,7 @@ mainpath = getremotehome('Lab')
 SAMBA_headfile_dir = os.path.join(mainpath, "samba_startup_cache")
 file_ids = ["subjspace_coreg","coreg", "subjspace_fa", "subjspace_b0", "bval", "bvec", "subjspace_mask", "reference", "subjspace_dwi", "relative_orientation"]
 file_ids = ["subjspace_coreg","bval", "bvec", "subjspace_mask", "subjspace_dwi", "relative_orientation"]
+file_ids = []
 #file_ids = ["subjspace_coreg"]
 #file_ids = ["subjspace_mask"]
 #file_ids = ['subjspace_dwi']
@@ -229,16 +230,17 @@ elif project == "APOE":
 
 elif project == "AMD":
 
-    SAMBA_mainpath = os.path.join(mainpath, "mouse")
+    SAMBA_mainpath = os.path.join('/Volumes/dusom_abadea_nas1/munin_js/VBM_backups')
     SAMBA_projectname = "VBM_19BrainChAMD01_IITmean_RPI_with_2yr"
     SAMBA_headfile = os.path.join(SAMBA_headfile_dir, "rja20_BrainChAMD.01_with_2yr_SAMBA_startup.headfile")
     gunniespath = "~/gunnies/"
     recenter = 0
-    SAMBA_prep_folder = os.path.join(SAMBA_mainpath, "whitson_symlink_pool_allfiles")
-    atlas_labels = os.path.join(mainpath, "atlas","IITmean_RPI","IITmean_RPI_labels.nii.gz")
+    #SAMBA_prep_folder = os.path.join(SAMBA_mainpath, "whitson_symlink_pool_allfiles")
+    SAMBA_prep_folder = os.path.join('/Volumes/dusom_mousebrains/All_Staff/Data/AMD/DWI')
+    atlas_labels = os.path.join('/Volumes/Data/Badea/Lab/', "atlas","IITmean_RPI","IITmean_RPI_labels.nii.gz")
 
-    DTC_DWI_folder = "DWI_v2"
-    DTC_labels_folder = "DWI_v2"
+    DTC_DWI_folder = "DWI"
+    DTC_labels_folder = "DWI"
 
     SAMBA_label_folder = os.path.join(SAMBA_mainpath, SAMBA_projectname + "-results", "connectomics")
     SAMBA_work_folder = os.path.join(SAMBA_mainpath, SAMBA_projectname + "-work")
@@ -261,6 +263,10 @@ elif project == "AMD":
                 "H26890", "H26958", "H26974", "H27017", "H27111", "H27164", "H27381", "H27391", "H27495", "H27610", "H27640",
                 "H27680", "H27778", "H27982", "H28115", "H28308", "H28338", "H28373", "H28377", "H28433", "H28437", "H28463",
                 "H28532", "H28662", "H28698", "H28748", "H28809", "H28857", "H28861", "H29013", "H29020", "H29025"]
+
+    subjects = ['H21593', 'H21729', 'H21836', 'H21850', 'H21915', 'H21956', 'H21990', 'H22101', 'H22102', 'H22140', 'H22228', 'H22331', 'H22368', 'H22369', 'H22683', 'H22825', 'H22864', 'H22898', 'H23028', 'H23157', 'H23309', 'H26578', 'H26637', 'H26660', 'H26765', 'H26841', 'H26862', 'H26890', 'H26949', 'H26966', 'H27100', 'H27111', 'H27126', 'H27163', 'H27164', 'H27246', 'H27381', 'H27391', 'H27488', 'H27495', 'H27682', 'H27686', 'H27719', 'H27841', 'H27842', 'H27869', 'H28029', 'H28068', 'H28115', 'H28182', 'H28208', 'H28308', 'H28325', 'H28373', 'H28433', 'H28698', 'H28861', 'H28955', 'H29002', 'H29020', 'H29060', 'H29225', 'H29264', 'H29304', 'H29403', 'H29410', 'H29502', 'H29556', 'H29618', 'H29627', 'H29878', 'H22276', 'H22320', 'H22536', 'H22574', 'H22644', 'H23143', 'H23210', 'H26745', 'H26850', 'H26880', 'H26958', 'H26974', 'H27017', 'H27610', 'H27640', 'H27680', 'H27778', 'H27852', 'H27982', 'H27999', 'H28262', 'H28338', 'H28377', 'H28437', 'H28463', 'H28532', 'H28662', 'H28748', 'H28809', 'H28820', 'H28856', 'H28857', 'H28869', 'H29013', 'H29025', 'H29044', 'H29056', 'H29089', 'H29127', 'H29161', 'H29242', 'H29254']
+
+
 
 else:
     raise Exception("Unknown project name")

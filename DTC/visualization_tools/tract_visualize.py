@@ -398,7 +398,7 @@ def setup_view(trk_object, colors=None, world_coords=False, show=True, fname=Non
     if shape is not None and np.size(shape)==4:
         data = np.squeeze(data[:,:,:,0])
         shape = shape[:3]
-    value_range = (0,2)
+    value_range = (0,2000)
     #value_range = None
     if data is not None:
         if not world_coords:
@@ -501,7 +501,7 @@ def setup_view(trk_object, colors=None, world_coords=False, show=True, fname=Non
                 scene.add(image_actor_y)
 
         if colorbar:
-            if colors is not None:
+            if colors is not None and isinstance(colors,vtk.vtkLookupTable):
                 bar3 = actor.scalar_bar(colors)
                 scene.add(bar3)
                 object_actors_toremove.append(bar3)

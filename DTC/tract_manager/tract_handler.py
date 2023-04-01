@@ -512,6 +512,51 @@ def gettrkpath(trkpath, subject, str_identifier, pruned=False, verbose=False, sf
             print("Could not find " + filepath)
             return filepath, False
 
+
+def gettrkpath_orig(trkpath, subject, str_identifier, pruned=False, verbose=False, sftp=None):
+
+    if sftp is None:
+        #Finds the right trk file based on certain established parameters (folder, subject, extra identifiers)
+        if os.path.isfile(trkpath):
+            if os.path.splitext(trkpath)[1] == ".trk":
+                return trkpath, True
+            else:
+                trkpath = os.path.abspath(trkpath)
+        if pruned:
+            filepath = os.path.join(trkpath,subject + str_identifier + '_pruned.trk')
+        else:
+            filepath = os.path.join(trkpath, subject + str_identifier + '.trk')
+        trkpaths = glob.glob(filepath)
+        if trkpaths:
+            trkfile = trkpaths[0]
+            if verbose:
+                print("Subject " + subject + " was found at " + trkfile)
+            return trkfile, True
+        else:
+            print("Could not find "+filepath)
+            return filepath, False
+    else:
+        if np.size(glob_remote(trkpath,sftp))>0:
+            if os.path.splitext(trkpath)[1] == ".trk":
+                return trkpath, True
+            else:
+                trkpath = os.path.abspath(trkpath)
+
+        if pruned:
+            filepath = os.path.join(trkpath,subject + str_identifier + '_pruned.trk')
+        else:
+            filepath = os.path.join(trkpath, subject + str_identifier + '.trk')
+
+        trkpaths = glob_remote(filepath,sftp)
+        if trkpaths:
+            trkfile = trkpaths[0]
+            if verbose:
+                print("Subject " + subject + " was found at " + trkfile)
+            return trkfile, True
+        else:
+            print("Could not find " + filepath)
+            return filepath, False
+
 def gettrkpath_testsftp(trkpath, subject, str_identifier, sftp = None, pruned=False, verbose=False):
     #Finds the right trk file based on certain established parameters (folder, subject, extra identifiers)
     if os.path.isfile(trkpath):

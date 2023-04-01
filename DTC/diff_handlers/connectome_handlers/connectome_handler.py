@@ -174,9 +174,9 @@ def connectivity_matrix_func(pruned_streamlines_SL, affine_streams, labelmask, i
         matrix += connectome_results[0]
         if volume_weighting:
             matrix_vol += connectome_results[1]
-        if reference_weight is not None:
+        if reference_weighting is not None:
             matrix_refweighted += connectome_results[2]
-        if volume_weighting and reference_weight is not None:
+        if volume_weighting and reference_weighting is not None:
             matrix_vol_refweighted += connectome_results[3]
 
         for key, val in connectome_results[4].items():
@@ -186,7 +186,7 @@ def connectivity_matrix_func(pruned_streamlines_SL, affine_streams, labelmask, i
                 grouping[key] = val
         i = i + 1
 
-    return M, grouping
+    return matrix, grouping
 
 def retweak_points(points, shape, verbose=False):
     pointsT = points.T

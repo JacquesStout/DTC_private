@@ -26,16 +26,19 @@ subjects_list = ["N58214", "N58215",
 computer_name = socket.gethostname()
 
 if 'santorini' in computer_name:
-    DWI_folder = '/Volumes/Data/Badea/Lab/APOE/DWI_allsubj'
+    #DWI_folder = '/Volumes/Data/Badea/Lab/APOE/DWI_allsubj'
+    DWI_folder = '/Volumes/dusom_abadea_nas1/munin_js/DWI_allsubj'
     labels_folder = '/Volumes/Data/Badea/Lab/APOE/DWI_allsubj'
-    output_folder = '/Volumes/Data/Badea/Lab/APOE/DWI_allsubj_RAS/'
+    output_folder = '/Volumes/Data/Badea/Lab/APOE/DWI_allsubj_RAS'
+    output_folder = '/Volumes/Data/Badea/Lab/APOE/oldFA_RAS'
 
 if 'samos' in computer_name:
     DWI_folder = '/mnt/paros_MRI/jacques/APOE/DWI_allsubj/'
     labels_folder = '/mnt/paros_MRI/jacques/APOE/DWI_allsubj/'
     output_folder = '/mnt/paros_MRI/jacques/APOE/DWI_allsubj_RAS/'
 
-subjects_all = glob.glob(os.path.join(DWI_folder,'*coreg.nii.gz'))
+#subjects_all = glob.glob(os.path.join(DWI_folder,'*coreg.nii.gz'))
+subjects_all = glob.glob(os.path.join(DWI_folder,'*subjspace_fa.nii.gz'))
 subjects_list = []
 for subject in subjects_all:
     subject_name = os.path.basename(subject)
@@ -43,16 +46,14 @@ for subject in subjects_all:
 subjects_list.sort()
 subjects_list = subjects_list[:]
 
-subjects_list = ['N60188', 'N60190', 'N60192', 'N60194', 'N60198', 'N60219', 'N60221', 'N60223', 'N60225', 'N60229', 'N60231']
+#subjects_list = ['N60188', 'N60190', 'N60192', 'N60194', 'N60198', 'N60219', 'N60221', 'N60223', 'N60225', 'N60229', 'N60231']
 
-removed_list = []
+removed_list = ['N57504']
 for remove in removed_list:
     if remove in subjects_list:
         subjects_list.remove(remove)
 
-subjects_list = ['N58889']
 mkcdir(output_folder)
-
 
 subject_processes, function_processes, firstsubj, lastsubj = parse_arguments(sys.argv, subjects_list)
 
@@ -60,6 +61,21 @@ subjects_list = subjects_list[firstsubj: lastsubj]
 
 print(subjects_list)
 
+for subject in subjects_list:
+    print(f'Running subject {subject}')
+    fa_file = os.path.join(DWI_folder,f'{subject}_subjspace_fa.nii.gz')
+    fa_RAS_file = os.path.join(output_folder,f'{subject}_fa_RAS.nii.gz')
+
+    if not os.path.exists(fa_RAS_file):
+        if os.path.exists(fa_file):
+            try:
+                img_transform_exec(fa_file,'ARI','RAS',fa_RAS_file)
+            except nib.filebasedimages.ImageFileError:
+                print(f'Wrong file that is unreadable, erasing {fa_file}')
+                os.remove(fa_file)
+            transferred=1
+
+"""
 for subject in subjects_list:
     print(f'Running subject {subject}')
     coreg_file = os.path.join(DWI_folder,f'{subject}_subjspace_coreg.nii.gz')
@@ -118,3 +134,4 @@ for subject in subjects_list:
         print(f'transferred subject {subject}')
     else:
         print(f'already transferred subject {subject}')
+"""

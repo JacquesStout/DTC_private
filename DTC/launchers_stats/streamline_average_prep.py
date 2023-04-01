@@ -17,13 +17,17 @@ from time import time
 from dipy.tracking.streamline import transform_streamlines
 from DTC.file_manager.computer_nav import get_mainpaths, get_atlas, load_trk_remote, checkfile_exists_remote
 
-project = 'AD_Decode'
+project = 'AMD'
 
 remote=True
-if remote:
-    username, passwd = getfromfile('/Users/jas/remote_connect.rtf')
+remote = False
 
-inpath, outpath, atlas_folder, sftp = get_mainpaths(remote,project = project, username=username,password=passwd)
+#inpath, outpath, atlas_folder, sftp = get_mainpaths(remote,project = project, username=username,password=passwd)
+inpath = '/Volumes/dusom_mousebrains/All_Staff/Data/AMD/'
+outpath = '/Users/jas/jacques/Whiston_article/Analysis/AMD/'
+outpath = '/Volumes/dusom_mousebrains/All_Staff/Analysis/AMD/'
+atlas_folder = '/Volumes/Data/Badea/Lab/atlases'
+sftp=None
 
 if project=='AMD' or project=='AD_Decode':
     atlas_legends = get_atlas(atlas_folder, 'IIT')
@@ -34,6 +38,7 @@ ratio_str = ratio_to_str(ratio)
 print(ratio_str)
 if ratio_str == '_all':
     folder_ratio_str = ''
+    ratio_str = ''
 else:
     folder_ratio_str = ratio_str.replace('_ratio', '')
 
@@ -71,16 +76,17 @@ print(f'there are {function_processes} function processes')
 #TRK_folder = os.path.join(inpath, f'TRK_MPCA_MDT{fixed_str}{folder_ratio_str}')
 space_type = 'MDT'
 
-TRK_folder = os.path.join(inpath, f'TRK_MPCA_{space_type}{fixed_str}{folder_ratio_str}')
+TRK_folder = os.path.join(inpath, f'TRK_{space_type}{fixed_str}{folder_ratio_str}')
+TRK_folder = os.path.join('/Volumes/dusom_mousebrains/All_Staff/Nariman_mrtrix_amd', 'TRK_trix_MDT')
 #TRK_folder = os.path.join(inpath, f'TRK_MDT_real_testtemp{fixed_str}{folder_ratio_str}')
 
 label_folder = os.path.join(inpath, 'DWI')
 #trkpaths = glob.glob(os.path.join(TRK_folder, '*trk'))
-excel_folder = os.path.join(outpath, f'Excels_{space_type}{inclusive_str}{symmetric_str}{folder_ratio_str}')
+excel_folder = os.path.join(outpath, f'Excels_{space_type}{inclusive_str}{symmetric_str}{folder_ratio_str}_mrtrix')
 
 mkcdir(excel_folder,sftp)
 
-if not remote and os.path.exists(TRK_folder):
+if not remote and not os.path.exists(TRK_folder):
     raise Exception(f'cannot find TRK folder at {TRK_folder}')
 
 # Initializing dictionaries to be filled
@@ -115,7 +121,7 @@ if project == 'AD_Decode':
 
 
 elif project == 'AMD':
-    groups_subjects['testing'] = ['H22825']
+    groups_subjects['testing'] = ['H22864']
     groups_subjects['Initial AMD'] = ['H27640', 'H27778', 'H29020', 'H26637', 'H27680', 'H26765', 'H27017',
                                       'H26880', 'H28308', 'H28433', 'H28338', 'H26660', 'H28809', 'H27610',
                                       'H26745', 'H27111', 'H26974', 'H27391', 'H28748', 'H29025', 'H29013',
@@ -130,9 +136,9 @@ elif project == 'AMD':
                                           'H27999', 'H29127', 'H28325', 'H26841', 'H29044', 'H27719', 'H27100',
                                           'H29254', 'H27682', 'H29002', 'H29089', 'H29242', 'H27488', 'H27841',
                                           'H28820', 'H27163', 'H28869', 'H28208', 'H27686']
-    groups_subjects['Paired 2-YR Control'] = ['H29403', 'H22102', 'H29502', 'H22276', 'H29878', 'H29410', 'H22331',
+    groups_subjects['Paired 2-YR Control'] = ['H29403', 'H22102', 'H29502', 'H22276','H29410', 'H22331',
                                               'H22368', 'H21729', 'H29556', 'H21956', 'H22140', 'H23309', 'H22101',
-                                              'H23157', 'H21593', 'H21990', 'H22228', 'H23028', 'H21915']
+                                              'H23157', 'H21593', 'H21990', 'H22228', 'H23028', 'H21915','H29878']
     groups_subjects['Paired Initial Control'] = ['H27852', 'H28029', 'H26966', 'H27126', 'H29161', 'H28955',
                                                  'H26862', 'H27842', 'H27999', 'H28325', 'H26841', 'H27719',
                                                  'H27100', 'H27682', 'H29002', 'H27488', 'H27841', 'H28820',
@@ -145,13 +151,15 @@ elif project == 'AMD':
     groups_all = ['Paired 2-YR AMD','Initial AMD','Initial Control','Paired 2-YR Control','Paired Initial Control','Paired Initial AMD']
     groups = ['Paired Initial Control', 'Paired Initial AMD']
     groups = ['Paired 2-YR Control', 'Paired 2-YR AMD']
-    groups = ['Initial AMD','Initial Control']
+    groups = ['Paired Initial Control', 'Paired Initial AMD','Paired 2-YR Control', 'Paired 2-YR AMD']
+    #groups = ['Paired 2-YR AMD']
+    #groups = ['Initial AMD','Initial Control']
     removed_list=[]
     # groups = ['Paired 2-YR AMD']
     # groups = ['Paired 2-YR Control']
     # groups=[groups[0]]
     subjects = []
-    str_identifier = f'*'
+    str_identifier = f'*{space_type}{ratio_str}'
 
     for group in groups:
         subjects = subjects + groups_subjects[group]
@@ -194,6 +202,29 @@ for subject in subjects:
     else:
         t1 = time()
 
+        """
+        ##### Alignment checker
+        from DTC.tract_manager.tract_handler import reducetractnumber
+        tempfilepath = trkpath.replace('.trk','_ratio_100.trk')
+        if not os.path.exists(tempfilepath):
+            reducetractnumber(trkpath, tempfilepath, getdata=False, ratio=100,
+                              return_affine=False, verbose=False)
+        trkdatatemp = load_trk_remote(tempfilepath, 'same', sftp)
+        header = trkdatatemp.space_attributes
+        streamlines_world = transform_streamlines(trkdatatemp.streamlines, np.linalg.inv(labelaffine))
+        from dipy.viz import window, actor
+        from DTC.visualization_tools.tract_visualize import show_bundles, setup_view_legacy
+        import nibabel as nib
+        lut_cmap = actor.colormap_lookup_table(
+            scale_range=(0.05, 0.3))
+        scene = setup_view_legacy(nib.streamlines.ArraySequence(trkdatatemp.streamlines), colors=lut_cmap,
+                           ref=labeloutpath, world_coords=True,
+                           objectvals=[None], colorbar=True, record=None, scene=None, interactive=True)
+        
+        #The alignment is correct if the original streamlines are aligned with the references or labels when world_coords=True,
+        #or when the transformed streamliens are aligned with the references or labels when world_coords = False
+        """
+
         trkdata = load_trk_remote(trkpath, 'same', sftp)
 
         if verbose:
@@ -202,6 +233,7 @@ for subject in subjects:
         header = trkdata.space_attributes
 
         streamlines_world = transform_streamlines(trkdata.streamlines, np.linalg.inv(labelaffine))
+
         if function_processes == 1:
 
             M, _, _, _, grouping = connectivity_matrix_custom(streamlines_world, np.eye(4), labelmask,
