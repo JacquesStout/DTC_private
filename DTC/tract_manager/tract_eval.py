@@ -24,12 +24,10 @@ import dipy.core.optimize as opt
 
 from DTC.file_manager.BIAC_tools import send_mail, getsize
 from DTC.tract_manager.tract_save import save_trk_heavy_duty
-from DTC.visualization_tools.figures_handler import LifEcreate_fig
+
 from dipy.tracking._utils import (_mapping_to_voxel, _to_voxel_coordinates)
 from collections import defaultdict, OrderedDict
 
-
-from dipy.viz import window, actor
 from dipy.segment.clustering import QuickBundles
 from itertools import combinations, groupby
 
@@ -607,6 +605,7 @@ def LiFEvaluation(dwidata, trk_streamlines, gtab, subject="lifesubj", header=Non
 
     if outpathfig is not None:
         try:
+            from DTC.visualization_tools.figures_handler import LifEcreate_fig
             import matplotlib.pyplot as myplot
             fig, ax = plt.subplots(1)
             ax.hist(fiber_fit.beta, bins=100, histtype='step')
@@ -633,6 +632,7 @@ def launch_quickbundles(streamlines, outpath, ROIname="all", threshold = 10., la
 
     # Small clusters: array([False, False, False, True], dtype=bool)
 
+    from dipy.viz import window, actor
     scene = window.Scene()
     scene.SetBackground(1, 1, 1)
     scene.add(actor.streamtube(streamlines, window.colors.misty_rose))

@@ -1,17 +1,15 @@
 import numpy as np
-from tract_manager import create_tracts
+#from file_manager.Daemonprocess import MyPool
 import multiprocessing as mp
-from file_manager.Daemonprocess import MyPool
 import glob
 import os
-from diff_handlers.bvec_handler import extractbvals, extractbvals_research, rewrite_subject_bvalues, fix_bvals_bvecs
-from time import time
+import sys
+from DTC.diff_handlers.bvec_handler import extractbvals, rewrite_subject_bvalues, fix_bvals_bvecs, extractbvals_fromheader
+from DTC.diff_handlers.diff_preprocessing import launch_preprocessing
+from DTC.file_manager.file_tools import mkcdir, largerfile
+from DTC.nifti_handlers.transform_handler import get_transpose
 import shutil
-from diffusion_preprocessing import launch_preprocessing
-from file_manager.file_tools import mkcdir, largerfile
-from nifti_handlers.transform_handler import get_transpose
-import shutil
-from diff_handlers.bvec_handler import orient_to_str
+from DTC.file_manager.argument_tools import parse_arguments
 
 gunniespath = "~/gunnies/"
 mainpath="/mnt/munin6/Badea/ADdecode.01/"
@@ -29,7 +27,7 @@ subjects = ['02524', '02535', '02654', '02666', '02670', '02686', '02690', '0269
 subjects = ['02227']
 subjects = ["02695","02686", "03010", "02670", "02666", "02654"]
 removed_list = ['02230','02231','02490','02523','02745','02266','02289','02320','02361','02363','02373','02386','02390','S02402']
-subjects = ['01912']
+subjects = ['03847', '03866', '03867', '03889', '03890', '03896', '00775']
 for remove in removed_list:
     if remove in subjects:
         subjects.remove(remove)

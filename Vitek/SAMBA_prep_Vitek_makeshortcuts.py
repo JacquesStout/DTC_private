@@ -11,43 +11,41 @@ from DTC.file_manager.computer_nav import get_mainpaths, glob_remote, copy_locto
 from DTC.nifti_handlers.nifti_handler import average_4dslices
 
 
-gunniespath = "/Users/jas/bass/gitfolder/gunnies/"
+gunniespath = ""
 
 project = 'Vitek'
-remote = True
-if remote:
-    username, passwd = getfromfile(os.path.join(os.environ['HOME'],'remote_connect.rtf'))
-if remote:
-    _, _, _, sftp = get_mainpaths(remote,project = project, username=username,password=passwd)
 
-diffpath = "/mnt/paros_MRI/Vitek_UNC/"
-outpath = "/Volumes/Data/Badea/Lab/mouse/Vitek_series/diffusion_prep_locale/"
+outpath = "/mnt/munin6/Badea/Lab/mouse/Vitek_series_altvals/diffusion_prep_locale/"
 
-SAMBA_inputs_folder = "/Volumes/Data/Badea/Lab/19abb14/"
-SAMBA_inputs_folder = None
-shortcuts_all_folder = "/Volumes/Data/Badea/Lab/mouse/APOE_symlink_pool_allfiles/"
-shortcuts_all_folder = None
+SAMBA_inputs_folder = "/mnt/munin6/Badea/Lab/mouse/Vitek_prep_altvals/"
+shortcuts_all_folder = "/mnt/munin6/Badea/Lab/mouse/Vitek_prep_allfiles_altvals/"
+mkcdir([SAMBA_inputs_folder, shortcuts_all_folder])
+subjects_folders = glob.glob(os.path.join(outpath,'*/'))
+#print(subjects_folders)
+#subjects = ['01_7_8', '02_7_17', '03_7_9', '04_7_16', '05_7_25', '06_8_8', '08_7_30', '09_7_23', '10_7_31', '11_8_13', '12_8_14', '13_8_6', '14_8_15', '15_8_16', '16_8_21', '17_8_22', '18_8_25']
 
-subjects_folders = glob_remote(diffpath, sftp)
-subjects_folders = [folder for folder in subjects_folders if 'Vitek_' in os.path.basename(folder)]
-subjects = []
-for subject_folder in subjects_folders:
-    subjects.append(subject_folder.split('UNC/')[1][6:12])
-#subjects = ['N58309']
-#removed_list = ['N58794','N58514','N58305','N58613','N58346','N58344','N58788']
+#for subject_folder in subjects_folders:
+#    subjects.append(subject_folder.split('diffusion_prep_locale/')[1][15:22])
+
+
+subjects = ['01_7_8', '02_7_17', '03_7_9', '04_7_16', '05_7_25', '06_8_8', '08_7_30', '09_7_23', '10_7_31', '11_8_13', '12_8_14', '13_8_6', '14_8_15', '15_8_16', '16_8_21', '17_8_22', '18_8_25']
 
 subject_processes, function_processes, firstsubj, lastsubj = parse_arguments(sys.argv, subjects)
+
 
 removed_list = []
 for remove in removed_list:
     if remove in subjects:
         subjects.remove(remove)
 
+
 subjects = subjects[firstsubj:lastsubj]
 subjects.sort()
 print(subjects)
 
-proc_subjn=""
+
+
+proc_subjn="V"
 denoise="None"
 recenter=0
 proc_name ="diffusion_prep_"+proc_subjn
@@ -120,9 +118,10 @@ if subject_processes>1:
 else:
     for subject in subjects:
         max_size=0
-        print(os.path.join(os.path.join(outpath, "diffusion*"+subject+"*")))
-        subjectpath = glob_remote(os.path.join(diffpath, "Vitek_"+subject+"*"), sftp)[0]
-        max_file=glob.glob(os.path.join(subjectpath,'*_raw_mean.nii.gz'))
+        subject_outpath = glob.glob(os.path.join(os.path.join(outpath, "diffusion*"+subject+"*")))[0]
+        print(subject_outpath)
+        print(os.path.join(subject_outpath,'*_raw_mean.nii.gz'))
+        max_file=glob.glob(os.path.join(subject_outpath,'*_raw*.nii.gz'))[0]
         print(max_file)
         #command = gunniespath + "mouse_diffusion_preprocessing.bash"+ f" {subject} {max_file} {outpath}"
         if os.path.exists(os.path.join(shortcuts_all_folder,f'{proc_subjn + subject}_fa.nii.gz')) and os.path.exists(os.path.join(SAMBA_inputs_folder, f'{proc_subjn + subject}_fa.nii.gz')):
@@ -132,3 +131,4 @@ else:
             launch_preprocessing(proc_subjn + subject, max_file, outpath, cleanup, nominal_bval, SAMBA_inputs_folder,
                                  shortcuts_all_folder, gunniespath, function_processes, masking, ref, transpose, overwrite, denoise,
                              recenter, verbose)
+
