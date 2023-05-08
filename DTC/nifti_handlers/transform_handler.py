@@ -107,6 +107,52 @@ def trans_reg(static, static_grid2world,
     return transformed, translation.affine
 
 
+def translation_reg(static, static_grid2world,
+              moving, moving_grid2world, return_trans=False):
+
+    if np.size(np.shape(moving))>3:
+        moving = moving[...,0]
+
+    if np.isnan(np.min(static)):
+        static[np.isnan(static)] = 0
+
+    if np.isnan(np.min(moving)):
+        moving[np.isnan(moving)] = 0
+
+    c_of_mass = transform_centers_of_mass(static,
+                                          static_grid2world,
+                                          moving,
+                                          moving_grid2world)
+
+    nbins = 32
+    sampling_prop = None
+    metric = MutualInformationMetric(nbins, sampling_prop)
+
+    level_iters = [500, 100, 10]
+
+    sigmas = [3.0, 1.0, 0.0]
+
+    factors = [4, 2, 1]
+
+    affreg = AffineRegistration(metric=metric,
+                                level_iters=level_iters,
+                                sigmas=sigmas,
+                                factors=factors)
+
+    transform = TranslationTransform3D()
+    params0 = None
+    starting_affine = c_of_mass.affine
+    translation = affreg.optimize(static, moving, transform, params0,
+                                  static_grid2world, moving_grid2world,
+                                  starting_affine=starting_affine)
+
+    transformed = translation.transform(moving)
+
+    if return_trans:
+        return transformed, translation.affine, translation
+    return transformed, translation.affine
+
+
 def rigid_reg(static, static_grid2world,
               moving, moving_grid2world, return_rigid=False):
 

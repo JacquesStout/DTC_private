@@ -43,7 +43,7 @@ def _to_voxel_coordinates_notint(streamline, lin_T, offset):
 ext = ".nii.gz"
 computer_name = socket.gethostname()
 
-remote=True
+remote=False
 project='AD_Decode'
 if remote:
     username, passwd = getfromfile(os.path.join(os.environ['HOME'],'remote_connect.rtf'))
@@ -51,6 +51,8 @@ else:
     username = None
     passwd = None
 inpath, _, _, sftp = get_mainpaths(remote,project = project, username=username,password=passwd)
+
+
 
 outpath = '/mnt/paros_WORK/jacques/AD_Decode'
 if project == "AD_Decode":

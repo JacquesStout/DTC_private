@@ -416,17 +416,17 @@ def setup_view(trk_object, colors=None, world_coords=False, show=True, fname=Non
             show_x = True
             show_y = True
             show_z = True
-        elif plane == 'x':
+        if 'x' in plane:
             show_x=True
-        elif plane == 'y':
+        if 'y' in plane:
             show_y=True
-        elif plane == 'z':
+        if 'z' in plane:
             show_z=True
-        else:
-            warnings.warn('Plane was not a recognized parameter, showing no planes by default')
-            show_x = False
-            show_y = False
-            show_z = False
+        #else:
+        #    warnings.warn('Plane was not a recognized parameter, showing no planes by default')
+        #    show_x = False
+        #    show_y = False
+        #    show_z = False
         return show_x, show_y, show_z
 
     def change_slice_z(slider):

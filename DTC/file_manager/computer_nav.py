@@ -363,6 +363,13 @@ def checkfile_exists_remote(path, sftp=None):
     else:
         return False
 
+def checkfile_exists_all(paths, sftp=None):
+    exists=True
+    for path in paths:
+        if not checkfile_exists_remote(path, sftp):
+            exists=False
+    return exists
+
 
 def checkallfiles(paths, sftp=None):
     for path in paths:

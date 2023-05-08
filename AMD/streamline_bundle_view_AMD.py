@@ -65,7 +65,7 @@ ratio = 1
 top_percentile = 100
 num_bundles = 20
 num_bundles_toview = 10
-distance = 3
+distance = 15
 num_points = 50
 
 if project == 'AD_Decode':
@@ -104,9 +104,10 @@ if project == 'AMD':
     groups_set = {'Initial':[2,3],'2Year':[0,1]}
     target_tuples_all = {'Initial': [(62, 28), (58, 45),(77, 43), (61, 29)], '2Year': [(28, 9), (62, 1),(77, 43), (61, 29)]}
     group_select = '2Year'
-    groups = [groups_all[x] for x in groups_set[group_select]]
-    target_tuples = target_tuples_all[group_select]
-    target_tuples = [(62, 28), (58, 45), (28, 9), (62, 1)]
+    #groups = ['Paired 2-YR Control', 'Paired 2-YR AMD']
+    #target_tuples = target_tuples_all[group_select]
+    #target_tuples = [(62, 28), (58, 45), (28, 9), (62, 1)]
+
     anat_path = os.path.join('/Volumes/Data/Badea/Lab/mouse/VBM_19BrainChAMD01_IITmean_RPI_with_2yr-work/dwi/SyN_0p5_3_0p5_dwi/dwiMDT_Control_n72_i6/median_images/MDT_dwi.nii.gz')
 
     inpath = os.path.join(mainpath, 'Data', project)
@@ -123,12 +124,10 @@ if project == 'AMD':
     #TN-PCA / VBA combination
     #target_tuples = [(62, 28), (58, 45), (28, 9), (62, 1), (77, 43), (61, 29)]
 
-    group_select = '2Year'
-    groups = [groups_all[x] for x in groups_set[group_select]]
     #Initial tuples
     target_tuples = [(62, 28), (58, 45),(77, 43), (61, 29)]
     target_tuples = [(62, 28), (28, 9), (62, 1)]
-    target_tuples = [(62, 28)]
+    target_tuples = [(28, 9)]
     #All tuples
     #target_tuples = [(62, 28), (58, 45), (28, 9), (62, 1), (77, 43), (61, 29)]
     plane = 'x'
@@ -175,14 +174,17 @@ _, _, index_to_struct, _ = atlas_converter(ROI_legends)
 
 
 other_spec = '_mrtrix'
-#other_spec = ''
+other_spec = ''
 
 if other_spec == '_mrtrix':
     space_param = '_MDT'
 else:
     space_param = '_affinerigid'
 
-stats_folder = os.path.join(outpath, f'Statistics_allregions_distance_{str(distance)}{space_param}{inclusive_str}{symmetric_str}{folder_ratio_str}{other_spec}')
+
+stat_type = '_bundlesizelim'
+
+stats_folder = os.path.join(outpath, f'Statistics{stat_type}_distance_{str(distance)}{space_param}{inclusive_str}{symmetric_str}{folder_ratio_str}{other_spec}')
 figures_path = os.path.join(outpath, f'Figures_distance_{str(distance)}{space_param}{inclusive_str}{symmetric_str}{folder_ratio_str}{other_spec}')
 
 centroid_folder = os.path.join(outpath, f'Centroids{space_param}{inclusive_str}{symmetric_str}{folder_ratio_str}{other_spec}')
@@ -237,12 +239,19 @@ coloring = 'streams_id_coloring'
 
 references = ['fa']
 
+spec_list = [4,6,9,10]
+#[(62, 28),(58,45),(28,9), (62, 1)]
 
 
+group_select = '2Year'
+target_tuples = [(62, 1)]
+spec_list = [4]
 
 firsttest = True
 
 interactive=True
+
+groups = [groups_all[x] for x in groups_set[group_select]]
 
 for target_tuple in target_tuples:
 
@@ -344,6 +353,7 @@ for target_tuple in target_tuples:
             colorbar = True
 
             figures_coloring_path = os.path.join(figures_path, coloring)
+            figures_coloring_path = os.path.join(figures_coloring_path, 'temp_single_bundles_view')
             #figures_coloring_path = os.path.join(mainpath, figures_path, 'test_zone')
             mkcdir(figures_coloring_path, sftp)
 
@@ -512,6 +522,9 @@ for target_tuple in target_tuples:
                 neworder = bundleorder.to_dict()[group]
 
                 bundle_streamlines = []
+
+                num_bundles_toview = np.min([len(neworder.keys()),num_bundles_toview])
+
                 neworder2 = np.zeros([num_bundles_toview, 1])
                 for i in np.arange(num_bundles_toview):
                     neworder2[i] = neworder[i]
@@ -520,6 +533,11 @@ for target_tuple in target_tuples:
 
                 for bundle in selected_bundles:
                     bundle_streamlines.append(streamlines[bundle.indices])
+
+                if np.size(spec_list)>0:
+                    #bundle_streamlines = bundle_streamlines[spec_list]
+                    bundle_streamlines = [bundle_streamlines[x] for x in spec_list]
+
                 coloring_vals = fury.colormap.distinguishable_colormap(nb_colors=np.size(selected_bundles))
                 trkobject = bundle_streamlines[:num_bundles_toview]
                 if np.size(selected_bundles)>len(coloring_vals):

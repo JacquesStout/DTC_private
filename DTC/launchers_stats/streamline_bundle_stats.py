@@ -80,10 +80,11 @@ elif project == 'AMD':
     target_tuples_all = {'Initial':[(62, 28), (58, 45)],'2Year':[(28, 9), (62, 1)]}
     target_tuples_all = {'Initial': [(62, 28), (58, 45),(77, 43), (61, 29)], '2Year': [(28, 9), (62, 1),(77, 43), (61, 29)]}
     group_selects = ['2Year', 'Initial']
+    group_selects = ['Initial']
     #groups = ['Paired Initial Control', 'Paired Initial AMD']
     #groups = ['Paired 2-YR Control', 'Paired 2-YR AMD']
     target_tuples = [(62, 28), (58, 45), (28, 9), (62, 1), (77, 43), (61, 29)]
-    target_tuples = [(62, 28), (28, 9), (62, 1)]
+    target_tuples = [(62, 1)]
     #target_tuples = [(62,28), (28, 9), (62, 1)]
     #target_tuples = [(58, 45)]
     #target_tuples = [(58, 45)]
@@ -147,7 +148,7 @@ _, _, index_to_struct, _ = atlas_converter(ROI_legends)
 
 other_spec = '_mrtrix'
 other_spec = ''
-distance = 3
+distance = 20
 
 
 if other_spec == '_mrtrix':
@@ -202,6 +203,7 @@ for group_select in group_selects:
     control = groups[0]
     non_control = groups[1]
 
+
     if 'AMD' in control:
         raise Exception('Again with this nonsense!')
 
@@ -212,6 +214,9 @@ for group_select in group_selects:
         print(target_tuple[0], target_tuple[1])
         region_connection = index_to_struct[target_tuple[0]] + '_to_' + index_to_struct[target_tuple[1]]
         print(region_connection)
+
+        csv_bundleorder = os.path.join(stats_folder,
+                                       group_select + '_' + region_connection + ratio_str + f'_bundle_order.csv')
 
         if write_txt:
             text_path = os.path.join(figures_path, region_connection + '_stats.txt')
@@ -321,6 +326,9 @@ for group_select in group_selects:
                 num_streamlines = [np.shape(cluster)[0] for cluster in group_clusters.clusters]
                 num_streamlines = group_clusters.clusters_sizes()
                 top_bundles = sorted(range(len(num_streamlines)), key=lambda i: num_streamlines[i], reverse=True)[:]
+            else:
+                raise Exception('Did not implement alternative')
+
             for bundle in top_bundles:
                 selected_bundles[group].append(group_clusters.clusters[bundle])
                 selected_centroids[group].append(group_clusters.centroids[bundle])
@@ -429,7 +437,6 @@ for group_select in group_selects:
         for j,group in enumerate(groups):
             group_list[group]=([np.arange(num_bundles)[dist_all_idx[i][j]] for i in range(num_bundles)])
 
-        csv_bundleorder = os.path.join(stats_folder, group_select + '_' + region_connection + ratio_str + f'_bundle_order.csv')
         groupbundleorder = np.zeros((num_bundles, 2))
         groupbundleorder[:, 0] = group_list[control]
         groupbundleorder[:, 1] = group_list[non_control]
@@ -568,9 +575,12 @@ for group_select in group_selects:
                 weights[group] = []
                 for id in np.arange(num_bundles):
                     bundle = selected_bundles[group][id]
-                    oriented_group = dts.orient_by_streamline(streamlines[group][bundle.indices], bundle.centroid)
-                    w_group = dsa.gaussian_weights(oriented_group,n_points = num_points)
-                    weights[group].append(w_group)
+                    if np.size(bundle.indices)>1:
+                        oriented_group = dts.orient_by_streamline(streamlines[group][bundle.indices], bundle.centroid)
+                        w_group = dsa.gaussian_weights(oriented_group,n_points = num_points)
+                        weights[group].append(w_group)
+                    else:
+                        weights[group].append(np.ones([1,50]))
 
         size_header = 3 #bundle id, streamline id, point id
         size_header+=1 #length of streamlines
@@ -614,7 +624,7 @@ for group_select in group_selects:
                         object_actor = actor.line(selected_bundles[group][idbundle], colors_points, linewidth=0.2, lookup_colormap=colors)
                         """
                         #
-                    for i,s in enumerate(selected_bundles[group][idbundle].indices):
+                    for j,s in enumerate(selected_bundles[group][idbundle].indices):
                         #temp = np.hstack((idsize * np.ones((num_points, 1)),
                         #                  idbundle * np.ones((num_points, 1)),
                         #                  s * np.ones((num_points, 1)),
@@ -627,13 +637,13 @@ for group_select in group_selects:
                                           list(utils.length([streamlines[group][s]])) * np.ones((num_points, 1))))
                         if add_bcoherence:
                             try:
-                                temp = np.hstack((temp, rfbc_bundle[i] * np.ones((num_points, 1))))
+                                temp = np.hstack((temp, rfbc_bundle[j] * np.ones((num_points, 1))))
                             except:
                                 print('hi')
                             temp = np.hstack((temp, np.array(lfbc_orig).reshape(num_points, 1)))
                         if add_weighttobundle:
                             try:
-                                temp = np.hstack((temp,np.array(weights[group][idbundle][i]).reshape(num_points, 1)))
+                                temp = np.hstack((temp,np.array(weights[group][idbundle][j]).reshape(num_points, 1)))
                             except:
                                 print('hi')
                         for ref in references:
@@ -644,7 +654,10 @@ for group_select in group_selects:
                             else:
                                 ref_points_streamidx = ref_points[group, ref]
                             temp = np.hstack((temp,np.array(ref_points_streamidx[s]).reshape(num_points, 1)))
-                        groupcsv = np.vstack((groupcsv, temp))
+                        try:
+                            groupcsv = np.vstack((groupcsv, temp))
+                        except:
+                            print('hi')
 
                 groupcsv = groupcsv[1:, :]
                 groupcsvDF = pd.DataFrame(groupcsv)
