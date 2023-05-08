@@ -79,6 +79,7 @@ import xlrd
 import warnings
 import shutil
 import dipy.reconst.msdki as msdki
+from DTC.tract_manager.tract_save import save_trk_heavy_duty
 
 from multiprocessing import Pool
 from DTC.nifti_handlers.atlas_handlers.convert_atlas_mask import convert_labelmask, atlas_converter, get_mask_labels, create_label_mask, make_act_classifier
@@ -384,7 +385,8 @@ def prunestreamline(trkorigpath, trkprunepath, cutoff = 4, forcestart = False):
         myheader = create_tractogram_header(trkprunepath, *header)
         prune_sl = lambda: (s for s in pruned_streamlines)
         if prunesave:
-            tract_manager.tract_save.save_trk_heavy_duty(trkprunepath, streamlines=prune_sl, affine=affine, header=myheader)
+            save_trk_heavy_duty(trkprunepath, streamlines=prune_sl, affine=affine, header=myheader)
+            save_trk_heavy_duty(trkprunepath, streamlines=prune_sl, affine=affine, header=myheader)
         return(pruned_streamlines)
 """
 
@@ -813,7 +815,8 @@ def tract_connectome_analysis_old(dwipath, trkpath, str_identifier, outpath, sub
         myheader = create_tractogram_header(trkprunepath, *header)
         prune_sl = lambda: (s for s in pruned_streamlines)
         if prunesave:
-            tract_manager.tract_save.save_trk_heavy_duty(trkprunepath, streamlines=prune_sl, affine=affine, header=myheader)
+            #save_trk_heavy_duty(trkprunepath, streamlines=prune_sl, affine=affine, header=myheader)
+            save_trk_heavy_duty(trkprunepath, streamlines=prune_sl, affine=affine, header=myheader)
         del(prune_sl,pruned_streamlines,trkdata)
     else:
         trkprunedata = load_trk(trkprunepath, "same")
@@ -1150,7 +1153,8 @@ def create_tracts(diffpath, outpath, subject, figspath, step_size, peak_processe
                 ref_info = trkdata.space_attributes
             myref = create_tractogram_header(outpathtrk, *ref_info)
             prune_sl = lambda: (s for s in pruned_streamlines)
-            tract_manager.tract_save.save_trk_heavy_duty(outpathtrk, streamlines=prune_sl, affine=affine, header=myref)
+            #tract_manager.tract_save.save_trk_heavy_duty(outpathtrk, streamlines=prune_sl, affine=affine, header=myref)
+            save_trk_heavy_duty(outpathtrk, streamlines=prune_sl, affine=affine, header=myref)
             del (prune_sl, pruned_streamlines, trkdata)
             if get_params:
                 numtracts, minlength, maxlength, meanlength, stdlength = get_tract_params(outpathtrk, subject,
@@ -1317,7 +1321,8 @@ def create_tracts_test(diffpath, outpath, subject, figspath, step_size, peak_pro
                 ref_info = trkdata.space_attributes
             myref = create_tractogram_header(outpathtrk, *ref_info)
             prune_sl = lambda: (s for s in pruned_streamlines)
-            DTC.tract_manager.tract_save.save_trk_heavy_duty(outpathtrk, streamlines=prune_sl, affine=affine, header=myref)
+            #DTC.tract_manager.tract_save.save_trk_heavy_duty(outpathtrk, streamlines=prune_sl, affine=affine, header=myref)
+            save_trk_heavy_duty(outpathtrk, streamlines=prune_sl, affine=affine, header=myref)
             del (prune_sl, pruned_streamlines, trkdata)
             if get_params:
                 numtracts, minlength, maxlength, meanlength, stdlength = get_tract_params(outpathtrk, subject,
@@ -1420,6 +1425,7 @@ def evaluate_coherence(dwipath,trkpath,subject,stepsize, tractsize, labelslist=N
             prune_sl = lambda: (s for s in trkstreamlines)
             tract_manager.tract_save.save_trk_heavy_duty(trkprunefile, streamlines=prune_sl,
                                            affine=affine, header=myheader)
+            save_trk_heavy_duty(trkprunefile, streamlines=prune_sl, affine=affine, header=myheader)
     """
 
     trkdata = load_trk(trkfile, "same")
@@ -1455,8 +1461,9 @@ def tract_getroi(trkstreamlines, affine, myheader, labelslist, labelmask, trkroi
     #trkroipath = trkpath + '/' + subject + '_' + tractsize + strproperty + stepsize + '.trk'
     #myheader = create_tractogram_header(trkroipath, *header)
     roi_sl = lambda: (s for s in trkroistreamlines)
-    tract_manager.tract_save.save_trk_heavy_duty(trkroipath, streamlines=roi_sl,
-                affine=affine, header=myheader)
+    #tract_manager.tract_save.save_trk_heavy_duty(trkroipath, streamlines=roi_sl,
+    #            affine=affine, header=myheader)
+    save_trk_heavy_duty(trkroipath, streamlines=roi_sl,affine=affine, header=myheader)
     if verbose:
         txt = "Successfully saved trk roi at "+trkroipath
     return trkroistreamlines, roi_sl
@@ -1548,8 +1555,9 @@ def evaluate_tracts(diffpath,trkpath,subject,stepsize, tractsize, labelslist=Non
             trkstreamlines=prune_streamlines(list(trkstreamlines), diff_data[:, :, :, 0], cutoff=cutoff, verbose=verbose)
             myheader = create_tractogram_header(trkprunefile, *header)
             prune_sl = lambda: (s for s in trkstreamlines)
-            tract_manager.tract_save.save_trk_heavy_duty(trkprunefile, streamlines=prune_sl,
-                                           affine=affine, header=myheader)
+            #tract_manager.tract_save.save_trk_heavy_duty(trkprunefile, streamlines=prune_sl,
+            #                               affine=affine, header=myheader)
+            save_trk_heavy_duty(trkprunefile, streamlines=prune_sl, affine=affine, header=myheader)
 
         trkfile = trkprunefile
 
@@ -1605,7 +1613,7 @@ def evaluate_tracts(diffpath,trkpath,subject,stepsize, tractsize, labelslist=Non
             myheader = create_tractogram_header(trkroipath, *header)
             roi_sl = lambda: (s for s in trkstreamlines)
             if allsave:
-                tract_manager.tract_save.save_trk_heavy_duty(trkroipath, streamlines=roi_sl,
+                save_trk_heavy_duty(trkroipath, streamlines=roi_sl,
                             affine=affine, header=myheader)
         else:
             trkdata = load_trk(trkroipath, 'same')
@@ -1627,7 +1635,7 @@ def evaluate_tracts(diffpath,trkpath,subject,stepsize, tractsize, labelslist=Non
                 myheader = create_tractogram_header(trkminipath, *header)
                 ratioed_roi_sl_gen = lambda: (s for s in trkstreamlines)
                 if allsave:
-                    tract_manager.tract_save.save_trk_heavy_duty(trkroiminipath, streamlines=ratioed_roi_sl_gen,
+                    save_trk_heavy_duty(trkroiminipath, streamlines=ratioed_roi_sl_gen,
                                         affine=affine, header=myheader)
             else:
                 trkdata = load_trk(trkminipath, 'same')

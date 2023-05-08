@@ -11,6 +11,7 @@ import shutil, re
 def getremotehome(computer):
     import re
     homepaths_file = os.path.join(os.path.expanduser('~'), 'homepaths.rtf')
+    computer = ''.join(filter(str.isalpha, computer))
     if os.path.exists(homepaths_file):
         with open(homepaths_file, 'rb') as source:
             for line in source:
