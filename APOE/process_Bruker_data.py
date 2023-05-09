@@ -1,8 +1,9 @@
 #! /bin/bash
 
-from file_manager.file_tools import mkcdir
+from DTC.file_manager.file_tools import mkcdir
 import os
 
+"""
 inpath = '/Users/${T_USER}/bruker/raw_pcasl_data'
 outpath = '/Users/${T_USER}/bruker/bruker_processing_plant'
 #outpath = ~ / bruker_processing_plant /
@@ -36,3 +37,4 @@ fi
 done
 
 # We will next deal with interleaving and maybe masking?
+"""

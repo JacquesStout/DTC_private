@@ -20,7 +20,14 @@ from DTC.file_manager.computer_nav import get_mainpaths, get_atlas, load_trk_rem
 
 project = 'AMD'
 
-#subject = sys.argv[1]
+subject = sys.argv[1]
+mrtrix = sys.argv[2]
+
+if mrtrix:
+    print('getting the mrtrix folder')
+else:
+    print('getting the none mrtrix folder')
+
 subject = 'H21593'
 
 remote = True
@@ -82,8 +89,6 @@ print(f'there are {function_processes} function processes')
 
 # TRK_folder = os.path.join(inpath, f'TRK_MPCA_MDT{fixed_str}{folder_ratio_str}')
 space_type = 'MDT'
-
-mrtrix=True
 
 if mrtrix:
     trk_type = '_trix'

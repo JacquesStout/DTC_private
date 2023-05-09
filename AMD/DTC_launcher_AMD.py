@@ -1,6 +1,6 @@
 
 import numpy as np
-from DTC.tract_manager import create_tracts, diff_handlers.diff_preprocessing, tract_connectome_analysis, get_diffusionattributes, get_str_identifier
+from DTC.tract_manager.DTC_manager import create_tracts, tract_connectome_analysis, get_diffusionattributes, get_str_identifier
 from DTC.file_manager.Daemonprocess import MyPool
 import multiprocessing as mp
 import os, sys
