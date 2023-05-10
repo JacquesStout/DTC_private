@@ -134,7 +134,7 @@ other_param = '_mrtrix'
 other_param = ''
 
 if other_param=='_mrtrix':
-    target_tuples = [(62, 28), (28, 9), (62, 1)]
+    target_tuples = [(62, 28),(58,45), (28, 9), (62, 1)]
     target_tuples = [(36,70),(36,28),(70,62),(36,62),(70,28)]
     #target_tuples = [(36,62),(70,28)]
     TRK_folder = os.path.join('/Volumes/dusom_mousebrains/All_Staff/Nariman_mrtrix_amd', 'TRK_trix_MDT')

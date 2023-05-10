@@ -1,1 +1,0 @@
-dwigradcheck -mask {mask} -number 10k -fslgrad {bvals} {bevels} -export_grad_fsl bvals_correct bvecs_correct

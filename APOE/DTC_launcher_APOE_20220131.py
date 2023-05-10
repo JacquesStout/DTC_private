@@ -12,15 +12,15 @@ import numpy as np
 import os
 import multiprocessing as mp
 import pickle
-from tract_manager import create_tracts, tract_connectome_analysis, diff_handlers.diff_preprocessing
-from diff_handlers.bvec_handler import extractbvec_fromheader
-from file_manager.BIAC_tools import send_mail
-from file_manager.Daemonprocess import MyPool
-from file_manager.argument_tools import parse_arguments
+#from DTC.tract_manager import create_tracts, tract_connectome_analysis, diff_handlers.diff_preprocessing
+#from DTC.diff_handlers.bvec_handler import extractbvec_fromheader
+from DTC.file_manager.BIAC_tools import send_mail
+from DTC.file_manager.Daemonprocess import MyPool
+from DTC.file_manager.argument_tools import parse_arguments
 import pandas as pd
 from pandas import ExcelWriter
 from pandas import ExcelFile
-from file_manager.BIAC_tools import isempty
+from DTC.file_manager.BIAC_tools import isempty
 
 import sys, getopt, glob
 
