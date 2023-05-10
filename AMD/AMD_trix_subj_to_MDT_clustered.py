@@ -263,7 +263,7 @@ if trk_to_MDT and (not final_img_exists or overwrite):
     resampled_hdr = nib.load(filepath_resampled_path).header
 
     pickle_rigid_path = os.path.join(path_transforms, 'subj_to_init_affine.py')
-    if not os.path.exists(pickle_rigid_path) or True:
+    if not os.path.exists(pickle_rigid_path) or overwrite:
         transformed, rigid_affine = rigid_reg(SAMBA_init_data, SAMBA_init_nii.affine, resampled_data, resampled_aff)
         new_nii = nib.Nifti1Image(transformed, resampled_aff, resampled_hdr)
         pickledump_remote(rigid_affine, pickle_rigid_path, sftp=sftp)
