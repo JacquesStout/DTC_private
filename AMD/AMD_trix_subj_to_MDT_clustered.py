@@ -16,7 +16,7 @@ from DTC.tract_manager.DTC_manager import get_str_identifier
 from DTC.file_manager.file_tools import mkcdir, check_files, getfromfile
 from DTC.tract_manager.DTC_manager import check_dif_ratio
 from DTC.file_manager.computer_nav import get_mainpaths, load_nifti_remote, load_trk_remote, loadmat_remote, \
-    checkfile_exists_remote
+    checkfile_exists_remote, pickledump_remote, remote_pickle
 import random
 from DTC.tract_manager.tract_handler import transform_streamwarp
 import time
@@ -116,6 +116,7 @@ affine_orig = os.path.join(path_transforms, f"{subj}_affine.mat")
 #affine = os.path.join(path_transforms, f"{subj}_affine.txt")
 runno_to_MDT = os.path.join(path_transforms, f'{subj}_to_MDT_warp.nii.gz')
 #runno_to_MDT = f'/Volumes/dusom_abadea_nas1/munin_js/VBM_backups/VBM_19BrainChAMD01_IITmean_RPI_with_2yr-work/dwi/SyN_0p5_3_0p5_fa/faMDT_Control_n72_i6/reg_diffeo/{subj}_to_MDT_warp.nii.gz'
+MDT_to_runno = os.path.join(path_transforms, f'MDT_to_{subj}_warp.nii.gz')
 subj_dwi = os.path.join(path_DWI, f'{subj}_subjspace_dwi{ext}')
 SAMBA_ref = os.path.join(path_transforms, f'reference_file_c_isotropi.nii.gz')
 
@@ -209,11 +210,8 @@ trk_MDT_space = os.path.join(path_TRK_output, f'{subj}_MDT.trk')
 
 # final_img_exists = checkfile_exists_remote(trk_MDT_space)
 final_img_exists = checkfile_exists_remote(trk_MDT_space, sftp)
-overwrite = True
 
 if trk_to_MDT and (not final_img_exists or overwrite):
-
-    overwrite = False
 
     # subj_trk, trkexists = gettrkpath(path_TRK, subj, '_smallerTracks2mill', pruned=prune, verbose=False, sftp=sftp)
     # subj_trk, trkexists = gettrkpath(path_TRK, subj, str_identifier, pruned=prune, verbose=False, sftp=sftp)
@@ -271,13 +269,13 @@ if trk_to_MDT and (not final_img_exists or overwrite):
         pickledump_remote(rigid_affine, pickle_rigid_path, sftp=sftp)
     else:
         rigid_affine = remote_pickle(pickle_rigid_path)
-    nib.save(new_nii, filepath_resampled_reoriented_rigid)
+    #nib.save(new_nii, filepath_resampled_reoriented_rigid)
 
     if os.path.exists(filepath_resampled_reoriented):
         os.remove(filepath_resampled_reoriented)
 
-    # if os.path.exists(filepath_resampled_path):
-    #    os.remove(filepath_resampled_path)
+    if os.path.exists(filepath_resampled_path):
+        os.remove(filepath_resampled_path)
 
     # params = np.array(np.squeeze(np.reshape(rigid_affine[:3,:3],[9,1])).tolist() + [0.0,0.0,0.0])
     # ants_transform = create_ants_transform(transform_type="AffineTransform", precision="float", dimension=3, parameters=params)
@@ -412,9 +410,7 @@ if trk_to_MDT and (not final_img_exists or overwrite):
     print('finished')
     # streamlines_postrigidaffine, header_postrigidaffine = unload_trk(trk_preprocess_postrigid_affine)
 
-    overwrite = True
-
-    warp_data, warp_affine, _, _, _ = load_nifti_remote(runno_to_MDT, None)
+    warp_data, warp_affine, _, _, _ = load_nifti_remote(MDT_to_runno, None)
 
     taf = time.perf_counter()
 

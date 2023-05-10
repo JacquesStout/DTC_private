@@ -16,7 +16,7 @@ from DTC.tract_manager.DTC_manager import get_str_identifier
 from DTC.file_manager.file_tools import mkcdir, check_files, getfromfile
 from DTC.tract_manager.DTC_manager import check_dif_ratio
 from DTC.file_manager.computer_nav import get_mainpaths, load_nifti_remote, load_trk_remote, loadmat_remote, \
-    checkfile_exists_remote
+    checkfile_exists_remote, pickledump_remote, remote_pickle
 import random
 from DTC.tract_manager.tract_handler import transform_streamwarp
 import time
@@ -60,7 +60,7 @@ outpath = '/mnt/munin2/Badea/Lab/human/AMD_project_23'
 if project == "AMD":
     path_TRK = os.path.join(inpath, 'TRK')
     path_DWI = os.path.join(inpath, 'DWI')
-    ref = "md"
+    ref = "fa"
     path_trk_tempdir = os.path.join(outpath, 'TRK_transition')
     path_TRK_output = os.path.join(outpath, 'TRK_MDT_farun')
 
@@ -76,14 +76,15 @@ stepsize = 2
 ratio = 1
 trkroi = ["wholebrain"]
 str_identifier = get_str_identifier(stepsize, ratio, trkroi)
-prune = False
+prune = True
 overwrite = False
 cleanup = False
 verbose = True
 recenter = True
 
+save_temp_nii_files = False
 save_temp_trk_files = False
-erase_old_file=True
+del_orig_files = True
 
 nii_to_MDT = False
 trk_to_MDT = True
@@ -115,6 +116,7 @@ affine_orig = os.path.join(path_transforms, f"{subj}_affine.mat")
 #affine = os.path.join(path_transforms, f"{subj}_affine.txt")
 runno_to_MDT = os.path.join(path_transforms, f'{subj}_to_MDT_warp.nii.gz')
 #runno_to_MDT = f'/Volumes/dusom_abadea_nas1/munin_js/VBM_backups/VBM_19BrainChAMD01_IITmean_RPI_with_2yr-work/dwi/SyN_0p5_3_0p5_fa/faMDT_Control_n72_i6/reg_diffeo/{subj}_to_MDT_warp.nii.gz'
+MDT_to_runno = os.path.join(path_transforms, f'MDT_to_{subj}_warp.nii.gz')
 subj_dwi = os.path.join(path_DWI, f'{subj}_subjspace_dwi{ext}')
 SAMBA_ref = os.path.join(path_transforms, f'reference_file_c_isotropi.nii.gz')
 
@@ -168,14 +170,39 @@ if nii_to_MDT:
 
             SAMBA_ref = os.path.join(SAMBA_inits, f'reference_file_c_isotropi.nii.gz')
 
-            command_all = f"antsApplyTransforms -v 1 --float -d 3  -i {SAMBA_init_test} -o {SAMBA_postwarp} -r {SAMBA_ref} -n Linear -t {runno_to_MDT} [{affine_orig},0]  [{rigid},0]";
-            os.system(command_all)
+            if not save_temp_nii_files:
+                command_all = f"antsApplyTransforms -v 1 --float -d 3  -i {SAMBA_init_test} -o {SAMBA_postwarp} -r {SAMBA_ref} -n Linear -t {runno_to_MDT} [{affine_orig},0]  [{rigid},0]";
+                os.system(command_all)
+            else:
+                rigid_temp_path = os.path.join(path_DWI_temp, f'{subj}_{contrast}_postrigid{ext}')
+                affine_temp_path = os.path.join(path_DWI_temp, f'{subj}_{contrast}_postaffine{ext}')
 
-            if os.path.exists(SAMBA_postwarp):
+                command_all = f"antsApplyTransforms -v 1 --float -d 3  -i {SAMBA_init_test} -o {rigid_temp_path} -r {SAMBA_ref} -n Linear -t [{rigid},0]";
+                os.system(command_all)
+
+                command_all = f"antsApplyTransforms -v 1 --float -d 3  -i {rigid_temp_path} -o {affine_temp_path} -r {SAMBA_ref} -n Linear -t [{affine_orig},0]";
+                os.system(command_all)
+
+                command_all = f"antsApplyTransforms -v 1 --float -d 3  -i {affine_temp_path} -o {SAMBA_postwarp} -r {SAMBA_ref} -n Linear -t {runno_to_MDT}";
+                os.system(command_all)
+
+            if os.path.exists(SAMBA_postwarp) and os.path.exists(SAMBA_init_test_t):
                 os.remove(SAMBA_init_test_t)
+                # os.remove(SAMBA_init_test
 
         else:
             print(f'Already wrote {SAMBA_postwarp}')
+
+"""
+if ratio == 1:
+    str_identifier = '_smallerTracks2mill'
+elif ratio == 10:
+    str_identifier = '_smallerTracks100thousand'
+elif ratio == 100:
+    str_identifier = '_smallerTracks10thousand'
+else:
+    raise Exception('unrecognizable ratio value')
+"""
 
 trk_preprocess_posttrans = os.path.join(path_trk_tempdir, f'{subj}{str_identifier}_preprocess_posttrans.trk')
 trk_preprocess_postrigid = os.path.join(path_trk_tempdir, f'{subj}{str_identifier}_preprocess_postrigid.trk')
@@ -183,30 +210,35 @@ trk_preprocess_postrigid_affine = os.path.join(path_trk_tempdir,
                                                f'{subj}{str_identifier}_preprocess_postrigid_affine.trk')
 trk_MDT_space = os.path.join(path_TRK_output, f'{subj}_MDT.trk')
 
+# final_img_exists = checkfile_exists_remote(trk_MDT_space)
 final_img_exists = checkfile_exists_remote(trk_MDT_space, sftp)
-
+print('point 0')
+print(trk_MDT_space)
 if trk_to_MDT and (not final_img_exists or overwrite):
 
-    subj_trk, trkexists = gettrkpath(path_TRK, subj, '_smallerTracks2mill', pruned=prune, verbose=False, sftp=sftp)
-
+    # subj_trk, trkexists = gettrkpath(path_TRK, subj, '_smallerTracks2mill', pruned=prune, verbose=False, sftp=sftp)
+    # subj_trk, trkexists = gettrkpath(path_TRK, subj, str_identifier, pruned=prune, verbose=False, sftp=sftp)
     _, exists = check_files([trans, rigid, runno_to_MDT], sftp)
     print('reaching point 1')
 
     # subj_dwi = os.path.join(path_DWI, f'{subj}_coreg_diff{ext}')
-    subj_dwi = os.path.join(path_DWI, f'{subj}_subjspace_dwi{ext}')
-    _, subj_affine, _, _, _ = load_nifti_remote(subj_dwi, sftp)
+    subj_img_path = os.path.join(path_DWI, f'{subj}_subjspace_fa{ext}')
+    _, subj_affine, _, _, _ = load_nifti_remote(subj_img_path, sftp)
 
-    SAMBA_init = os.path.join(SAMBA_inits, f'{subj}_dwi_masked{ext}')
+    SAMBA_init = os.path.join(SAMBA_inits, f'{subj}_fa_masked{ext}')
     _, init_affine, _, _, _ = load_nifti_remote(SAMBA_init, sftp)
 
     affine_subj_to_prepro = get_affine_transform(subj_affine, np.eye(4))
+
+    # Test Part 2:
 
     from ants.registration import resample_image_to_target
     from ants import image_write, image_read
 
     filepath_resampled_path = os.path.join(outpath, f'{subj}_subj_resampled{ext}')
-    resampled = resample_image_to_target(image_read(subj_dwi), image_read(SAMBA_init))
-    image_write(resampled, filepath_resampled_path)
+    if not os.path.exists(filepath_resampled_path) or overwrite:
+        resampled = resample_image_to_target(image_read(subj_img_path), image_read(SAMBA_init))
+        image_write(resampled, filepath_resampled_path)
 
     filepath_resampled_reoriented = os.path.join(outpath, f'{subj}_subj_resampled_reoriented{ext}')
     filepath_resampled_reoriented_rigid = os.path.join(outpath, f'{subj}_subj_resampled_rigidreoriented{ext}')
@@ -214,55 +246,134 @@ if trk_to_MDT and (not final_img_exists or overwrite):
     affine_subj_to_init[:3, 3] = [0, 0, 0]
     params = np.array(np.squeeze(np.reshape(affine_subj_to_init[:3, :3], [9, 1])).tolist() + [0.0, 0.0, 0.0])
 
-    ants_transform_rigid = create_ants_transform(transform_type="AffineTransform", precision="float", dimension=3,
-                                                 parameters=params)
-
     affine_rigid_path = os.path.join(outpath, f'{subj}_subjtoinitaffinerigid.mat')
-    if not os.path.exists(affine_rigid_path):
+
+    if not os.path.exists(affine_rigid_path) or overwrite:
+        ants_transform_rigid = create_ants_transform(transform_type="AffineTransform", precision="float", dimension=3,
+                                                     parameters=params)
         write_transform(ants_transform_rigid, affine_rigid_path)
 
-    cmd = f"antsApplyTransforms -v 1 --float -d 3  -i {filepath_resampled_path} -o {filepath_resampled_reoriented} -r {SAMBA_ref} -n Linear -t [{affine_rigid_path},0]";
-    os.system(cmd)
+    if not os.path.exists(filepath_resampled_reoriented) or overwrite:
+        cmd = f"antsApplyTransforms -v 1 --float -d 3  -i {filepath_resampled_path} -o {filepath_resampled_reoriented} -r {SAMBA_ref} -n Linear -t [{affine_rigid_path},0]";
+        os.system(cmd)
 
-    SAMBA_init = os.path.join(SAMBA_inits, f'{subj}_dwi_masked.nii.gz')
+    SAMBA_init = os.path.join(SAMBA_inits, f'{subj}_fa_masked.nii.gz')
     SAMBA_init_nii = nib.load(SAMBA_init)
     SAMBA_init_data = SAMBA_init_nii.get_fdata()
 
+    resampled_data = nib.load(filepath_resampled_path).get_fdata()
     resampled_aff = nib.load(filepath_resampled_path).affine
     resampled_hdr = nib.load(filepath_resampled_path).header
 
-    transformed, rigid_affine = rigid_reg(SAMBA_init_data, SAMBA_init_nii.affine, resampled.numpy(), resampled_aff)
-
-    new_nii = nib.Nifti1Image(transformed, resampled_aff, resampled_hdr)
-    # nib.save(new_nii,filepath_resampled_reoriented_rigid)
+    pickle_rigid_path = os.path.join(path_transforms, 'subj_to_init_affine.py')
+    if not os.path.exists(pickle_rigid_path) or True:
+        transformed, rigid_affine = rigid_reg(SAMBA_init_data, SAMBA_init_nii.affine, resampled_data, resampled_aff)
+        new_nii = nib.Nifti1Image(transformed, resampled_aff, resampled_hdr)
+        pickledump_remote(rigid_affine, pickle_rigid_path, sftp=sftp)
+    else:
+        rigid_affine = remote_pickle(pickle_rigid_path)
+    nib.save(new_nii, filepath_resampled_reoriented_rigid)
 
     if os.path.exists(filepath_resampled_reoriented):
         os.remove(filepath_resampled_reoriented)
 
-    if os.path.exists(filepath_resampled_path):
-        os.remove(filepath_resampled_path)
+    # if os.path.exists(filepath_resampled_path):
+    #    os.remove(filepath_resampled_path)
 
+    # params = np.array(np.squeeze(np.reshape(rigid_affine[:3,:3],[9,1])).tolist() + [0.0,0.0,0.0])
+    # ants_transform = create_ants_transform(transform_type="AffineTransform", precision="float", dimension=3, parameters=params)
+    # rigid_test_path = os.path.join(outpath, f'{subj}_test_subjtoinitaffine.mat')
+    # write_transform(ants_transform, rigid_test_path)
+    # init_test_path = os.path.join(outpath, f'{subj}_test_init_SAMBA{ext}')
+    # cmd = f"antsApplyTransforms -v 1 --float -d 3  -i {subj_img_path} -o {init_test_path} -r {SAMBA_ref} -n Linear -t [{rigid_test_path},0]";
+
+    # Ants test
+    ####
+    """
+    ######## testzone for the ants stuff
+    affine_subj_to_init = get_affine_transform(subj_affine, init_affine)
+    affine_subj_to_init[:3,3] = [0,0,0]
+    params = np.array(np.squeeze(np.reshape(affine_subj_to_init[:3,:3],[9,1])).tolist() + [0.0,0.0,0.0])
+    ants_transform = create_ants_transform(transform_type="AffineTransform", precision="float", dimension=3, parameters=params)
+    affine_test_path = os.path.join(outpath, f'{subj}_test_subjtoinitaffine.mat')
+    init_test_path = os.path.join(outpath, f'{subj}_test_init_SAMBA{ext}')
+
+    write_transform(ants_transform, affine_test_path)
+
+    cmd = f"antsApplyTransforms -v 1 --float -d 3  -i {subj_img_path} -o {init_test_path} -r {SAMBA_ref} -n Linear -t [{affine_test_path},0]";
+    #os.system(cmd)
+
+    ########
+
+
+    affine_subj_to_init_rigid = np.copy(affine_subj_to_init)
+    affine_subj_to_init_rigid[2, :] = affine_subj_to_init[2, :] * 2
+    affine_subj_to_init_rigid[:2, 2] = affine_subj_to_init[:2, 2] * 2
+    params = np.array(np.squeeze(np.reshape(affine_subj_to_init_rigid[:3, :3], [9, 1])).tolist() + [0.0, 0.0, 0.0])
+    ants_transform_rigid = create_ants_transform(transform_type="AffineTransform", precision="float", dimension=3,
+                                           parameters=params)
+    affine_rigid_path = os.path.join(outpath, f'{subj}_subjtoinitaffinerigid.mat')
+    write_transform(ants_transform_rigid, affine_rigid_path)
+
+    cmd = f"antsApplyTransforms -v 1 --float -d 3  -i {filepath_resampled_path} -o {filepath_resampled_reoriented} -r {SAMBA_ref} -n Linear -t [{affine_rigid_path},0]";
+    """
+
+    ########
+
+    # subj_affine_new = subj_affine
+    # subj_torecenter_transform_affine = get_affine_transform_test(subj_affine, subj_affine_new)
+    # added_trans = subj_affine[:3, 3] + np.multiply(preprocess_affine[:3, 3], [1,1,-1]) + [-1,-1,0]
+    # added_trans = subj_affine[:3, 3] + np.multiply(subjtorecenter_affine[:3, 3], [-1,-1,-1])
+    # subj_torecenter_transform_affine[:3, 3] = reorient_trans + added_trans
+
+    # SAMBA_input_real_file =  os.path.join(path_DWI, f'{subj}_dwi{ext}')
+    # new_affine, translation, translate_affine = recenter_nii_affine(SAMBA_input_real_file, return_translation=True)
+
+    # subj_trk, _ = gettrkpath(path_TRK, subj, str_identifier, pruned=True, verbose=verbose)
     print('reaching point 2')
-    check_dif_ratio(path_TRK, subj, str_identifier, ratio, sftp)
-    #subj_trk, trkexists = gettrkpath(path_TRK, subj, '_smallerTracks2mill', pruned=prune, verbose=False, sftp=sftp)
-    subj_trk, trkexists = gettrkpath(path_TRK, subj, str_identifier, pruned=True, verbose=False, sftp=sftp)
+    subj_trk, trkexists = gettrkpath(path_TRK, subj, str_identifier, pruned=prune, verbose=False, sftp=sftp)
     if not trkexists:
-        txt = f'Could not find TRK file for subject {subj}'
-        raise Exception(txt)
+        subj_trk, trkexists = gettrkpath(path_TRK, subj, '_smallerTracks2mill', pruned=prune, verbose=False, sftp=sftp)
+        smallertrkpath = os.path.join(path_TRK, subj + str_identifier + '.trk')
+        if trkexists and ratio != 1:
+            reducetractnumber(subj_trk, smallertrkpath, getdata=False, ratio=ratio,
+                              return_affine=False, verbose=False)
+            subj_trk = smallertrkpath
+        else:
+            txt = f'Could not find TRK file for subject {subj}'
+            raise Exception(txt)
     _, exists = check_files([trans, rigid, runno_to_MDT], sftp)
     if np.any(exists == 0):
         raise Exception('missing transform file')
-    #_, exists = check_files([affine_orig], sftp)
-    if not os.path.exists(affine_orig):
+    _, exists = check_files(affine_orig, sftp)
+    if np.any(exists == 0):
         raise Exception('missing transform file')
+    # streamlines_prepro, header = unload_trk(subj_trk)
     streamlines_data = load_trk_remote(subj_trk, 'same', sftp)
     streamlines_subj = streamlines_data.streamlines
     header = streamlines_data.space_attributes
-
+    # streamlines_prepro, header_prepro = unload_trk(trk_preprocess)
+    """
+    #old loading of translation matrix
+    mat_struct = loadmat_remote(trans, sftp)
+    var_name = list(mat_struct.keys())[0]
+    later_trans_mat = mat_struct[var_name]
+    new_transmat = np.eye(4)
+    vox_dim = [1, 1, -1]
+    #new_transmat[:3, 3] = np.squeeze(later_trans_mat[3:6]) * vox_dim
+    new_transmat[:3, 3] = np.squeeze(np.matmul(subj_affine[:3, :3], later_trans_mat[3:6])) #should be the AFFINE of the current image, to make sure the slight difference in orientation is ACCOUNTED FOR!!!!!!!!!!
+    new_transmat[2, 3re] = 0
+    print(new_transmat)
+    """
     rigid_affine_apply = np.copy(rigid_affine)
-    rigid_affine_apply[:3, :3] = np.linalg.inv(rigid_affine[:3, :3])
+    # rigid_affine_apply[:3, :3] = np.linalg.inv(rigid_affine[:3, :3])
+    rigid_affine_apply[:3, :3] = np.eye(3)
     rigid_affine_apply[:, 3] = -rigid_affine[:, 3]
     streamlines_posttrans = transform_streamlines(streamlines_subj, rigid_affine_apply)
+    rigid_affine_apply[:3, :3] = np.linalg.inv(rigid_affine[:3, :3])
+    rigid_affine_apply[:, 3] = [0, 0, 0, 1]
+    streamlines_posttrans = transform_streamlines(streamlines_posttrans, rigid_affine_apply)
+
     print('reaching point 3')
     if (not checkfile_exists_remote(trk_preprocess_posttrans, sftp) or overwrite) and save_temp_trk_files:
         save_trk_header(filepath=trk_preprocess_posttrans, streamlines=streamlines_posttrans, header=header,
@@ -302,7 +413,7 @@ if trk_to_MDT and (not final_img_exists or overwrite):
     print('finished')
     # streamlines_postrigidaffine, header_postrigidaffine = unload_trk(trk_preprocess_postrigid_affine)
 
-    warp_data, warp_affine, _, _, _ = load_nifti_remote(runno_to_MDT, None)
+    warp_data, warp_affine, _, _, _ = load_nifti_remote(MDT_to_runno, None)
 
     taf = time.perf_counter()
 
@@ -320,7 +431,8 @@ if trk_to_MDT and (not final_img_exists or overwrite):
 
     tf = time.perf_counter()
     del mni_streamlines
-    if erase_old_file:
+
+    if del_orig_files:
         os.remove(subj_trk)
 
 elif not final_img_exists or overwrite:

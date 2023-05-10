@@ -23,7 +23,7 @@ else:
 # create sbatch folder
 job_descrp =  "trk_toMDT_reg"
 
-mrtrix=False
+mrtrix=True
 if mrtrix:
     sbatch_folder_path = BD +"/tracttoMDT_pipeline/" +job_descrp + '_sbatch/'
 else:
