@@ -20,8 +20,9 @@ from DTC.file_manager.computer_nav import get_mainpaths, get_atlas, load_trk_rem
 
 project = 'AMD'
 
-#subject = sys.argv[1]
-subject = 'H21593'
+subject = sys.argv[1]
+mrtrix = int(sys.argv[2])
+#subject = 'H21593'
 
 remote = True
 remote = False
@@ -54,6 +55,8 @@ symmetric = True
 fixed = False
 overwrite = False
 
+function_processes=1
+
 if inclusive:
     inclusive_str = '_inclusive'
 else:
@@ -73,8 +76,8 @@ labeltype = 'lrordered'
 verbose = True
 picklesave = True
 
-function_processes = parse_arguments_function(sys.argv)
-print(f'there are {function_processes} function processes')
+#function_processes = parse_arguments_function(sys.argv)
+#print(f'there are {function_processes} function processes')
 
 # if project=='AD_Decode':
 #    outpath = os.path.join(outpath,'Analysis')
@@ -83,10 +86,8 @@ print(f'there are {function_processes} function processes')
 # TRK_folder = os.path.join(inpath, f'TRK_MPCA_MDT{fixed_str}{folder_ratio_str}')
 space_type = 'MDT'
 
-mrtrix=True
-
 if mrtrix:
-    trk_type = '_trix'
+    trk_type = '_mrtrix'
 else:
     trk_type = ''
 

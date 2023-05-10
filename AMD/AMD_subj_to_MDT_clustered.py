@@ -58,7 +58,7 @@ inpath = '/mnt/munin2/Badea/Lab/human/AMD_project_23'
 outpath = '/mnt/munin2/Badea/Lab/human/AMD_project_23'
 
 if project == "AMD":
-    path_TRK = os.path.join(inpath, 'TRK_nottrix')
+    path_TRK = os.path.join(inpath, 'TRK')
     path_DWI = os.path.join(inpath, 'DWI')
     ref = "md"
     path_trk_tempdir = os.path.join(outpath, 'TRK_transition')
@@ -83,6 +83,7 @@ verbose = True
 recenter = True
 
 save_temp_trk_files = False
+erase_old_file=True
 
 nii_to_MDT = False
 trk_to_MDT = True
@@ -243,7 +244,8 @@ if trk_to_MDT and (not final_img_exists or overwrite):
 
     print('reaching point 2')
     check_dif_ratio(path_TRK, subj, str_identifier, ratio, sftp)
-    subj_trk, trkexists = gettrkpath(path_TRK, subj, '_smallerTracks2mill', pruned=prune, verbose=False, sftp=sftp)
+    #subj_trk, trkexists = gettrkpath(path_TRK, subj, '_smallerTracks2mill', pruned=prune, verbose=False, sftp=sftp)
+    subj_trk, trkexists = gettrkpath(path_TRK, subj, str_identifier, pruned=True, verbose=False, sftp=sftp)
     if not trkexists:
         txt = f'Could not find TRK file for subject {subj}'
         raise Exception(txt)
@@ -318,8 +320,8 @@ if trk_to_MDT and (not final_img_exists or overwrite):
 
     tf = time.perf_counter()
     del mni_streamlines
-
-    os.remove(subj_trk)
+    if erase_old_file:
+        os.remove(subj_trk)
 
 elif not final_img_exists or overwrite:
     print(f'{trk_MDT_space} already exists')

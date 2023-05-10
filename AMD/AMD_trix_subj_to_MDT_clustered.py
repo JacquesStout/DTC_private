@@ -58,11 +58,11 @@ inpath = '/mnt/munin2/Badea/Lab/human/AMD_project_23'
 outpath = '/mnt/munin2/Badea/Lab/human/AMD_project_23'
 
 if project == "AMD":
-    path_TRK = os.path.join(inpath, 'TRK')
+    path_TRK = os.path.join(inpath, 'TRK_trix')
     path_DWI = os.path.join(inpath, 'DWI')
-    ref = "md"
-    path_trk_tempdir = os.path.join(outpath, 'TRK_trix_transition')
-    path_TRK_output = os.path.join(outpath, 'TRK_trix_MDT_farun')
+    ref = "fa"
+    path_trk_tempdir = os.path.join(outpath, 'TRK_mrtrix_transition')
+    path_TRK_output = os.path.join(outpath, 'TRK_mrtrix_MDT_farun')
 
     path_DWI_temp = os.path.join(outpath, 'NII_toMDT_temp')
     path_DWI_output = os.path.join(outpath, 'DWI_trix_MDT_farun')
