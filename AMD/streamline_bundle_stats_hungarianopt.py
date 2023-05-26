@@ -45,9 +45,12 @@ record = ''
 inclusive = False
 symmetric = True
 write_txt = True
+farun = True
+other_spec = '_mrtrix'
+#other_spec = ''
 ratio = 1
 top_percentile = 100
-num_bundles = 20
+num_bundles = 10
 num_points = 50
 
 if project == 'AD_Decode':
@@ -80,23 +83,30 @@ elif project == 'AMD':
     target_tuples_all = {'Initial':[(62, 28), (58, 45)],'2Year':[(28, 9), (62, 1)]}
     target_tuples_all = {'Initial': [(62, 28), (58, 45),(77, 43), (61, 29)], '2Year': [(28, 9), (62, 1),(77, 43), (61, 29)]}
     group_selects = ['2Year', 'Initial']
+    #group_selects = ['Initial']
     #groups = ['Paired Initial Control', 'Paired Initial AMD']
     #groups = ['Paired 2-YR Control', 'Paired 2-YR AMD']
     target_tuples = [(62, 28), (58, 45), (28, 9), (62, 1), (77, 43), (61, 29)]
-    target_tuples = [(62, 28), (28, 9), (62, 1)]
+    #target_tuples = [(58, 45), (28, 9), (62, 1)]
     #target_tuples = [(62,28), (28, 9), (62, 1)]
     #target_tuples = [(58, 45)]
     #target_tuples = [(58, 45)]
     #mainpath = os.path.join(mainpath, project)
     inpath = os.path.join(mainpath, 'Data', project)
     outpath = os.path.join(mainpath, 'Analysis', project)
+
+    space_param = '_MDT'
+
+    if other_spec == '_mrtrix':
+        target_tuples = [(62, 28), (28, 9), (62, 1)]
+    else:
+        target_tuples = [(62, 28), (58, 45), (28, 9), (62, 1)]
+
+
+    if farun:
+        outpath = os.path.join(mainpath, 'Analysis', project + '_farunfull')
     anat_path = os.path.join(oldpath,'mouse/VBM_19BrainChAMD01_IITmean_RPI_with_2yr-work/dwi/SyN_0p5_3_0p5_dwi/dwiMDT_Control_n72_i6/median_images/MDT_dwi.nii.gz')
 
-    space_param = '_affinerigid'
-
-farun=True
-if farun:
-    outpath = os.path.join(mainpath, 'Analysis', project+'_farun')
 
 fixed = True
 record = ''
@@ -109,13 +119,9 @@ top_percentile = 100
 
 selection = 'num_streams'
 coloring = 'bundles_coloring'
-references = ['fa','md','ad','rd']
+references = ['fa']
 #references = ['fa']
 cutoffref = 0
-
-write_stats = False
-registration = False
-overwrite = True
 
 changewindow_eachtarget = False
 
@@ -148,23 +154,19 @@ _, _, index_to_struct, _ = atlas_converter(ROI_legends)
 # figures_path = '/Volumes/Data/Badea/Lab/human/AMD/Figures_MDT_non_inclusive/'
 # centroid_folder = '/Volumes/Data/Badea/Lab/human/AMD/Centroids_MDT_non_inclusive/'
 
-other_spec = '_mrtrix'
 #other_spec = ''
-distance = 15
+distance = 10
 
+#target_tuples = [(58, 45)]
+#target_tuples = [(36,70),(36,28),(70,62),(36,62),(70,28)]
 
-if other_spec == '_mrtrix':
-    space_param = '_MDT'
-    target_tuples = [(62, 28), (28, 9), (62, 1)]
-else:
-    space_param = '_affinerigid'
-    target_tuples = [(62, 28), (58, 45), (28, 9), (62, 1)]
+stat_type = '_hungarianopt'
 
 centroid_folder = os.path.join(outpath, f'Centroids{space_param}{inclusive_str}{symmetric_str}{folder_ratio_str}{other_spec}')
 trk_folder = os.path.join(outpath, f'Centroids{space_param}{inclusive_str}{symmetric_str}{folder_ratio_str}{other_spec}')
 
-stats_folder = os.path.join(outpath, f'Statistics_allregions_distance_{str(distance)}{space_param}{inclusive_str}{symmetric_str}{folder_ratio_str}{other_spec}')
-figures_path = os.path.join(outpath, f'Figures_distance_{str(distance)}{space_param}{inclusive_str}{symmetric_str}{folder_ratio_str}{other_spec}')
+stats_folder = os.path.join(outpath, f'Statistics{stat_type}_improv_distance_{str(distance)}{space_param}{inclusive_str}{symmetric_str}{folder_ratio_str}{other_spec}')
+figures_path = os.path.join(outpath, f'Figures{stat_type}_distance_{str(distance)}{space_param}{inclusive_str}{symmetric_str}{folder_ratio_str}{other_spec}')
 
 
 mkcdir([figures_path, centroid_folder, stats_folder])
@@ -185,9 +187,18 @@ scene = None
 selection = 'num_streams'
 
 test_mode = False
-add_bcoherence = False
+add_bcoherence = True
 add_weighttobundle = True
+write_stats = False
+registration = False
+overwrite = False
 
+#target_tuples = [(62, 28), (58, 45), (28, 9), (62, 1)]
+target_tuples = [(62, 28), (28, 9), (62, 1)]
+group_selects = ['Initial','2Year']
+
+#target_tuples = [(62, 28)]
+#group_selects = ['2Year']
 
 if add_bcoherence:
     from dipy.tracking.fbcmeasures import FBCMeasures
@@ -205,6 +216,7 @@ for group_select in group_selects:
     control = groups[0]
     non_control = groups[1]
 
+
     if 'AMD' in control:
         raise Exception('Again with this nonsense!')
 
@@ -215,6 +227,15 @@ for group_select in group_selects:
         print(target_tuple[0], target_tuple[1])
         region_connection = index_to_struct[target_tuple[0]] + '_to_' + index_to_struct[target_tuple[1]]
         print(region_connection)
+
+        csv_bundleorder = os.path.join(stats_folder,
+                                       group_select + '_' + region_connection + ratio_str + f'_bundle_order.csv')
+        csv_bundledistance = os.path.join(stats_folder,
+                                          group_select + '_' + region_connection + ratio_str + f'_bundle_distances.csv')
+        csv_bundle_distances = os.path.join(stats_folder,
+                                       group_select + '_' + region_connection + ratio_str + f'_bundle_distances_mat.csv')
+        csv_bundle_BUAN_gtg = os.path.join(stats_folder,
+                                       group_select + '_' + region_connection + ratio_str + f'_bundle_BUAN_gtg.csv')
 
         if write_txt:
             text_path = os.path.join(figures_path, region_connection + '_stats.txt')
@@ -324,6 +345,9 @@ for group_select in group_selects:
                 num_streamlines = [np.shape(cluster)[0] for cluster in group_clusters.clusters]
                 num_streamlines = group_clusters.clusters_sizes()
                 top_bundles = sorted(range(len(num_streamlines)), key=lambda i: num_streamlines[i], reverse=True)[:]
+            else:
+                raise Exception('Did not implement alternative')
+
             for bundle in top_bundles:
                 selected_bundles[group].append(group_clusters.clusters[bundle])
                 selected_centroids[group].append(group_clusters.centroids[bundle])
@@ -393,12 +417,24 @@ for group_select in group_selects:
         from dipy.segment.metric import mdf
 
         #dist_all = np.zeros((np.size(selected_bundles[control]), np.size(selected_bundles[non_control])))
-        dist_all = np.zeros((num_bundles, num_bundles))
 
-        print(np.shape(num_bundles))
-        print(np.shape(selected_bundles[group]))
-        print(np.shape(selected_sizes[control]))
-        print(np.arange(num_bundles))
+        #print(np.shape(num_bundles))
+        #print(np.shape(selected_bundles[group]))
+        #print(np.shape(selected_sizes[control]))
+
+        #size_largest_nc_bundles = [num for num in selected_sizes[non_control] if num > 20*(distance/3)]
+        #size_largest_nc_bundles = [num for num in selected_sizes[non_control] if num > 30]
+        size_largest_c_bundles = [num for num in selected_sizes[control] if num >= np.max([selected_sizes[control][0]/6,20])]
+        size_largest_nc_bundles = [num for num in selected_sizes[non_control] if num >= np.max([selected_sizes[non_control][0]/6,20])]
+
+        size_largest_group_bundles = {control:size_largest_c_bundles, non_control:size_largest_nc_bundles}
+        num_group_bundles = {control:np.size(size_largest_c_bundles), non_control:np.size(size_largest_nc_bundles)}
+
+        num_bundles_selected = np.min([np.size(size_largest_c_bundles), np.size(size_largest_nc_bundles), num_bundles])
+
+        #size_largest_c_bundles = size_largest_c_bundles[:np.min([num_bundles, np.size(size_largest_c_bundles)])]
+
+        dist_all = np.zeros((num_bundles_selected, num_bundles_selected))
 
         if test_mode:
             top_idx_group_control = sorted(range(len(selected_sizes[control])),
@@ -413,27 +449,45 @@ for group_select in group_selects:
 
 
         #wenlin version based on distance of streamlines from centroid
-        for g3 in np.arange(num_bundles):
-            for g4 in np.arange(num_bundles):
-                try:
-                    dist_all[g3, g4] = (mdf(selected_centroids[control][g3], selected_centroids[non_control][g4]))
-                except:
-                    print('bug here')
+        for g3 in np.arange(num_bundles_selected):
+            for g4 in np.arange(num_bundles_selected):
+                dist_all[g3, g4] = (mdf(selected_centroids[control][g3], selected_centroids[non_control][g4]))
+
+        from scipy.optimize import linear_sum_assignment
+
+        row_ind, col_ind = linear_sum_assignment(dist_all)
+
+        verbose=False
+        if verbose:
+            for i in range(len(row_ind)):
+                print(
+                    f"Object {i} from the first series is paired with object {col_ind[i]} from the second series.")
+
+        # Calculate the total cost (average squared distance)
+        total_cost = dist_all[row_ind, col_ind].sum() / len(row_ind)
+        print("Total cost:", total_cost)
+
         dist_all_fix = copy.copy(dist_all)
         dist_all_idx = []
 
-        for i in np.arange(num_bundles):
+        for i in np.arange(num_bundles_selected):
             idx = np.argmin(dist_all_fix[i, :])
             dist_all_idx.append([i, idx])
             dist_all_fix[:, idx] = 100000
 
+        row_list_idx = [dist_all_idx[i][0] for i in range(num_bundles_selected)]
+        col_list_idx = [dist_all_idx[i][1] for i in range(num_bundles_selected)]
+
+        total_cost_idx = dist_all[row_list_idx, col_list_idx].sum() / len(row_list_idx)
+        print("Total cost old idx:", total_cost_idx)
+
         group_list = {}
         dist_idx = {}
-        for j,group in enumerate(groups):
-            group_list[group]=([np.arange(num_bundles)[dist_all_idx[i][j]] for i in range(num_bundles)])
 
-        csv_bundleorder = os.path.join(stats_folder, group_select + '_' + region_connection + ratio_str + f'_bundle_order.csv')
-        groupbundleorder = np.zeros((num_bundles, 2))
+        group_list[control]=list(row_ind)
+        group_list[non_control]=list(col_ind)
+
+        groupbundleorder = np.zeros((num_bundles_selected, 2))
         groupbundleorder[:, 0] = group_list[control]
         groupbundleorder[:, 1] = group_list[non_control]
         if not os.path.exists(csv_bundleorder) or overwrite:
@@ -443,8 +497,30 @@ for group_select in group_selects:
             groupbundleorderDF.to_csv(csv_bundleorder, header=header_bundle)
             print(f'Wrote bundle order to {csv_bundleorder}')
 
+        if not os.path.exists(csv_bundle_distances) or overwrite:
+            dist_all_new = (dist_all[:, group_list[non_control]])
+            csv_bundle_distancesDF = pd.DataFrame(dist_all_new)
+            csv_bundle_distancesDF.to_csv(csv_bundle_distances)
+            print(f'Wrote bundle matrix of distances to {csv_bundle_distances}')
+
+        calc_distance_csv_grouptogroup = True
+        if calc_distance_csv_grouptogroup:
+            rng = np.random.RandomState()
+            clust_thr = [5, 3, 1.5]
+            threshold = 12
+            bundle_BUAN = np.zeros([num_bundles_selected,1])
+            for i in np.arange(num_bundles_selected):
+                bundle_c = selected_bundles[control][group_list[control][i]]
+                bundle_nc = selected_bundles[control][group_list[non_control][i]]
+
+                bundle_BUAN[i] = (bundle_shape_similarity(bundle_c,bundle_nc,
+                                                             rng, clust_thr, threshold))
+
+            csv_bundle_BUAN_gtg_DF = pd.DataFrame(np.array(bundle_BUAN))
+            csv_bundle_BUAN_gtg_DF.to_csv(csv_bundle_BUAN_gtg)
+
         csv_bundlesizes = os.path.join(stats_folder, group_select + '_' + region_connection + ratio_str + f'_bundle_sizes.csv')
-        groupbundlesizes = np.zeros((num_bundles, 2))
+        groupbundlesizes = np.zeros((num_bundles_selected, 2))
         #groupbundleorder[:, 0] = group_list[control]
         groupbundlesizes[:,0] = [np.shape(selected_bundles[control][bundle])[0] for bundle in group_list[control]]
         groupbundlesizes[:,1] = [np.shape(selected_bundles[non_control][bundle])[0] for bundle in group_list[non_control]]
@@ -457,111 +533,123 @@ for group_select in group_selects:
 
         calc_distance_csv = True
         if calc_distance_csv:
-            rng = np.random.RandomState()
-            clust_thr = [5, 3, 1.5]
-            threshold = 20
-            bundle_ctrlvsnocontrol_score = np.zeros([np.shape(dist_all_idx)[0],1])
-            for i,bundle_pair in enumerate(dist_all_idx):
-                idx1 = bundle_pair[0]
-                idx2 = bundle_pair[1]
-                bundle_ctrlvsnocontrol_score[i] = (bundle_shape_similarity(selected_bundles[control][idx1], selected_bundles[non_control][idx2],
-                                                             rng, clust_thr, threshold))
-
-            groups_BUAN_vals = {}
-            groups_centroidsdist_vals = {}
-
-            for group in groups:
-                bundle_BUAN = np.zeros([num_bundles, num_bundles])
-                bundle_centroidsdist = np.zeros([num_bundles, num_bundles])
-                for i in np.arange(num_bundles):
-                    for j in np.arange(i,num_bundles):
-                        bundle_BUAN[i,j] = (bundle_shape_similarity(selected_bundles[group][i], selected_bundles[group][j],
-                                                                     rng, clust_thr, threshold))
-                        bundle_BUAN[j,i] = bundle_BUAN[i,j]
-                        bundle_centroidsdist[i,j] = (mdf(selected_centroids[group][i], selected_centroids[group][j]))
-                        bundle_centroidsdist[j,i] = bundle_centroidsdist[i,j]
-                groups_BUAN_vals[group] = bundle_BUAN[~np.eye(bundle_BUAN.shape[0],dtype=bool)].reshape(bundle_BUAN.shape[0],-1)
-                groups_centroidsdist_vals[group] = bundle_centroidsdist[~np.eye(bundle_centroidsdist.shape[0], dtype=bool)].reshape(bundle_centroidsdist.shape[0], -1)
-
-
-            csv_bundledistance = os.path.join(stats_folder, group_select + '_' + region_connection + ratio_str + f'_bundle_distances.csv')
-
-            if not os.path.exists(csv_bundledistance) or overwrite:
-                csv_columns = {}
-                singlegroup_elements = ['Average size of bundles', 'Std of bundle size']
-                singlegroup_elements = []
-                elements = ['Mean centroid distance ', 'Low Centroid mean', 'High Centroid mean','Std Centroid distance ', 'Median centroid distance',
-                            'Mean Buan Values', 'Low Buan mean', 'High Buan mean', 'Std Buan Values', 'Median Buan Values']
-
-                dualgroup_elements = ['Cohen Effect centroids','Statistic ttest centroids','Pvalue centroids','Cohen Effect Buan','Statistic ttest Buan','Pvalue Buan']
-
-                #lambda x,y: np.mean(x[x!=0])
-                functions = [lambda x,y: np.mean(x), lambda x,y: np.mean(x) - 1.96*(np.std(x)/np.sqrt(np.size(x))),
-                             lambda x,y: np.mean(x) + 1.96*(np.std(x)/np.sqrt(np.size(x))), lambda x,y: np.std(x), lambda x,y: np.median(x),
-                             lambda x,y: np.mean(y), lambda x,y: np.mean(y) - 1.96*(np.std(y)/np.sqrt(np.size(x))),
-                             lambda x,y: np.mean(y) + 1.96*(np.std(y)/np.sqrt(np.size(y))), lambda x, y: np.std(y), lambda x, y: np.median(y)]
-
-                groupbundledistance = np.zeros([2, np.size(singlegroup_elements) + np.size(elements)+np.size(dualgroup_elements)])
-                col = 0
+            if not num_bundles_selected>=3:
+                txt = f'For the connection {region_connection}, there are not enough bundles of great size to justify a BUAN/distance comparison (3 or less)'
+                warnings.warn(txt)
+            else:
+                rng = np.random.RandomState()
+                clust_thr = [5, 3, 1.5]
+                threshold = 20
                 """
-                groupbundledistance[0, col] = np.mean(groupbundlesizes[:,0])
-                groupbundledistance[1, col] = np.mean(groupbundlesizes[:,1])
-                csv_columns.update({col: singlegroup_elements[col]})
-                col+=1
-                groupbundledistance[0, col] = np.std(groupbundlesizes[:,0])
-                groupbundledistance[1, col] = np.std(groupbundlesizes[:,1])
-                csv_columns.update({col: singlegroup_elements[col]})
-                col+=1
+                bundle_ctrlvsnocontrol_score = np.zeros([np.shape(dist_all_idx)[0],1])
+                for i,bundle_pair in enumerate(dist_all_idx):
+                    idx1 = bundle_pair[0]
+                    idx2 = bundle_pair[1]
+                    bundle_ctrlvsnocontrol_score[i] = (bundle_shape_similarity(selected_bundles[control][idx1], selected_bundles[non_control][idx2],
+                                                                 rng, clust_thr, threshold))
                 """
-                for element, function in zip(elements, functions):
-                    csv_columns.update({col: element})
-                    for row, group in enumerate(groups):
-                        try:
-                            groupbundledistance[row, col] = function(groups_centroidsdist_vals[group], groups_BUAN_vals[group])
-                        except:
-                            print('hi')
-                    col += 1
+                groups_BUAN_vals = {}
+                groups_centroidsdist_vals = {}
 
-                statistic, pvalue = stats.ttest_ind(np.ravel(groups_centroidsdist_vals[control]),
-                                np.ravel(groups_centroidsdist_vals[non_control]))
-                cohen = (np.mean(np.ravel(groups_centroidsdist_vals[control])) -
-                         np.mean(np.ravel(groups_centroidsdist_vals[non_control])))/\
-                        np.sqrt((np.var(np.ravel(groups_centroidsdist_vals[control]))+np.var(np.ravel(groups_centroidsdist_vals[non_control])))/2)
+                for group in groups:
+                    """
+                    size_largest_bundles = [num for num in selected_sizes[non_control] if
+                                               num > np.max([(selected_sizes[non_control][0] / 2),20])]
+                    num_bundles_group = np.size(size_largest_bundles)
+                    bundle_BUAN = np.zeros([num_bundles_group, num_bundles_group])
+                    bundle_centroidsdist = np.zeros([num_bundles_group, num_bundles_group])
+                    """
+                    bundle_BUAN = np.zeros([num_group_bundles[group], num_group_bundles[group]])
+                    bundle_centroidsdist = np.zeros([num_group_bundles[group], num_group_bundles[group]])
+                    for i in np.arange(num_group_bundles[group]):
+                        for j in np.arange(num_group_bundles[group]):
+                            try:
+                                bundle_BUAN[i,j] = (bundle_shape_similarity(selected_bundles[group][i], selected_bundles[group][j],
+                                                                             rng, clust_thr, threshold))
+                            except:
+                                print('hi')
+                            bundle_BUAN[j,i] = bundle_BUAN[i,j]
+                            bundle_centroidsdist[i,j] = (mdf(selected_centroids[group][i], selected_centroids[group][j]))
+                            bundle_centroidsdist[j,i] = bundle_centroidsdist[i,j]
+                    groups_BUAN_vals[group] = bundle_BUAN[~np.eye(bundle_BUAN.shape[0],dtype=bool)].reshape(bundle_BUAN.shape[0],-1)
+                    groups_centroidsdist_vals[group] = bundle_centroidsdist[~np.eye(bundle_centroidsdist.shape[0], dtype=bool)].reshape(bundle_centroidsdist.shape[0], -1)
 
-                csv_columns.update({col:dualgroup_elements[col-np.size(elements)-np.size(singlegroup_elements)]})
-                groupbundledistance[0,col] = cohen
-                groupbundledistance[1,col] = nan
-                col+=1
-                csv_columns.update({col:dualgroup_elements[col-np.size(elements)-np.size(singlegroup_elements)]})
-                groupbundledistance[0,col] = statistic
-                groupbundledistance[1,col] = nan
-                col+=1
-                csv_columns.update({col:dualgroup_elements[col-np.size(elements)-np.size(singlegroup_elements)]})
-                groupbundledistance[0,col] = pvalue
-                groupbundledistance[1,col] = nan
-                col+=1
+                if not os.path.exists(csv_bundledistance) or overwrite:
+                    csv_columns = {}
+                    singlegroup_elements = ['Average size of bundles', 'Std of bundle size']
+                    singlegroup_elements = []
+                    elements = ['Mean centroid distance ', 'Low Centroid mean', 'High Centroid mean','Std Centroid distance ', 'Median centroid distance',
+                                'Mean Buan Values', 'Low Buan mean', 'High Buan mean', 'Std Buan Values', 'Median Buan Values']
 
-                statistic, pvalue = stats.ttest_ind(np.ravel(groups_BUAN_vals[control]),
-                                np.ravel(groups_BUAN_vals[non_control]))
-                cohen = (np.mean(groups_BUAN_vals[control]) - np.mean(groups_BUAN_vals[non_control]))/\
-                        np.sqrt((np.var(groups_BUAN_vals[control])+np.var(groups_BUAN_vals[non_control]))/2)
+                    dualgroup_elements = ['Cohen Effect centroids','Statistic ttest centroids','Pvalue centroids','Cohen Effect Buan','Statistic ttest Buan','Pvalue Buan']
 
-                csv_columns.update({col:dualgroup_elements[col-np.size(elements)-np.size(singlegroup_elements)]})
-                groupbundledistance[0,col] = cohen
-                groupbundledistance[1,col] = nan
-                col+=1
-                csv_columns.update({col:dualgroup_elements[col-np.size(elements)-np.size(singlegroup_elements)]})
-                groupbundledistance[0,col] = statistic
-                groupbundledistance[1,col] = nan
-                col+=1
-                csv_columns.update({col:dualgroup_elements[col-np.size(elements)-np.size(singlegroup_elements)]})
-                groupbundledistance[0,col] = pvalue
-                groupbundledistance[1,col] = nan
-                groupbundledistanceDF = pd.DataFrame(groupbundledistance)
-                groupbundledistanceDF.rename(index=str, columns=csv_columns)
-                header_bundle = singlegroup_elements + elements + dualgroup_elements
-                groupbundledistanceDF.index = [control, non_control]
-                groupbundledistanceDF.to_csv(csv_bundledistance, header=header_bundle)
+                    #lambda x,y: np.mean(x[x!=0])
+                    functions = [lambda x,y: np.mean(x), lambda x,y: np.mean(x) - 1.96*(np.std(x)/np.sqrt(np.size(x))),
+                                 lambda x,y: np.mean(x) + 1.96*(np.std(x)/np.sqrt(np.size(x))), lambda x,y: np.std(x), lambda x,y: np.median(x),
+                                 lambda x,y: np.mean(y), lambda x,y: np.mean(y) - 1.96*(np.std(y)/np.sqrt(np.size(x))),
+                                 lambda x,y: np.mean(y) + 1.96*(np.std(y)/np.sqrt(np.size(y))), lambda x, y: np.std(y), lambda x, y: np.median(y)]
+
+                    groupbundledistance = np.zeros([2, np.size(singlegroup_elements) + np.size(elements)+np.size(dualgroup_elements)])
+                    col = 0
+                    """
+                    groupbundledistance[0, col] = np.mean(groupbundlesizes[:,0])
+                    groupbundledistance[1, col] = np.mean(groupbundlesizes[:,1])
+                    csv_columns.update({col: singlegroup_elements[col]})
+                    col+=1
+                    groupbundledistance[0, col] = np.std(groupbundlesizes[:,0])
+                    groupbundledistance[1, col] = np.std(groupbundlesizes[:,1])
+                    csv_columns.update({col: singlegroup_elements[col]})
+                    col+=1
+                    """
+                    for element, function in zip(elements, functions):
+                        csv_columns.update({col: element})
+                        for row, group in enumerate(groups):
+                            try:
+                                groupbundledistance[row, col] = function(groups_centroidsdist_vals[group], groups_BUAN_vals[group])
+                            except:
+                                print('hi')
+                        col += 1
+
+                    statistic, pvalue = stats.ttest_ind(np.ravel(groups_centroidsdist_vals[control]),
+                                    np.ravel(groups_centroidsdist_vals[non_control]))
+                    cohen = (np.mean(np.ravel(groups_centroidsdist_vals[control])) -
+                             np.mean(np.ravel(groups_centroidsdist_vals[non_control])))/\
+                            np.sqrt((np.var(np.ravel(groups_centroidsdist_vals[control]))+np.var(np.ravel(groups_centroidsdist_vals[non_control])))/2)
+
+                    csv_columns.update({col:dualgroup_elements[col-np.size(elements)-np.size(singlegroup_elements)]})
+                    groupbundledistance[0,col] = cohen
+                    groupbundledistance[1,col] = nan
+                    col+=1
+                    csv_columns.update({col:dualgroup_elements[col-np.size(elements)-np.size(singlegroup_elements)]})
+                    groupbundledistance[0,col] = statistic
+                    groupbundledistance[1,col] = nan
+                    col+=1
+                    csv_columns.update({col:dualgroup_elements[col-np.size(elements)-np.size(singlegroup_elements)]})
+                    groupbundledistance[0,col] = pvalue
+                    groupbundledistance[1,col] = nan
+                    col+=1
+
+                    statistic, pvalue = stats.ttest_ind(np.ravel(groups_BUAN_vals[control]),
+                                    np.ravel(groups_BUAN_vals[non_control]))
+                    cohen = (np.mean(groups_BUAN_vals[control]) - np.mean(groups_BUAN_vals[non_control]))/\
+                            np.sqrt((np.var(groups_BUAN_vals[control])+np.var(groups_BUAN_vals[non_control]))/2)
+
+                    csv_columns.update({col:dualgroup_elements[col-np.size(elements)-np.size(singlegroup_elements)]})
+                    groupbundledistance[0,col] = cohen
+                    groupbundledistance[1,col] = nan
+                    col+=1
+                    csv_columns.update({col:dualgroup_elements[col-np.size(elements)-np.size(singlegroup_elements)]})
+                    groupbundledistance[0,col] = statistic
+                    groupbundledistance[1,col] = nan
+                    col+=1
+                    csv_columns.update({col:dualgroup_elements[col-np.size(elements)-np.size(singlegroup_elements)]})
+                    groupbundledistance[0,col] = pvalue
+                    groupbundledistance[1,col] = nan
+                    groupbundledistanceDF = pd.DataFrame(groupbundledistance)
+                    groupbundledistanceDF.rename(index=str, columns=csv_columns)
+                    header_bundle = singlegroup_elements + elements + dualgroup_elements
+                    groupbundledistanceDF.index = [control, non_control]
+                    groupbundledistanceDF.to_csv(csv_bundledistance, header=header_bundle)
 
         if add_weighttobundle:
             import dipy.tracking.streamline as dts
@@ -569,11 +657,17 @@ for group_select in group_selects:
             weights = {}
             for group in groups:
                 weights[group] = []
-                for id in np.arange(num_bundles):
-                    bundle = selected_bundles[group][id]
-                    oriented_group = dts.orient_by_streamline(streamlines[group][bundle.indices], bundle.centroid)
-                    w_group = dsa.gaussian_weights(oriented_group,n_points = num_points)
-                    weights[group].append(w_group)
+                for i in np.arange(num_bundles_selected):
+                    idbundle = group_list[group][i]
+                    bundle = selected_bundles[group][idbundle]
+                    if np.size(bundle.indices)>1:
+                        oriented_group = dts.orient_by_streamline(streamlines[group][bundle.indices], bundle.centroid)
+                        w_group = dsa.gaussian_weights(oriented_group,n_points = num_points)
+                        weights[group].append(w_group)
+                    else:
+                        weights[group].append(np.ones([1,50]))
+
+                    #print(f'The weight size is {np.shape(w_group)} for {idbundle} in group {group} which has size {np.size(bundle.indices)}')
 
         size_header = 3 #bundle id, streamline id, point id
         size_header+=1 #length of streamlines
@@ -581,7 +675,8 @@ for group_select in group_selects:
         if add_weighttobundle:
             size_header+=1
         if add_bcoherence:
-            size_header+=2
+            #size_header+=2
+            size_header += 1
 
         for group in groups:
             groupcsv = np.zeros((1, size_header))
@@ -590,14 +685,14 @@ for group_select in group_selects:
             csv_summary = os.path.join(stats_folder, group + '_' + region_connection + ratio_str + f'_bundle_stats.csv')
 
             if not os.path.exists(csv_summary) or overwrite:
-                for i in range(num_bundles):
+                for i in range(num_bundles_selected):
                     idbundle = group_list[group][i]
                     fa = []
                     if add_bcoherence:
                         fbc = FBCMeasures(streamlines[group][selected_bundles[group][idbundle].indices], k)
                         fbc_sl, lfbc_orig, rfbc_bundle = \
                             fbc.get_points_rfbc_thresholded(-0.1, emphasis=0.01)
-                        lfbc_orig = np.concatenate((lfbc_orig, [1]))
+                        #lfbc_orig = np.concatenate((lfbc_orig, [1]))
                         """
                         from fury.utils import rgb_to_vtk
                         vtk_array = rgb_to_vtk(np.array(lfbc_orig[0]))
@@ -617,7 +712,7 @@ for group_select in group_selects:
                         object_actor = actor.line(selected_bundles[group][idbundle], colors_points, linewidth=0.2, lookup_colormap=colors)
                         """
                         #
-                    for i,s in enumerate(selected_bundles[group][idbundle].indices):
+                    for j,s in enumerate(selected_bundles[group][idbundle].indices):
                         #temp = np.hstack((idsize * np.ones((num_points, 1)),
                         #                  idbundle * np.ones((num_points, 1)),
                         #                  s * np.ones((num_points, 1)),
@@ -630,13 +725,13 @@ for group_select in group_selects:
                                           list(utils.length([streamlines[group][s]])) * np.ones((num_points, 1))))
                         if add_bcoherence:
                             try:
-                                temp = np.hstack((temp, rfbc_bundle[i] * np.ones((num_points, 1))))
+                                temp = np.hstack((temp, rfbc_bundle[j] * np.ones((num_points, 1))))
                             except:
                                 print('hi')
-                            temp = np.hstack((temp, np.array(lfbc_orig).reshape(num_points, 1)))
+                            #temp = np.hstack((temp, np.array(lfbc_orig).reshape(num_points, 1)))
                         if add_weighttobundle:
                             try:
-                                temp = np.hstack((temp,np.array(weights[group][idbundle][i]).reshape(num_points, 1)))
+                                temp = np.hstack((temp,np.array(weights[group][i][j]).reshape(num_points, 1)))
                             except:
                                 print('hi')
                         for ref in references:
@@ -647,7 +742,10 @@ for group_select in group_selects:
                             else:
                                 ref_points_streamidx = ref_points[group, ref]
                             temp = np.hstack((temp,np.array(ref_points_streamidx[s]).reshape(num_points, 1)))
-                        groupcsv = np.vstack((groupcsv, temp))
+                        try:
+                            groupcsv = np.vstack((groupcsv, temp))
+                        except:
+                            print('hi')
 
                 groupcsv = groupcsv[1:, :]
                 groupcsvDF = pd.DataFrame(groupcsv)
@@ -660,10 +758,10 @@ for group_select in group_selects:
                     groupcsvDF.rename(index=str, columns={column: column_title})
                     header = header + [column_title]
                     column+=1
-                    column_title = 'Local coherence'
-                    groupcsvDF.rename(index=str, columns={column: column_title})
-                    header = header + [column_title]
-                    column+=1
+                    #column_title = 'Local coherence'
+                    #groupcsvDF.rename(index=str, columns={column: column_title})
+                    #header = header + [column_title]
+                    #column+=1
                 if add_weighttobundle:
                     column_title = 'Point weight to centroid'
                     groupcsvDF.rename(index=str, columns={column: 'Point weight to centroid'})

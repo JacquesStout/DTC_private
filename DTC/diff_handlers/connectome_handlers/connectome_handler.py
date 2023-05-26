@@ -203,6 +203,21 @@ def retweak_points(points, shape, verbose=False):
 
     return pointsnew
 
+def retweak_point_set(i,j,k, shape, verbose=False):
+    pointsT = [i,j,k].T
+    for axis in [0,1,2]:
+        if np.min(pointsT[axis])<0:
+            if verbose:
+                print(f'There are {np.sum(pointsT[axis]<0)} points that are negative in axis {axis}')
+            pointsT[axis][pointsT[axis]<0] = 0
+        if np.max(pointsT[axis]>=shape[axis]):
+            if verbose:
+                print(f'There are {np.sum(pointsT[axis]>=shape[axis])} points that are above maximum in axis {axis}')
+            pointsT[axis][pointsT[axis]>=shape[axis]] = shape[axis] - 1
+    pointsnew = pointsT.T
+
+    return pointsnew[0], pointsnew[1], pointsnew[2]
+
 def connectivity_matrix_custom(streamlines, affine, label_volume,
                         inclusive=False, symmetric=True, return_mapping=False,
                         mapping_as_streamlines=False,  reference_weighting = None, volume_weighting=False):
