@@ -22,8 +22,9 @@ import pandas as pd
 #from fbcmeasures import FBCMeasures
 from DTC.file_manager.computer_nav import checkfile_exists_remote, get_mainpaths, load_nifti_remote, load_trk_remote, loadmat_remote
 from DTC.file_manager.file_tools import mkcdir, check_files, getfromfile
-from DTC.file_manager.computer_nav import copy_loctoremote, load_trk_remote, remote_pickle
+from DTC.file_manager.computer_nav import copy_loctoremote, load_trk_remote, remote_pickle, pickledump_remote
 from DTC.file_manager.computer_nav import getremotehome
+from dipy.tracking.fbcmeasures import FBCMeasures
 
 project = 'AMD'
 
@@ -103,7 +104,7 @@ if project == 'AMD':
                   'Initial AMD', 'Initial Control']
     groups_set = {'Initial':[2,3],'2Year':[0,1]}
     target_tuples_all = {'Initial': [(62, 28), (58, 45),(77, 43), (61, 29)], '2Year': [(28, 9), (62, 1),(77, 43), (61, 29)]}
-    group_select = '2Year'
+    group_select = ['Initial','2Year']
     #groups = ['Paired 2-YR Control', 'Paired 2-YR AMD']
     #target_tuples = target_tuples_all[group_select]
     #target_tuples = [(62, 28), (58, 45), (28, 9), (62, 1)]
@@ -112,6 +113,8 @@ if project == 'AMD':
 
     inpath = os.path.join(mainpath, 'Data', project)
     outpath = os.path.join(mainpath, 'Analysis', project)
+    outpath = os.path.join(mainpath, 'Analysis', 'AMD_farunfull')
+
     oldpath = '/Volumes/dusom_abadea_nas1/munin_js/VBM_backups/VBM_19BrainChAMD01_IITmean_RPI_with_2yr-work'
     anat_path = os.path.join('/Volumes/dusom_abadea_nas1/munin_js/VBM_backups/VBM_19BrainChAMD01_IITmean_RPI_with_2yr-work/dwi/SyN_0p5_3_0p5_dwi/dwiMDT_Control_n72_i6/median_images/MDT_dwi.nii.gz')
 
@@ -127,7 +130,7 @@ if project == 'AMD':
     #Initial tuples
     target_tuples = [(62, 28), (58, 45),(77, 43), (61, 29)]
     target_tuples = [(62, 28), (28, 9), (62, 1)]
-    target_tuples = [(28, 9)]
+    target_tuples = [(62, 28)]
     #All tuples
     #target_tuples = [(62, 28), (58, 45), (28, 9), (62, 1), (77, 43), (61, 29)]
     plane = 'x'
@@ -174,24 +177,14 @@ _, _, index_to_struct, _ = atlas_converter(ROI_legends)
 
 
 other_spec = '_mrtrix'
-other_spec = ''
+#other_spec = ''
 
 if other_spec == '_mrtrix':
     space_param = '_MDT'
 else:
     space_param = '_affinerigid'
 
-
-stat_type = '_bundlesizelim'
-
-stats_folder = os.path.join(outpath, f'Statistics{stat_type}_distance_{str(distance)}{space_param}{inclusive_str}{symmetric_str}{folder_ratio_str}{other_spec}')
-figures_path = os.path.join(outpath, f'Figures_distance_{str(distance)}{space_param}{inclusive_str}{symmetric_str}{folder_ratio_str}{other_spec}')
-
-centroid_folder = os.path.join(outpath, f'Centroids{space_param}{inclusive_str}{symmetric_str}{folder_ratio_str}{other_spec}')
-trk_folder = os.path.join(outpath, f'Centroids{space_param}{inclusive_str}{symmetric_str}{folder_ratio_str}{other_spec}')
-#stats_folder = os.path.join(mainpath, f'Statistics{space_param}{inclusive_str}{symmetric_str}{folder_ratio_str}')
-
-mkcdir([figures_path, centroid_folder, stats_folder], sftp)
+space_param = '_MDT'
 
 # groups = ['Initial AMD', 'Paired 2-YR AMD', 'Initial Control', 'Paired 2-YR Control', 'Paired Initial Control',
 #          'Paired Initial AMD']
@@ -218,19 +211,13 @@ coloring_options = ['centroids_fa_mean_coloring','centroids_id_coloring','stream
 coloring_options = ['streams_fa_points_coloring','streams_fa_mean_coloring','coherence_coloring_bundle','coherence_coloring_streams']
 coloring_options = ['streams_id_coloring']
 coloring_options = ['streams_fa_points_coloring','streams_fa_mean_coloring']
-coloring_options = ['streams_id_coloring']
+coloring_options = ['streams_fa_mean_coloring_2']
 fa_scale_range = (0.1, 0.3)
 coherence_scale_range = (0.1, 0.6)
 
-for coloring_option in coloring_options:
-    if 'coherence' in coloring_option:
-        D33 = 1
-        D44 = 0.02
-        t = 1
-        k = EnhancementKernel(D33, D44, t)
-        break
 #coloring = 'bundles_fa_coloring'
-coloring = 'streams_id_coloring'
+#coloring = 'streams_id_coloring'
+#coloring = 'streams_fa_mean_coloring_2'
 #coloring = 'streams_fa_mean_coloring'
 #coloring = 'streams_fa_points_coloring'
 #coloring = 'streams_id_coloring'
@@ -239,19 +226,66 @@ coloring = 'streams_id_coloring'
 
 references = ['fa']
 
-spec_list = [4,6,9,10]
+#spec_list = [4,6,9,10]
 #[(62, 28),(58,45),(28,9), (62, 1)]
 
+target_tuples_all = [(62, 28),(58,45),(28,9), (62, 1)]
 
-group_select = '2Year'
-target_tuples = [(62, 1)]
-spec_list = [4]
+stat_type = '_bundlesizelim'
+stat_type = '_hungarianopt'
+#stat_type = '_hungarianoptx2'
+percent_coh = 15
+
+
+coloring_options = ['streams_fa_mean_coloring_2']
+coloring_options = ['streams_id_coloring','streams_fa_mean_coloring_2']
+
+
+coloring_options = ['streams_id_coloring','streams_fa_mean_coloring_3']
+coloring_options = ['streams_fa_mean_coloring_3']
+
+group_select = ['Initial', '2Year']
+target_tuples = [target_tuples_all[1-1]]
+target_tuples = [(62, 28),(28,9),(62, 1)]
+#target_tuples = [target_tuples_all[3-1]]
+
+target_tuples = [(28,9),(62,1)]
+group_select = ['2Year']
+
+specs_list = [3,7,0,5,7,2]
+
+specs_dic = {('Initial',(62, 28)): 3, ('Initial',(28,9)): 7, ('Initial',(62, 1)): 0, ('2Year',(62, 28)): 5, ('2Year',(28,9)): 7, ('2Year',(62, 1)): 2}
+specs_dic = {('Initial',(62, 28)): 3, ('Initial',(28,9)): 7, ('Initial',(62, 1)): 0, ('2Year',(62, 28)): 5, ('2Year',(28,9)): 7, ('2Year',(62, 1)): 8}
+
+max_lengths = {(62, 28):15, (28,9):55, (62, 1):60}
+max_lengths = None
+bonus_length = 10
+spec_list = [5]
 
 firsttest = True
 
 interactive=True
 
-groups = [groups_all[x] for x in groups_set[group_select]]
+groups = [groups_all[x] for group in group_select for x in groups_set[group]]
+
+stats_folder = os.path.join(outpath, f'Statistics{stat_type}_distance_{str(distance)}{space_param}{inclusive_str}{symmetric_str}{folder_ratio_str}{other_spec}')
+figures_path = os.path.join(outpath, f'Figures{stat_type}_distance_{str(distance)}{space_param}{inclusive_str}{symmetric_str}{folder_ratio_str}{other_spec}')
+
+centroid_folder = os.path.join(outpath, f'Centroids{space_param}{inclusive_str}{symmetric_str}{folder_ratio_str}{other_spec}')
+trk_folder = os.path.join(outpath, f'Centroids{space_param}{inclusive_str}{symmetric_str}{folder_ratio_str}{other_spec}')
+#stats_folder = os.path.join(mainpath, f'Statistics{space_param}{inclusive_str}{symmetric_str}{folder_ratio_str}')
+
+mkcdir([figures_path, centroid_folder, stats_folder], sftp)
+
+ratio_streams = 1
+
+for coloring_option in coloring_options:
+    if 'coherence' in coloring_option or '3' in coloring_option:
+        D33 = 1
+        D44 = 0.02
+        t = 1
+        k = EnhancementKernel(D33, D44, t)
+        break
 
 for target_tuple in target_tuples:
 
@@ -280,6 +314,19 @@ for target_tuple in target_tuples:
 
         print(f'Setting up group {group}')
         group_str = group.replace(' ', '_')
+
+        if 'Initial' in group_str:
+            group_select = 'Initial'
+        if '2-YR' in group_str:
+            group_select = '2Year'
+
+        if specs_dic is not None:
+            spec_list = [specs_dic[group_select, target_tuple]]
+        if max_lengths is not None:
+            max_length = max_lengths[target_tuple]
+        else:
+            max_length = None
+
         group_connection_str = group_str + space_param + ratio_str + '_' + region_connection
         if write_stats:
             stats_path = os.path.join(stats_folder, group_connection_str + '_bundle_stats.xlsx')
@@ -350,10 +397,15 @@ for target_tuple in target_tuples:
         #          window.colors.cyan, window.colors.purple]
 
         for coloring in coloring_options:
-            colorbar = True
+            colorbar = False
 
             figures_coloring_path = os.path.join(figures_path, coloring)
+            mkcdir(figures_coloring_path, sftp)
+            small_trks_savepath = os.path.join(figures_coloring_path, 'single_bundles')
             figures_coloring_path = os.path.join(figures_coloring_path, 'temp_single_bundles_view')
+
+            figures_coloring_path = '/Users/jas/jacques/Whiston_article/AMD_submission_frontiers/Edited_May/Figure_3/mrtrix_onlymin/'
+
             #figures_coloring_path = os.path.join(mainpath, figures_path, 'test_zone')
             mkcdir(figures_coloring_path, sftp)
 
@@ -482,20 +534,183 @@ for target_tuple in target_tuples:
                 lut_cmap = coloring_vals
 
             elif coloring == 'streams_fa_mean_coloring':
-                bundle_streamlines = []
+                bundles_streamlines = []
                 bundles_fa = []
                 bundles_fa_mean = []
                 for bundle in selected_bundles:
-                    bundle_streamlines.append(streamlines[bundle.indices])
+                    bundles_streamlines.append(streamlines[bundle.indices])
                     bundle_fa = []
                     for idx in bundle.indices:
                         bundle_fa.append(fa_lines_idx[idx])
                     bundles_fa.append(bundle_fa)
                     bundles_fa_mean.append(np.mean(bundle_fa))
                 coloring_vals = bundles_fa
-                trkobject = bundle_streamlines
+                trkobject = bundles_streamlines
                 lut_cmap = actor.colormap_lookup_table(
                     scale_range=fa_scale_range)
+
+            elif coloring == 'streams_fa_mean_coloring_2':
+
+                csv_bundleorder = os.path.join(stats_folder,
+                                               group_select + '_' + region_connection + ratio_str + f'_bundle_order.csv')
+                bundleorder = pd.read_csv(csv_bundleorder)
+                neworder = bundleorder.to_dict()[group]
+
+                bundle_sets = []
+
+                num_bundles_set = np.min([len(neworder.keys()),num_bundles])
+
+                neworder2 = np.zeros([num_bundles_set, 1])
+                for i in np.arange(num_bundles_set):
+                    neworder2[i] = neworder[i]
+
+                selected_bundles_group = [selected_bundles[int(i)] for i in neworder2]
+
+                if np.size(spec_list)>0:
+                    #bundles_streamlines = bundles_streamlines[spec_list]
+                    bundle_sets = [selected_bundles_group[x] for x in spec_list]
+                    num_bundles_toview = np.size(spec_list)
+
+                bundles_fa = []
+                bundles_fa_mean = []
+                bundles_streamlines = []
+
+                """
+                if ratio_streams>1:
+                    bundle_sets_temp = []
+                    for bundle in bundle_sets:
+                        bundle_sets_temp.append(bundle[::ratio_streams])
+                    bundle_sets = bundle_sets_temp
+                """
+
+                for bundle in bundle_sets:
+                    bundles_streamlines.append(streamlines[bundle.indices[::ratio_streams]])
+                    bundle_fa = []
+                    for idx in bundle.indices[::ratio_streams]:
+                        bundle_fa.append(fa_lines_idx[idx])
+                    bundles_fa.append(bundle_fa)
+                    bundles_fa_mean.append(np.mean(bundle_fa))
+                coloring_vals = bundles_fa
+                trkobject = bundles_streamlines
+                lut_cmap = actor.colormap_lookup_table(
+                    scale_range=fa_scale_range)
+
+
+            elif coloring == 'streams_fa_mean_coloring_3':
+
+
+                csv_bundleorder = os.path.join(stats_folder,
+                                               group_select + '_' + region_connection + ratio_str + f'_bundle_order.csv')
+                bundleorder = pd.read_csv(csv_bundleorder)
+                neworder = bundleorder.to_dict()[group]
+
+                bundle_sets = []
+
+                num_bundles_set = np.min([len(neworder.keys()),num_bundles])
+
+                neworder2 = np.zeros([num_bundles_set, 1])
+                for i in np.arange(num_bundles_set):
+                    neworder2[i] = neworder[i]
+
+                try:
+                    selected_bundles_group = [selected_bundles[int(i)] for i in neworder2]
+                except:
+                    print('hi')
+                if np.size(spec_list)>0:
+                    #bundles_streamlines = bundles_streamlines[spec_list]
+                    bundle_sets = [selected_bundles_group[x] for x in spec_list]
+                    num_bundles_toview = np.size(spec_list)
+
+
+                from dipy.io.image import load_nifti
+
+                bundles_fa = []
+                bundles_fa_mean = []
+                bundles_streamlines = []
+
+                for bundle in bundle_sets:
+
+                    num_coh = (percent_coh * np.size(bundle.indices))/100
+
+                    fbc = FBCMeasures(streamlines[bundle.indices], k)
+                    fbc_sl_orig, lfbc_orig, rfbc_orig = \
+                        fbc.get_points_rfbc_thresholded(0, emphasis=0.01)
+
+                    indices_ordered = sorted(range(len(rfbc_orig)), key=lambda i: rfbc_orig[i], reverse=True)
+                    bundle_indices = [bundle.indices[i] for i in indices_ordered[:int(num_coh)]]
+
+                    bundles_streamlines.append(streamlines[bundle_indices])
+                    bundle_fa = []
+                    for idx in bundle_indices:
+                        bundle_fa.append(fa_lines_idx[idx])
+                    bundles_fa.append(bundle_fa)
+                    bundles_fa_mean.append(np.mean(bundle_fa))
+
+                coloring_vals = bundles_fa
+                trkobject = bundles_streamlines
+                lut_cmap = actor.colormap_lookup_table(
+                    scale_range=fa_scale_range)
+
+
+            elif coloring == 'streams_fa_mean_coloring_4':
+
+
+                csv_bundleorder = os.path.join(stats_folder,
+                                               group_select + '_' + region_connection + ratio_str + f'_bundle_order.csv')
+                bundleorder = pd.read_csv(csv_bundleorder)
+                neworder = bundleorder.to_dict()[group]
+
+                bundle_sets = []
+
+                num_bundles_set = np.min([len(neworder.keys()),num_bundles])
+
+                neworder2 = np.zeros([num_bundles_set, 1])
+                for i in np.arange(num_bundles_set):
+                    neworder2[i] = neworder[i]
+
+                try:
+                    selected_bundles_group = [selected_bundles[int(i)] for i in neworder2]
+                except:
+                    print('hi')
+                if np.size(spec_list)>0:
+                    #bundles_streamlines = bundles_streamlines[spec_list]
+                    bundle_sets = [selected_bundles_group[x] for x in spec_list]
+                    num_bundles_toview = np.size(spec_list)
+
+
+                from dipy.io.image import load_nifti
+
+                bundles_fa = []
+                bundles_fa_mean = []
+                bundles_streamlines = []
+
+                for bundle in bundle_sets:
+
+                    #num_coh = (percent_coh * np.size(bundle.indices))/100
+
+                    #fbc = FBCMeasures(streamlines[bundle.indices], k)
+                    from dipy.tracking import utils
+
+                    lengths = list(utils.length(streamlines[bundle.indices]))
+
+                    indices_ordered = sorted(range(len(lengths)), key=lambda i: lengths[i], reverse=True)
+                    if max_length is None:
+                        max_length = min(lengths)+bonus_length
+
+                    bundle_indices = [bundle.indices[i] for i, j in enumerate(lengths) if j < max_length]
+
+                    bundles_streamlines.append(streamlines[bundle_indices])
+                    bundle_fa = []
+                    for idx in bundle_indices:
+                        bundle_fa.append(fa_lines_idx[idx])
+                    bundles_fa.append(bundle_fa)
+                    bundles_fa_mean.append(np.mean(bundle_fa))
+
+                coloring_vals = bundles_fa
+                trkobject = bundles_streamlines
+                lut_cmap = actor.colormap_lookup_table(
+                    scale_range=fa_scale_range)
+
 
             elif coloring == 'streams_fa_points_coloring':
                 if checkfile_exists_remote(fa_points_path, sftp):
@@ -503,15 +718,15 @@ for target_tuple in target_tuples:
                 if 'select_streams' in locals():
                     fa_points = list(compress(fa_points, select_streams))
                 bundle_fa_points = []
-                bundle_streamlines = []
+                bundles_streamlines = []
                 for bundle in selected_bundles:
-                    bundle_streamlines.append(streamlines[bundle.indices])
+                    bundles_streamlines.append(streamlines[bundle.indices])
                     bundle_fa = []
                     for idx in bundle.indices:
                         bundle_fa.append(fa_points[idx])
                     bundle_fa_points.append(bundle_fa)
                 coloring_vals = bundle_fa_points
-                trkobject = bundle_streamlines
+                trkobject = bundles_streamlines
                 lut_cmap = actor.colormap_lookup_table(
                     scale_range=fa_scale_range)
 
@@ -521,31 +736,122 @@ for target_tuple in target_tuples:
                 bundleorder = pd.read_csv(csv_bundleorder)
                 neworder = bundleorder.to_dict()[group]
 
-                bundle_streamlines = []
+                num_bundles_set = np.min([len(neworder.keys()),num_bundles])
 
-                num_bundles_toview = np.min([len(neworder.keys()),num_bundles_toview])
-
-                neworder2 = np.zeros([num_bundles_toview, 1])
-                for i in np.arange(num_bundles_toview):
+                neworder2 = np.zeros([num_bundles_set, 1])
+                for i in np.arange(num_bundles_set):
                     neworder2[i] = neworder[i]
 
-                selected_bundles = [selected_bundles[int(i)] for i in neworder2]
-
-                for bundle in selected_bundles:
-                    bundle_streamlines.append(streamlines[bundle.indices])
+                selected_bundles_group = [selected_bundles[int(i)] for i in neworder2]
 
                 if np.size(spec_list)>0:
-                    #bundle_streamlines = bundle_streamlines[spec_list]
-                    bundle_streamlines = [bundle_streamlines[x] for x in spec_list]
+                    bundle_sets = [selected_bundles_group[x] for x in spec_list]
+                    num_bundles_toview = np.size(spec_list)
 
-                coloring_vals = fury.colormap.distinguishable_colormap(nb_colors=np.size(selected_bundles))
-                trkobject = bundle_streamlines[:num_bundles_toview]
-                if np.size(selected_bundles)>len(coloring_vals):
+                """
+                if ratio_streams>1:
+                    bundles_streamlines_temp = []
+                    for bundle in bundles_streamlines:
+                        bundles_streamlines_temp.append(bundle[::ratio_streams])
+                    bundles_streamlines = bundles_streamlines_temp
+                """
+
+                bundles_streamlines = []
+
+                for bundle in bundle_sets:
+                    if percent_coh is not None and percent_coh <100:
+                        bundles_streamlines_temp = []
+
+                        num_coh = (percent_coh * np.size(bundle.indices))/100
+
+                        fbc = FBCMeasures(streamlines[bundle.indices], k)
+                        fbc_sl_orig, lfbc_orig, rfbc_orig = \
+                            fbc.get_points_rfbc_thresholded(0, emphasis=0.01)
+
+                        indices_ordered = sorted(range(len(rfbc_orig)), key=lambda i: rfbc_orig[i], reverse=True)
+                        bundle_indices = [bundle.indices[i] for i in indices_ordered[:int(num_coh)]]
+
+                        bundles_streamlines.append(streamlines[bundle_indices])
+                    else:
+                       bundles_streamlines.append(streamlines[bundle.indices])
+
+                coloring_vals = fury.colormap.distinguishable_colormap(nb_colors=num_bundles_toview)
+
+                trkobject = bundles_streamlines[:num_bundles_toview]
+                if num_bundles_toview>len(coloring_vals):
                     raise Exception('Not enough colors for number of bundles')
                 else:
                     coloring_vals = coloring_vals[:num_bundles_toview]
+
+                save_trk_files = False
+                if save_trk_files:
+                    from DTC.tract_manager.tract_save import save_trk_header
+                    header = streamlines_data.space_attributes
+                    mkcdir(small_trks_savepath, sftp)
+                    streamline_file_path = os.path.join(small_trks_savepath, f'{group_connection_str}_bundle_{"_".join(map(str,spec_list))}.trk')
+                    #sg = lambda: (s for i, s in enumerate(trkobject[0]))
+                    from dipy.tracking import streamline
+                    streamlines = streamline.Streamlines(trkobject[0])
+                    save_trk_header(filepath=streamline_file_path, streamlines=streamlines, header=header,
+                                    affine=np.eye(4), verbose=True, sftp=sftp)
+
                 lut_cmap = None
-                colorbar=False
+
+
+            elif coloring == 'streams_id_coloring_backup':
+                csv_bundleorder = os.path.join(stats_folder,
+                                               group_str + '_' + region_connection + ratio_str + f'_bundle_order.csv')
+                bundleorder = pd.read_csv(csv_bundleorder)
+                neworder = bundleorder.to_dict()[group]
+
+                bundles_streamlines = []
+
+                num_bundles_set = np.min([len(neworder.keys()), num_bundles])
+
+                neworder2 = np.zeros([num_bundles_set, 1])
+                for i in np.arange(num_bundles_set):
+                    neworder2[i] = neworder[i]
+
+                selected_bundles_group = [selected_bundles[int(i)] for i in neworder2]
+
+                for bundle in selected_bundles_group:
+                    bundles_streamlines.append(streamlines[bundle.indices])
+
+                if np.size(spec_list) > 0:
+                    # bundles_streamlines = bundles_streamlines[spec_list]
+                    bundles_streamlines = [bundles_streamlines[x] for x in spec_list]
+                    num_bundles_toview_set = np.size(spec_list)
+
+                if ratio_streams > 1:
+                    bundles_streamlines_temp = []
+                    for bundle in bundles_streamlines:
+                        bundles_streamlines_temp.append(bundle[::ratio_streams])
+                    bundles_streamlines = bundles_streamlines_temp
+
+                coloring_vals = fury.colormap.distinguishable_colormap(nb_colors=num_bundles_toview)
+
+                trkobject = bundles_streamlines[:num_bundles_toview]
+                if num_bundles_toview > len(coloring_vals):
+                    raise Exception('Not enough colors for number of bundles')
+                else:
+                    coloring_vals = coloring_vals[:num_bundles_toview]
+
+                save_trk_files = False
+                if save_trk_files:
+                    from DTC.tract_manager.tract_save import save_trk_header
+
+                    header = streamlines_data.space_attributes
+                    mkcdir(small_trks_savepath, sftp)
+                    streamline_file_path = os.path.join(small_trks_savepath, f'{group_connection_str}_bundle_{"_".join(map(str, spec_list))}.trk')
+                    # sg = lambda: (s for i, s in enumerate(trkobject[0]))
+                    from dipy.tracking import streamline
+
+                    streamlines = streamline.Streamlines(trkobject[0])
+                    save_trk_header(filepath=streamline_file_path, streamlines=streamlines, header=header,
+                                    affine=np.eye(4), verbose=True, sftp=sftp)
+
+                lut_cmap = None
+
 
             else:
                 trkobject = selected_bundles
@@ -568,16 +874,23 @@ for target_tuple in target_tuples:
                     bun_num+=1
                 workbook.close()
 
+
+            if np.size(spec_list)>0:
+                record_name = group_connection_str + f'_bundles_figure_distance_{str(distance)}_{"_".join(str(num) for num in spec_list)}.png'
+            else:
+                record_name = group_connection_str + f'_bundles_figure_distance_{str(distance)}.png'
+
             if sftp is not None:
                 record_path = os.path.join(tempdir,
-                                           group_connection_str + f'_bundles_figure_distance_{str(distance)}.png')
-                record_path_true = os.path.join(figures_coloring_path, group_connection_str + f'_bundles_figure_distance_{str(distance)}.png')
+                                           record_name)
+                record_path_true = os.path.join(figures_coloring_path, record_name)
             else:
-                record_path = os.path.join(figures_coloring_path, group_connection_str + f'_bundles_figure_distance_{str(distance)}.png')
+                record_path = os.path.join(figures_coloring_path, record_name)
             #scene = None
             #interactive = False
             #record_path = None
             plane = 'x'
+            #plane = 'all'
             scene = setup_view(trkobject, colors = lut_cmap,ref = anat_path, world_coords = True, objectvals = coloring_vals, colorbar=colorbar, record = record_path, scene = scene, plane = plane, interactive = interactive)
             if sftp is not None:
                 copy_loctoremote(record_path, record_path_true, sftp=sftp)
