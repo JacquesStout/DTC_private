@@ -7,20 +7,23 @@ from DTC.file_manager.file_tools import file_rename, mkcdir
 distance = 15
 
 other_spec = '_mrtrix'
-#other_spec = ''
+other_spec = ''
 
-if other_spec == '_mrtrix':
-    space_param = '_MDT'
-else:
-    space_param = '_affinerigid'
+space_param = '_MDT'
+stat_type = '_hungarianopt'
 
-inpath = '/Volumes/dusom_mousebrains/All_Staff/Data/AMD/'
-excel_subjID_path = '/Volumes/dusom_mousebrains/All_Staff/Analysis/AMD/temp_subjID_unwrangler'
-#excel_subjID_path = f'/Volumes/dusom_mousebrains/All_Staff/Analysis/AMD/Centroids{space_param}_non_inclusive_symmetric{other_spec}'
-bundlestats_folder = '/Volumes/dusom_mousebrains/All_Staff/Analysis/AMD/Statistics_allregions_affinerigid_non_inclusive_symmetric/bundle_stats/'
-bundlestats_folder = '/Volumes/dusom_mousebrains/All_Staff/Analysis/AMD/Statistics_allregions_distance_30_affinerigid_non_inclusive_symmetric'
-bundlestats_folder = f'/Volumes/dusom_mousebrains/All_Staff/Analysis/AMD/Statistics_bundlesizelim_distance_{distance}{space_param}_non_inclusive_symmetric{other_spec}/'
-#bundlestats_folder = f'/Volumes/dusom_mousebrains/All_Staff/Analysis/AMD/Statistics_bundlesizelim_distance_15_affinerigid_non_inclusive_symmetric/'
+#if other_spec == '_mrtrix':
+#    space_param = '_MDT'
+#else:
+#    space_param = '_affinerigid'
+
+#excel_subjID_path = '/Volumes/dusom_mousebrains/All_Staff/Analysis/AMD_farun/temp_subjID_unwrangler'
+#excel_subjID_path = '/Volumes/dusom_mousebrains/All_Staff/Analysis/AMD_farun/Centroids_MDT_non_inclusive_symmetric_mrtrix/'
+excel_subjID_path = f'/Volumes/dusom_mousebrains/All_Staff/Analysis/AMD_farunfull/Centroids{space_param}_non_inclusive_symmetric{other_spec}'
+bundlestats_folder = '/Volumes/dusom_mousebrains/All_Staff/Analysis/AMD_farun/Statistics_allregions_affinerigid_non_inclusive_symmetric/bundle_stats/'
+bundlestats_folder = '/Volumes/dusom_mousebrains/All_Staff/Analysis/AMD_farun/Statistics_allregions_distance_30_affinerigid_non_inclusive_symmetric'
+bundlestats_folder = f'/Volumes/dusom_mousebrains/All_Staff/Analysis/AMD_farunfull/Statistics{stat_type}_distance_{distance}{space_param}_non_inclusive_symmetric{other_spec}/'
+#bundlestats_folder = f'/Volumes/dusom_mousebrains/All_Staff/Analysis/AMD_farun/Statistics_bundlesizelim_distance_15_affinerigid_non_inclusive_symmetric/'
 atlas_legends = '/Volumes/Data/Badea/Lab/atlases/IITmean_RPI/IITmean_RPI_index.xlsx'
 outpath = os.path.join(bundlestats_folder, 'bundle_stats_withid')
 mkcdir(outpath)
@@ -31,13 +34,14 @@ ratio_str = ratio_to_str(ratio)
 
 #group = 'Paired 2-YR AMD'
 
-target_tuples = [(62, 28),(28,9), (62, 1)]
+target_tuples = [(62, 28), (28, 9), (62, 1)]
+
 #target_tuples = [(62, 28), (58,45)]
 #target_tuples = [(36,70),(36,28),(70,62),(36,62),(70,28)]
 
 #target_tuples = [(62, 28),(28,9), (62, 1)]
 
-groups = ['Paired Initial Control','Paired 2-YR AMD','Paired 2-YR Control','Paired Initial AMD']
+groups = ['Paired Initial Control','Paired Initial AMD','Paired 2-YR AMD','Paired 2-YR Control']
 #groups = ['Paired Initial Control','Paired Initial AMD']
 #groups = ['Paired 2-YR AMD','Paired 2-YR Control']
 
