@@ -29,11 +29,6 @@ from DTC.tract_manager.tract_handler import reducetractnumber
 project = 'AMD'
 
 subj = sys.argv[1]
-#subj = 'H26578'
-# subjects = ['H26578']
-# subjects = ["H26660"]
-# subjects = ["H29410"]
-# random.shuffle(subjects)
 
 # temporarily removing "H29056" to recalculate it
 ext = ".nii.gz"
@@ -78,14 +73,14 @@ ratio = 1
 trkroi = ["wholebrain"]
 str_identifier = get_str_identifier(stepsize, ratio, trkroi)
 prune = True
-overwrite = False
+overwrite = True
 cleanup = False
 verbose = True
 recenter = True
 
 save_temp_nii_files = False
 save_temp_trk_files = False
-del_orig_files = True
+del_orig_files = False
 
 nii_to_MDT = False
 trk_to_MDT = True
@@ -205,11 +200,19 @@ else:
     raise Exception('unrecognizable ratio value')
 """
 
+if ratio != 1:
+    ratio_str = f'_ratio_{ratio}'
+else:
+    ratio_str = ''
+
+
 trk_preprocess_posttrans = os.path.join(path_trk_tempdir, f'{subj}{str_identifier}_preprocess_posttrans.trk')
 trk_preprocess_postrigid = os.path.join(path_trk_tempdir, f'{subj}{str_identifier}_preprocess_postrigid.trk')
 trk_preprocess_postrigid_affine = os.path.join(path_trk_tempdir,
                                                f'{subj}{str_identifier}_preprocess_postrigid_affine.trk')
-trk_MDT_space = os.path.join(path_TRK_output, f'{subj}_MDT.trk')
+trk_MDT_space = os.path.join(path_TRK_output, f'{subj}_MDT{ratio_str}.trk')
+
+warp_path = runno_to_MDT
 
 # final_img_exists = checkfile_exists_remote(trk_MDT_space)
 final_img_exists = checkfile_exists_remote(trk_MDT_space, sftp)
@@ -237,6 +240,9 @@ if trk_to_MDT and (not final_img_exists or overwrite):
     from ants import image_write, image_read
 
     filepath_resampled_path = os.path.join(outpath, f'{subj}_subj_resampled{ext}')
+    if verbose:
+        print(f'Resampling {subj_img_path} to {filepath_resampled_path} and comparing their affine to {SAMBA_init}')
+
     if not os.path.exists(filepath_resampled_path) or overwrite:
         resampled = resample_image_to_target(image_read(subj_img_path), image_read(SAMBA_init))
         image_write(resampled, filepath_resampled_path)
@@ -266,14 +272,17 @@ if trk_to_MDT and (not final_img_exists or overwrite):
     resampled_aff = nib.load(filepath_resampled_path).affine
     resampled_hdr = nib.load(filepath_resampled_path).header
 
-    pickle_rigid_path = os.path.join(path_transforms, 'subj_to_init_affine.py')
-    if not os.path.exists(pickle_rigid_path) or True:
+    pickle_rigid_path = os.path.join(path_transforms, f'{subj}_to_init_affine.py')
+    if not os.path.exists(pickle_rigid_path) or overwrite:
         transformed, rigid_affine = rigid_reg(SAMBA_init_data, SAMBA_init_nii.affine, resampled_data, resampled_aff)
         new_nii = nib.Nifti1Image(transformed, resampled_aff, resampled_hdr)
         pickledump_remote(rigid_affine, pickle_rigid_path, sftp=sftp)
     else:
         rigid_affine = remote_pickle(pickle_rigid_path)
-    nib.save(new_nii, filepath_resampled_reoriented_rigid)
+    #nib.save(new_nii, filepath_resampled_reoriented_rigid)
+
+    if verbose:
+        print(f'Can find the ants transform at {affine_rigid_path} and the pickled affine transform at {pickle_rigid_path}')
 
     if os.path.exists(filepath_resampled_reoriented):
         os.remove(filepath_resampled_reoriented)
@@ -281,8 +290,13 @@ if trk_to_MDT and (not final_img_exists or overwrite):
     print('reaching point 2')
     subj_trk, trkexists = gettrkpath(path_TRK, subj, str_identifier, pruned=prune, verbose=False, sftp=sftp)
     if not trkexists:
-        subj_trk, trkexists = gettrkpath(path_TRK, subj, '_smallerTracks2mill', pruned=prune, verbose=False, sftp=sftp)
-        smallertrkpath = os.path.join(path_TRK, subj + str_identifier + '.trk')
+        subj_trk, trkexists = gettrkpath(path_TRK, subj, get_str_identifier(stepsize, 1, trkroi)
+, pruned=prune, verbose=False, sftp=sftp)
+        if prune:
+            pruned_str = '_pruned'
+        else:
+            pruned_str = ''
+        smallertrkpath = os.path.join(path_TRK, subj + str_identifier + pruned_str + '.trk')
         if trkexists and ratio != 1:
             reducetractnumber(subj_trk, smallertrkpath, getdata=False, ratio=ratio,
                               return_affine=False, verbose=False)
@@ -297,7 +311,11 @@ if trk_to_MDT and (not final_img_exists or overwrite):
     if np.any(exists == 0):
         raise Exception('missing transform file')
     # streamlines_prepro, header = unload_trk(subj_trk)
-    streamlines_data = load_trk_remote(subj_trk, 'same', sftp)
+    try:
+        streamlines_data = load_trk_remote(subj_trk, 'same', sftp)
+    except:
+        txt=f'Could not load file found {subj_trk}'
+        raise Exception(txt)
     streamlines_subj = streamlines_data.streamlines
     header = streamlines_data.space_attributes
 
@@ -349,7 +367,7 @@ if trk_to_MDT and (not final_img_exists or overwrite):
     print('finished')
     # streamlines_postrigidaffine, header_postrigidaffine = unload_trk(trk_preprocess_postrigid_affine)
 
-    warp_data, warp_affine, _, _, _ = load_nifti_remote(MDT_to_runno, None)
+    warp_data, warp_affine, _, _, _ = load_nifti_remote(warp_path, None)
 
     taf = time.perf_counter()
 

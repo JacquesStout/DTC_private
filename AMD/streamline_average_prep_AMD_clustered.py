@@ -21,19 +21,14 @@ from DTC.file_manager.computer_nav import get_mainpaths, get_atlas, load_trk_rem
 project = 'AMD'
 
 subject = sys.argv[1]
-<<<<<<< HEAD
+
 mrtrix = int(sys.argv[2])
 #subject = 'H21593'
-=======
-mrtrix = sys.argv[2]
 
 if mrtrix:
     print('getting the mrtrix folder')
 else:
     print('getting the none mrtrix folder')
-
-subject = 'H21593'
->>>>>>> 3a7ac2d5382a31291d2bcd4b1e67148bcf84698f
 
 remote = True
 remote = False
@@ -103,7 +98,10 @@ else:
     trk_type = ''
 
 #TRK_folder = os.path.join(inpath, f'TRK_{space_type}{fixed_str}{folder_ratio_str}')
-TRK_folder = os.path.join(inpath, f'TRK{trk_type}_{space_type}_farun')
+TRK_folder = os.path.join(inpath, f'TRK{trk_type}_{space_type}')
+print('folder is ')
+print(TRK_folder)
+
 #TRK_folder = os.path.join('/Volumes/dusom_mousebrains/All_Staff/Nariman_mrtrix_amd', 'TRK_trix_MDT')
 # TRK_folder = os.path.join(inpath, f'TRK_MDT_real_testtemp{fixed_str}{folder_ratio_str}')
 
@@ -135,7 +133,7 @@ labelmask, labelaffine, labeloutpath, index_to_struct = getlabeltypemask(label_f
 
 print(f'Beginning streamline_prep run from {TRK_folder} for folder {excel_folder}')
 
-
+print(TRK_folder)
 trkpath, exists = gettrkpath(TRK_folder, subject, str_identifier, pruned=False, verbose=verbose, sftp=sftp)
 
 if not exists:
