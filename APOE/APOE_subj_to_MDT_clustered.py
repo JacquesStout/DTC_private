@@ -272,32 +272,6 @@ except:
     txt=f'Could not load file found {subj_trk}'
     raise Exception(txt)
 
-streamlines_subj = streamlines_data.streamlines
-header = streamlines_data.space_attributes
-affine_reorient[3,3] = 1
-streamlines_postreorient = transform_streamlines(streamlines_subj, affine_reorient)
-
-trk_preprocess_reoriented = os.path.join(path_trk_tempdir, f'{subj}{str_identifier}_trk_init_transition.trk')
-
-if (not checkfile_exists_remote(trk_preprocess_reoriented, sftp) or overwrite) and save_temp_trk_files:
-    save_trk_header(filepath=trk_preprocess_reoriented, streamlines=streamlines_postreorient, header=header,
-                    affine=np.eye(4), verbose=verbose, sftp=sftp)
-
-transform_to_init = transform['fwdtransforms'][0]
-toinit_reorient_struct = loadmat_remote(transform_to_init, sftp)
-trk_preprocess_init = os.path.join(path_trk_tempdir, f'{subj}{str_identifier}_trk_init.trk')
-var_name = list(toinit_reorient_struct.keys())[0]
-toinit_ants = toinit_reorient_struct[var_name]
-toinit_mat = convert_ants_vals_to_affine(toinit_ants)
-
-streamlines_init = transform_streamlines(streamlines_postreorient, np.linalg.inv(toinit_mat))
-
-if (not checkfile_exists_remote(trk_preprocess_init, sftp) or overwrite) and save_temp_trk_files:
-    save_trk_header(filepath=trk_preprocess_init, streamlines=streamlines_init, header=header,
-                    affine=np.eye(4), verbose=verbose, sftp=sftp)
-
-##############
-
 
 trk_preprocess_posttrans = os.path.join(path_trk_tempdir, f'{subj}{str_identifier}_preprocess_posttrans.trk')
 trk_preprocess_postrigid = os.path.join(path_trk_tempdir, f'{subj}{str_identifier}_preprocess_postrigid.trk')
