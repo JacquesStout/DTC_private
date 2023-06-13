@@ -44,10 +44,8 @@ for subj in list_of_subjs:
     # print(subj)
     # fmri_file = list_fmir_folders_path +subj + "/ses-1/func/" + subj +"_ses-1_bold.nii.gz"
     # nib.load(fmri_file)
-    if mrtrix:
-        python_command = "python3 ~/DTC_private/AMD//AMD_trix_subj_to_MDT_clustered.py " + subj
-    else:
-        python_command = "python3 ~/DTC_private/AMD//AMD_subj_to_MDT_clustered.py " + subj
+    python_command = "python3 ~/DTC_private/APOE//APOE_subj_to_MDT_clustered.py " + subj
+    #python_command = "python3 ~/DTC_private/AMD//AMD_subj_to_MDT_clustered.py " + subj
     job_name = job_descrp + "_" + subj
     command = GD + "submit_sge_cluster_job.bash " + sbatch_folder_path + " " + job_name + " 0 0 '" + python_command + "'"
     os.system(command)

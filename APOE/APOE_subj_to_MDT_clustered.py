@@ -60,9 +60,9 @@ def get_rotation_matrix(angle, axis):
 
 project = 'APOE'
 
-#subj = sys.argv[1]
-subj = 'N57437'
-subj = 'N57496'
+subj = sys.argv[1]
+#subj = 'N57437'
+#subj = 'N57496'
 
 # temporarily removing "H29056" to recalculate it
 ext = ".nii.gz"
@@ -74,7 +74,7 @@ passwd = None
 sftp = None
 
 mainpath = '/mnt/munin2/Badea/Lab/'
-mainpath = '/Volumes/Data/Badea/Lab/'
+#mainpath = '/Volumes/Data/Badea/Lab/'
 
 inpath = os.path.join(mainpath, 'mouse/APOE_trk_transfer')
 outpath = os.path.join(mainpath, 'mouse/APOE_trk_transfer')
@@ -320,7 +320,6 @@ if trk_to_MDT and (not final_img_exists or overwrite):
     else:
         raise Exception('unrecognizable ratio value')
 
-    save_temp_trk_files = True
     prune = False
 
     subj_trk, trkexists = gettrkpath(path_TRK, subj, str_identifier, pruned=prune, verbose=False, sftp=sftp)
