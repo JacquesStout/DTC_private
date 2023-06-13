@@ -98,7 +98,7 @@ ratio = 1
 trkroi = ["wholebrain"]
 str_identifier = get_str_identifier(stepsize, ratio, trkroi)
 prune = True
-overwrite = True
+overwrite = False
 cleanup = False
 verbose = True
 recenter = True
@@ -213,21 +213,24 @@ if nii_to_MDT:
             ants.image_write(registered_image, SAMBA_init_test)
             print(f'wrote {SAMBA_init_test}')
 
-            if not save_temp_nii_files:
-                command_all = f"antsApplyTransforms -v 1 --float -d 3  -i {SAMBA_init_test} -o {SAMBA_postwarp} -r {SAMBA_ref} -n Linear -t {runno_to_MDT} [{affine_orig},0]  [{rigid},0]";
-                os.system(command_all)
+            if not os.path.exists(SAMBA_postwarp):
+                if not save_temp_nii_files:
+                    command_all = f"antsApplyTransforms -v 1 --float -d 3  -i {SAMBA_init_test} -o {SAMBA_postwarp} -r {SAMBA_ref} -n Linear -t {runno_to_MDT} [{affine_orig},0]  [{rigid},0]";
+                    os.system(command_all)
+                else:
+                    rigid_temp_path = os.path.join(path_DWI_temp, f'{subj}_{contrast}_postrigid{ext}')
+                    affine_temp_path = os.path.join(path_DWI_temp, f'{subj}_{contrast}_postaffine{ext}')
+
+                    command_all = f"antsApplyTransforms -v 1 --float -d 3  -i {SAMBA_init_test} -o {rigid_temp_path} -r {SAMBA_ref} -n Linear -t [{rigid},0]";
+                    os.system(command_all)
+
+                    command_all = f"antsApplyTransforms -v 1 --float -d 3  -i {rigid_temp_path} -o {affine_temp_path} -r {SAMBA_ref} -n Linear -t [{affine_orig},0]";
+                    os.system(command_all)
+
+                    command_all = f"antsApplyTransforms -v 1 --float -d 3  -i {affine_temp_path} -o {SAMBA_postwarp} -r {SAMBA_ref} -n Linear -t {runno_to_MDT}";
+                    os.system(command_all)
             else:
-                rigid_temp_path = os.path.join(path_DWI_temp, f'{subj}_{contrast}_postrigid{ext}')
-                affine_temp_path = os.path.join(path_DWI_temp, f'{subj}_{contrast}_postaffine{ext}')
-
-                command_all = f"antsApplyTransforms -v 1 --float -d 3  -i {SAMBA_init_test} -o {rigid_temp_path} -r {SAMBA_ref} -n Linear -t [{rigid},0]";
-                os.system(command_all)
-
-                command_all = f"antsApplyTransforms -v 1 --float -d 3  -i {rigid_temp_path} -o {affine_temp_path} -r {SAMBA_ref} -n Linear -t [{affine_orig},0]";
-                os.system(command_all)
-
-                command_all = f"antsApplyTransforms -v 1 --float -d 3  -i {affine_temp_path} -o {SAMBA_postwarp} -r {SAMBA_ref} -n Linear -t {runno_to_MDT}";
-                os.system(command_all)
+                print(f'Already wrote {SAMBA_postwarp}')
 
             if os.path.exists(SAMBA_postwarp) and os.path.exists(SAMBA_init_test_t) and erase:
                 os.remove(SAMBA_init_test_t)
