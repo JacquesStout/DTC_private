@@ -178,97 +178,75 @@ if nii_to_MDT:
 
         SAMBA_postwarp = os.path.join(path_DWI_output, f'{subj}_{contrast}_to_MDT{ext}')
 
-        if not os.path.exists(SAMBA_postwarp) or test_mode:
 
-            SAMBA_subj = os.path.join(path_DWI, f'{subj}_subjspace_{contrast}.nii.gz')
+        SAMBA_subj = os.path.join(path_DWI, f'{subj}_subjspace_{contrast}.nii.gz')
 
-            if SAMBA_subj_toRAS:
-                SAMBA_subj_RAS = os.path.join(path_DWI_temp, f'{subj}_subjspace_{contrast}_RAS.nii.gz')
-                img_transform_exec(SAMBA_subj, 'ARI', 'RAS', output_path=SAMBA_subj_RAS)
-                SAMBA_subj = SAMBA_subj_RAS
+        if SAMBA_subj_toRAS:
+            SAMBA_subj_RAS = os.path.join(path_DWI_temp, f'{subj}_subjspace_{contrast}_RAS.nii.gz')
+            img_transform_exec(SAMBA_subj, 'ARI', 'RAS', output_path=SAMBA_subj_RAS)
+            SAMBA_subj = SAMBA_subj_RAS
 
-            SAMBA_init_test_t = os.path.join(path_DWI_temp, f'{subj}_{contrast}_init_transition.nii.gz')
-            SAMBA_init_test = os.path.join(path_DWI_temp, f'{subj}_{contrast}_init.nii.gz')
-            SAMBA_init = os.path.join(SAMBA_inits, f'{subj}_fa_masked.nii.gz')
+        SAMBA_init_test_t = os.path.join(path_DWI_temp, f'{subj}_{contrast}_init_transition.nii.gz')
+        SAMBA_init_test = os.path.join(path_DWI_temp, f'{subj}_{contrast}_init.nii.gz')
+        SAMBA_init = os.path.join(SAMBA_inits, f'{subj}_fa_masked.nii.gz')
 
-            rigid_reorient_path = os.path.join(path_DWI_temp, f'{subj}_subj_reorient.mat')
+        rigid_reorient_path = os.path.join(path_DWI_temp, f'{subj}_subj_reorient.mat')
 
-            """
-            if not os.path.exists(SAMBA_init_test_t) or True:
+        import ants
 
-                SAMBA_temp_ref = os.path.join(path_DWI_temp, f'{subj}_temp_ref.nii.gz')
-                SAMBAreg_file = os.path.join(path_DWI_temp, f'{subj}_nii_init_ref_new.nii.gz')
-                img_transform_exec(SAMBA_subj, 'RAS', 'ARI', output_path=SAMBA_temp_ref)
-                #header_superpose(SAMBA_ref, SAMBA_temp_ref, SAMBAreg_file)
-                #header_superpose('/Volumes/Data/Badea/Lab/mouse/VBM_20APOE01_chass_symmetric3_allAPOE-inputs/N60131_fa.nii.gz', SAMBA_temp_ref, SAMBAreg_file)
+        #fixed_image = ants.image_read(SAMBA_init)
+        fixed_image = ants.image_read(SAMBA_init)
+        moving_image = ants.image_read(SAMBA_subj)
 
-                voxel_size = [0.045, 0.045, 0.045]
-                affine_reorient = np.zeros([4, 4])
-                affine_reorient[0, 1] = 1
-                affine_reorient[1, 0] = -1
-                affine_reorient[2, 2] = 1
+        # Perform trans registration
+        transform_rigid = ants.registration(fixed=fixed_image, moving=moving_image, type_of_transform='Rigid')
 
-                old_affine = nib.load(SAMBA_subj).affine
-                new_affine_nib = np.matmul(affine_reorient,old_affine)
+        # Apply the transformation to the moving image
+        registered_image = ants.apply_transforms(fixed=fixed_image, moving=moving_image,
+                                                 transformlist=transform_rigid['fwdtransforms'])
 
-                transition_nii_test = nib.Nifti1Image(nib.load(SAMBA_subj).get_fdata(), new_affine_nib)
-                nib.save(transition_nii_test, SAMBA_init_test_t)
-                print(f'wrote {SAMBA_init_test_t}')
-            """
+        # Save the registered image
+        ants.image_write(registered_image, SAMBA_init_test)
+        print(f'wrote {SAMBA_init_test}')
 
-            import ants
+        """
+        # Perform rigid registration
+        transform_rigid = ants.registration(fixed=fixed_image, moving=ants.image_read(SAMBA_init_test_t), type_of_transform='Rigid')
 
-            #fixed_image = ants.image_read(SAMBA_init)
-            fixed_image = ants.image_read(SAMBA_init)
-            moving_image = ants.image_read(SAMBA_subj)
+        # Apply the transformation to the moving image
+        registered_image = ants.apply_transforms(fixed=fixed_image, moving=moving_image,
+                                                 transformlist=transform_rigid['fwdtransforms'])
 
-            # Perform trans registration
-            transform_rigid = ants.registration(fixed=fixed_image, moving=moving_image, type_of_transform='Rigid')
-
-            # Apply the transformation to the moving image
-            registered_image = ants.apply_transforms(fixed=fixed_image, moving=moving_image,
-                                                     transformlist=transform_rigid['fwdtransforms'])
-
-            # Save the registered image
-            ants.image_write(registered_image, SAMBA_init_test)
-            print(f'wrote {SAMBA_init_test}')
-            """
-            # Perform rigid registration
-            transform_rigid = ants.registration(fixed=fixed_image, moving=ants.image_read(SAMBA_init_test_t), type_of_transform='Rigid')
-
-            # Apply the transformation to the moving image
-            registered_image = ants.apply_transforms(fixed=fixed_image, moving=moving_image,
-                                                     transformlist=transform_rigid['fwdtransforms'])
-
-            # Save the registered image
-            ants.image_write(registered_image, SAMBA_init_test)
-            print(f'wrote {SAMBA_init_test}')
-            """
-            if not os.path.exists(SAMBA_postwarp):
-                if not save_temp_nii_files:
-                    command_all = f"antsApplyTransforms -v 1 --float -d 3  -i {SAMBA_init_test} -o {SAMBA_postwarp} -r {SAMBA_ref} -n Linear -t {runno_to_MDT} [{affine_orig},0]  [{rigid},0]";
-                    os.system(command_all)
-                else:
-                    rigid_temp_path = os.path.join(path_DWI_temp, f'{subj}_{contrast}_postrigid{ext}')
-                    affine_temp_path = os.path.join(path_DWI_temp, f'{subj}_{contrast}_postaffine{ext}')
-
-                    command_all = f"antsApplyTransforms -v 1 --float -d 3  -i {SAMBA_init_test} -o {rigid_temp_path} -r {SAMBA_ref} -n Linear -t [{rigid},0]";
-                    os.system(command_all)
-
-                    command_all = f"antsApplyTransforms -v 1 --float -d 3  -i {rigid_temp_path} -o {affine_temp_path} -r {SAMBA_ref} -n Linear -t [{affine_orig},0]";
-                    os.system(command_all)
-
-                    command_all = f"antsApplyTransforms -v 1 --float -d 3  -i {affine_temp_path} -o {SAMBA_postwarp} -r {SAMBA_ref} -n Linear -t {runno_to_MDT}";
-                    os.system(command_all)
+        # Save the registered image
+        ants.image_write(registered_image, SAMBA_init_test)
+        print(f'wrote {SAMBA_init_test}')
+        """
+        
+        if not os.path.exists(SAMBA_postwarp):
+            if not save_temp_nii_files:
+                command_all = f"antsApplyTransforms -v 1 --float -d 3  -i {SAMBA_init_test} -o {SAMBA_postwarp} -r {SAMBA_ref} -n Linear -t {runno_to_MDT} [{affine_orig},0]  [{rigid},0]";
+                os.system(command_all)
             else:
-                print(f'Already wrote {SAMBA_postwarp}')
+                rigid_temp_path = os.path.join(path_DWI_temp, f'{subj}_{contrast}_postrigid{ext}')
+                affine_temp_path = os.path.join(path_DWI_temp, f'{subj}_{contrast}_postaffine{ext}')
 
-            if os.path.exists(SAMBA_postwarp) and os.path.exists(SAMBA_init_test_t) and erase:
-                os.remove(SAMBA_init_test_t)
-                # os.remove(SAMBA_init_test
+                command_all = f"antsApplyTransforms -v 1 --float -d 3  -i {SAMBA_init_test} -o {rigid_temp_path} -r {SAMBA_ref} -n Linear -t [{rigid},0]";
+                os.system(command_all)
 
+                command_all = f"antsApplyTransforms -v 1 --float -d 3  -i {rigid_temp_path} -o {affine_temp_path} -r {SAMBA_ref} -n Linear -t [{affine_orig},0]";
+                os.system(command_all)
+
+                command_all = f"antsApplyTransforms -v 1 --float -d 3  -i {affine_temp_path} -o {SAMBA_postwarp} -r {SAMBA_ref} -n Linear -t {runno_to_MDT}";
+                os.system(command_all)
         else:
             print(f'Already wrote {SAMBA_postwarp}')
+
+        if os.path.exists(SAMBA_postwarp) and os.path.exists(SAMBA_init_test_t) and erase:
+            os.remove(SAMBA_init_test_t)
+            # os.remove(SAMBA_init_test
+
+    else:
+        print(f'Already wrote {SAMBA_postwarp}')
 
 ############
 
