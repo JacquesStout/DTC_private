@@ -60,8 +60,7 @@ def get_rotation_matrix(angle, axis):
 
 project = 'AD_Decode'
 
-
-test_mode = True
+test_mode = False
 
 if test_mode:
     subj = 'S02110'
@@ -77,8 +76,10 @@ passwd = None
 
 sftp = None
 
-#mainpath = '/mnt/munin2/Badea/Lab/'
-mainpath = '/Volumes/Data/Badea/Lab/'
+if test_mode:
+    mainpath = '/Volumes/Data/Badea/Lab/'
+else:
+    mainpath = '/mnt/munin2/Badea/Lab/'
 
 inpath = os.path.join(mainpath, 'human/AD_Decode_trk_transfer')
 outpath = os.path.join(mainpath, 'human/AD_Decode_trk_transfer')
@@ -101,7 +102,12 @@ path_transforms = os.path.join(inpath, 'Transforms_farun')
 mkcdir([outpath, path_TRK_output, path_DWI_output, path_transforms, path_DWI_temp], sftp)
 
 stepsize = 2
-ratio = 1
+
+if test_mode:
+    ratio=100
+else:
+    ratio = 1
+
 trkroi = ["wholebrain"]
 str_identifier = get_str_identifier(stepsize, ratio, trkroi)
 prune = True
@@ -264,8 +270,6 @@ if nii_to_MDT:
         else:
             print(f'Already wrote {SAMBA_postwarp}')
 
-ratio=1
-
 ############
 
 if ratio == 1:
@@ -292,8 +296,6 @@ warp_path = MDT_to_runno
 final_img_exists = checkfile_exists_remote(trk_MDT_space, sftp)
 print('point 0')
 print(trk_MDT_space)
-
-ratio=100
 
 if test_mode:
     overwrite=True
