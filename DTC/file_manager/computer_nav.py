@@ -364,12 +364,33 @@ def checkfile_exists_remote(path, sftp=None):
     else:
         return False
 
-def checkfile_exists_all(paths, sftp=None):
+def checkfile_exists_all(paths, sftp=None, percent = None):
     exists=True
+    i=0
     for path in paths:
         if not checkfile_exists_remote(path, sftp):
             exists=False
-    return exists
+        else:
+            i+=1
+    if percent is None:
+        return exists
+    else:
+        exists = (i/np.size(paths))>percent
+        return exists
+
+def checkfile_exists_all_faster(paths, percent = None):
+    exists=True
+    i=0
+    for path in paths:
+        if not os.path.exists(path):
+            exists=False
+        else:
+            i+=1
+    if percent is None:
+        return exists
+    else:
+        exists = (i/np.size(paths))>percent
+        return exists
 
 
 def checkallfiles(paths, sftp=None):

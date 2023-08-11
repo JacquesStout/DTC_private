@@ -61,8 +61,32 @@ def get_rotation_matrix(angle, axis):
 project = 'APOE'
 
 subj = sys.argv[1]
-#subj = 'N57437'
-#subj = 'N57496'
+
+
+test_mode = True
+
+if test_mode:
+    subj = 'N57437'
+    # subj = 'N57496'
+else:
+    subj = sys.argv[1]
+
+if test_mode:
+    erase=True
+    save_temp_trk_files = True
+    save_temp_nii_files = True
+    overwrite = True
+    ratio = 100
+    mainpath = '/Volumes/Data/Badea/Lab/'
+
+else:
+    erase = False
+    save_temp_trk_files = False
+    save_temp_nii_files = False
+    overwrite = False
+    ratio = 1
+    mainpath = '/mnt/munin2/Badea/Lab/'
+
 
 # temporarily removing "H29056" to recalculate it
 ext = ".nii.gz"

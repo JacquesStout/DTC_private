@@ -60,26 +60,39 @@ def get_rotation_matrix(angle, axis):
 
 project = 'AD_Decode'
 
-test_mode = False
+test_mode = True
 
 if test_mode:
-    subj = 'S02110'
+    subj = 'S02670'
 else:
     subj = sys.argv[1]
 
+
+if test_mode:
+    erase=True
+    save_temp_trk_files = True
+    save_temp_nii_files = True
+    overwrite = True
+    ratio = 100
+    mainpath = '/Volumes/Data/Badea/Lab/'
+
+else:
+    erase = False
+    save_temp_trk_files = False
+    save_temp_nii_files = False
+    overwrite = False
+    ratio = 1
+    mainpath = '/mnt/munin2/Badea/Lab/'
+
+
+
 # temporarily removing "H29056" to recalculate it
 ext = ".nii.gz"
-computer_name = socket.gethostname()
 
 username = None
 passwd = None
 
 sftp = None
-
-if test_mode:
-    mainpath = '/Volumes/Data/Badea/Lab/'
-else:
-    mainpath = '/mnt/munin2/Badea/Lab/'
 
 inpath = os.path.join(mainpath, 'human/AD_Decode_trk_transfer')
 outpath = os.path.join(mainpath, 'human/AD_Decode_trk_transfer')
@@ -103,29 +116,16 @@ mkcdir([outpath, path_TRK_output, path_DWI_output, path_transforms, path_DWI_tem
 
 stepsize = 2
 
-if test_mode:
-    ratio=100
-else:
-    ratio = 1
+
 
 trkroi = ["wholebrain"]
-str_identifier = get_str_identifier(stepsize, ratio, trkroi)
 prune = True
-overwrite = False
 cleanup = False
 verbose = True
 recenter = True
 
-save_temp_nii_files = False
-if test_mode:
-    save_temp_trk_files = True
-else:
-    save_temp_trk_files = False
-
 del_orig_files = False
 
-if save_temp_trk_files:
-    mkcdir(path_trk_tempdir, sftp)
 
 contrasts = ['fa', 'md', 'rd', 'ad']
 contrasts = ['fa']
@@ -135,10 +135,6 @@ native_ref = ''
 
 #SAMBA_MDT = '/Volumes/dusom_abadea_nas1/munin_js/VBM_backups/VBM_19BrainChAMD01_IITmean_RPI_with_2yr-work/dwi/SyN_0p5_3_0p5_fa/faMDT_Control_n72_i6/median_images/MDT_dwi.nii.gz'
 SAMBA_MDT = os.path.join(path_transforms, 'MDT_dwi.nii.gz')
-
-if save_temp_trk_files:
-    mkcdir(path_trk_tempdir, sftp)
-
 
 print(f'running move for subject {subj}')
 
@@ -163,11 +159,17 @@ SAMBA_ref = os.path.join(SAMBA_inits, f'reference_image_native_S01912.nii.gz')
 nii_to_MDT = True
 trk_to_MDT = True
 
-if test_mode:
-    erase=True
-else:
-    erase = False
+
+
+if save_temp_trk_files:
+    mkcdir(path_trk_tempdir, sftp)
+
+if save_temp_trk_files:
+    mkcdir(path_trk_tempdir, sftp)
+
 SAMBA_subj_toRAS = False
+
+str_identifier = get_str_identifier(stepsize, ratio, trkroi)
 
 if nii_to_MDT:
     mkcdir(path_DWI_output)
@@ -221,8 +223,8 @@ if nii_to_MDT:
         ants.image_write(registered_image, SAMBA_init_test)
         print(f'wrote {SAMBA_init_test}')
         """
-        
-        if not os.path.exists(SAMBA_postwarp):
+
+        if not os.path.exists(SAMBA_postwarp) or overwrite:
             if not save_temp_nii_files:
                 command_all = f"antsApplyTransforms -v 1 --float -d 3  -i {SAMBA_init_test} -o {SAMBA_postwarp} -r {SAMBA_ref} -n Linear -t {runno_to_MDT} [{affine_orig},0]  [{rigid},0]";
                 os.system(command_all)
@@ -265,9 +267,9 @@ trk_preprocess_posttrans = os.path.join(path_trk_tempdir, f'{subj}{str_identifie
 trk_preprocess_postrigid = os.path.join(path_trk_tempdir, f'{subj}{str_identifier}_preprocess_postrigid.trk')
 trk_preprocess_postrigid_affine = os.path.join(path_trk_tempdir,
                                                f'{subj}{str_identifier}_preprocess_postrigid_affine.trk')
-trk_MDT_space = os.path.join(path_TRK_output, f'{subj}_MDT{str_identifier}.trk')
+trk_MDT_space = os.path.join(path_TRK_output, f'{subj}_MDT{str_identifier}_2.trk')
 
-warp_path = MDT_to_runno
+warp_path = runno_to_MDT
 #warp_path = runno_to_MDT
 
 # final_img_exists = checkfile_exists_remote(trk_MDT_space)
@@ -331,7 +333,7 @@ if trk_to_MDT and (not final_img_exists or overwrite):
 
     toinit_trans_mat = np.eye(4)
     toinit_trans_mat[:,3] = toinit_mat[:,3]
-    toinit_trans_mat[2,3] = toinit_trans_mat[2,3]+4
+    #toinit_trans_mat[2,3] = toinit_trans_mat[2,3]+4
     streamlines_init_1 = transform_streamlines(streamlines_subj, np.linalg.inv(toinit_trans_mat))
 
     #streamlines_init = transform_streamlines(streamlines_postreorient, np.linalg.inv(toinit_mat))
@@ -391,7 +393,7 @@ if trk_to_MDT and (not final_img_exists or overwrite):
 
     twarp = time.perf_counter()
     print(f'added warp transform, took {twarp - taf:0.2f} seconds')
-
+    trk_MDT_space = os.path.join(path_TRK_output, f'{subj}_MDT{str_identifier}_3.trk')
     save_trk_header(filepath=trk_MDT_space, streamlines=mni_streamlines, header=header,
                     affine=np.eye(4), verbose=verbose, sftp=sftp)
     tsave = time.perf_counter()
