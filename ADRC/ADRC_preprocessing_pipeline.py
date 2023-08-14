@@ -420,7 +420,7 @@ for subj in subjects:
         gm_txt =  subj_out_folder+subj+'_gm.txt' 
         csf_txt = subj_out_folder+subj+'_csf.txt'
         voxels_mif =  subj_out_folder+subj+'_voxels.mif'+index_gz
-        command = 'dwi2response dhollander '+den_unbiased_mif+ ' ' +wm_txt+ ' ' + gm_txt + ' ' + csf_txt + ' -voxels ' + voxels_mif+' -mask '+ mask_mif_path + ' -scratch ' +subj_out_folder + ' -fslgrad ' +bvec_path_orig + ' '+ bval_path_orig   +'  -force'
+        command = 'dwi2response dhollander '+den_unbiased_mif+ ' ' +wm_txt+ ' ' + gm_txt + ' ' + csf_txt + ' -voxels ' + voxels_mif+' -mask '+ mask_mif_path + ' -scratch ' +subj_out_folder + ' -fslgrad ' +coreg_bvecs + ' '+ coreg_bvals   +'  -force'
         print(command)
         os.system(command)
 
