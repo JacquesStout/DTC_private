@@ -7,6 +7,7 @@ from dipy.segment.mask import median_otsu
 from dipy.io.image import load_nifti, save_nifti
 import numpy as np
 from scipy.cluster.vq import kmeans, vq
+from DTC.file_manager.computer_nav import checkallfiles
 
 
 def mkcdir(folderpaths, sftp=None):
@@ -82,21 +83,73 @@ subjects = ['ADRC0001']
 index_gz = '.gz'
 overwrite = False
 
+cleanup = False
+
 for subj in subjects:
 
     subj_folder = os.path.join(data_path, subj,'visit1')
     subj_out_folder = os.path.join(data_path_output, subj)
-    scratch_path = os.path.join(data_path_output, 'scratch')
+    scratch_path = os.path.join(subj_out_folder, 'scratch')
     perm_subj_output = os.path.join(perm_output, subj)
     mkcdir([subj_out_folder,scratch_path, perm_subj_output])
 
-    bvec_path_orig = os.path.join(perm_subj_output, subj + '_bvec.txt')
-    bval_path_orig = os.path.join(perm_subj_output, subj + '_bvals.txt')
-    bvec_path_PA = os.path.join(perm_subj_output, subj+'_bvec_rvrs.txt')
+    bvec_path_AP = os.path.join(perm_subj_output, subj + '_bvecs.txt')
+    bval_path_AP = os.path.join(perm_subj_output, subj + '_bvals.txt')
+    bvec_path_PA = os.path.join(perm_subj_output, subj+'_bvecs_rvrs.txt')
     bval_path_PA = os.path.join(perm_subj_output, subj+'_bvals_rvrs.txt')
 
+    DTI_forward_nii_gz = os.path.join(subj_folder, 'HCP_DTI.nii.gz')
+    nii_gz_path_PA = os.path.join(subj_folder, 'HCP_DTI_reverse_phase.nii.gz')
 
-    overwrite=True
+    if not os.path.exists(DTI_forward_nii_gz):
+        print(f'Missing {DTI_forward_nii_gz}')
+    if not os.path.exists(nii_gz_path_PA):
+        print(f'Missing {nii_gz_path_PA}')
+
+    if not os.path.exists(bvec_path_AP) or not os.path.exists(bval_path_AP) or overwrite:
+        bvec = []  # bvec extraction
+        with open(os.path.join(subj_folder, "HCP_DTI_reverse_phase.bxh")) as file:
+            for line in file:
+                if "<value>" in line:
+                    temp_loop = line
+                    temp_loop_split = temp_loop.split()
+                    temp_loop_2 = [i.replace("<value>", "") for i in temp_loop_split]
+                    temp_loop_2 = [i.replace("</value>", "") for i in temp_loop_2]
+                    temp_loop_2 = [float(i) for i in temp_loop_2]
+                    bvec.append(temp_loop_2)
+                    # print( temp_loop_2)
+
+        norms = np.linalg.norm(bvec, axis=1)
+        norms[norms == 0] = 1
+        bvec = np.array(bvec)
+        bvec = bvec / norms.reshape(len(norms), 1)
+        bvec = bvec.transpose()
+
+        np.savetxt(bvec_path_AP, bvec, fmt='%.2f')
+
+        with open(os.path.join(subj_folder, "HCP_DTI_reverse_phase.bxh")) as file:
+            line = file.readline()
+            while line:
+                if "bvalues" in line:
+                    temp_loop = line
+                    temp_loop_split = temp_loop.split()
+                    temp_loop_2 = [i.replace("<bvalues>", "") for i in temp_loop_split]
+                    temp_loop_2 = [i.replace('</bvalues>', "") for i in temp_loop_2]
+
+        temp_loop_2 = [float(i) for i in temp_loop_2]
+        bvals = temp_loop_2
+        bvals = bvals * (norms ** 2)
+
+        codebook, _ = kmeans(bvals, 3)
+        ccodebook2 = codebook.round()
+        cluster_indices, _ = vq(bvals, codebook)
+        rnd_bvals = ccodebook2[cluster_indices]
+        bvals = rnd_bvals
+        bvals = bvals.reshape(1, len(bvals))
+        new_bval = bvals
+        np.savetxt(bval_path_AP, bvals, fmt='%.2f')
+
+
     if not os.path.exists(bvec_path_PA) or not os.path.exists(bval_path_PA) or overwrite:
         bvec_rvrs = [] # bvec extraction
         with open(os.path.join(subj_folder, "HCP_DTI_reverse_phase.bxh")) as file:
@@ -145,21 +198,27 @@ for subj in subjects:
 
         np.savetxt(bval_path_PA ,bvals,fmt='%.2f')
 
+
     DTI_forward_nii_gz = os.path.join(subj_folder,'HCP_DTI.nii.gz')
 
-    resampled_path = os.path.join(subj_out_folder, subj + '_coreg_resampled.nii.gz')
-    dwi_nii_gz = os.path.join(subj_out_folder, subj + '_dwi.nii.gz')
-    mask_nii_path = os.path.join(subj_out_folder, subj + '_mask.nii.gz')
-    mask_mif_path = os.path.join(subj_out_folder, subj + '_mask.mif')
+    resampled_path = os.path.join(perm_subj_output, subj + '_coreg_resampled.nii.gz')
+    dwi_nii_gz = os.path.join(perm_subj_output, subj + '_dwi.nii.gz')
+    mask_nii_path = os.path.join(perm_subj_output, subj + '_mask.nii.gz')
+    mask_mif_path = os.path.join(perm_subj_output, subj + '_mask.mif')
+    resampled_mif_path = os.path.join(perm_subj_output, subj + '_coreg_resampled.mif')
 
-    if not os.path.exists(resampled_path) or not os.path.exists(dwi_nii_gz) or not os.path.exists(mask_mif_path) or overwrite:
+    coreg_bvecs = os.path.join(perm_subj_output, subj + '_coreg_bvecs.txt')
+    coreg_bvals = os.path.join(perm_subj_output, subj + '_coreg_bvals.txt')
+
+    if not os.path.exists(resampled_path) or not os.path.exists(dwi_nii_gz) or not os.path.exists(mask_mif_path) \
+            or not os.path.exists(resampled_mif_path) or not os.path.exists(coreg_bvecs) or overwrite:
 
         ######### denoise:
 
         out_mif = os.path.join(subj_out_folder, subj + '_subjspace_diff.mif' + index_gz)
         if not os.path.exists(out_mif) or overwrite:
             os.system(
-                'mrconvert ' + DTI_forward_nii_gz + ' ' + out_mif + ' -fslgrad ' + bvec_path_orig + ' ' + bval_path_orig + ' -bvalue_scaling false -force')  # turn off the scaling otherwise bvals becomes 0 4000 1000 instead of 2000
+                'mrconvert ' + DTI_forward_nii_gz + ' ' + out_mif + ' -fslgrad ' + bvec_path_AP + ' ' + bval_path_AP + ' -bvalue_scaling false -force')  # turn off the scaling otherwise bvals becomes 0 4000 1000 instead of 2000
 
         output_denoise = os.path.join(subj_out_folder, subj+'_den.mif')
         if not os.path.exists(output_denoise) or overwrite:
@@ -173,8 +232,6 @@ for subj in subjects:
 
         ##################
         ##### b0 warp unphasing
-
-        nii_gz_path_PA = os.path.join(subj_folder, 'HCP_DTI_reverse_phase.nii.gz')
 
         PA_mif = os.path.join(subj_out_folder,subj+'_PA.mif')
         if not os.path.exists(PA_mif) or overwrite:
@@ -193,16 +250,27 @@ for subj in subjects:
         if not os.path.exists(b0_pair_mif) or overwrite:
             os.system('mrcat '+mean_b0_AP_mif+ ' ' +mean_b0_PA_mif+' -axis 3 '+ b0_pair_mif+' -force')
 
+
+        #### Command: converting the original diff to a mif
+
+        diff_mif = os.path.join(subj_out_folder, subj+'_denoised_diff.mif')
+        diff_json = os.path.join(subj_out_folder, subj+'_denoised_diff.json')
+        if not os.path.exists(diff_mif) or overwrite:
+            command = 'mrconvert ' + output_denoise + " " + diff_mif + ' -fslgrad ' + bvec_path_AP + ' ' + bval_path_AP + ' -json_export ' + diff_json + ' -force'
+            print(command)
+            os.system(command)
+
+
         ##### Command: converting the b0 unwarped
 
-        se_epi_mif = os.path.join(data_path_output,'se_epi.mif')
+        se_epi_mif = os.path.join(scratch_path,'se_epi.mif')
         if not os.path.exists(se_epi_mif) or overwrite:
             command = 'mrconvert ' + b0_pair_mif + " " + se_epi_mif + ' -force'
             os.system(command)
 
         ##### Command: padding the unwarped b0s
 
-        se_epi_pad2_mif = os.path.join(data_path_output, 'se_epi_pad2.mif')
+        se_epi_pad2_mif = os.path.join(scratch_path, 'se_epi_pad2.mif')
         end_vol = subprocess.check_output('mrinfo -size ' + out_mif + " | awk '{print $3}' ", shell=True)
         end_vol = end_vol.decode()
         end_vol = str(int(end_vol[0:2]) - 1)
@@ -211,8 +279,18 @@ for subj in subjects:
             print(command)
             os.system(command)
 
+
+        #### Command: padding the diff mif
+
+        diff_pad2_mif = os.path.join(scratch_path, 'diff_pad2.mif')
+        if not os.path.exists(diff_pad2_mif):
+            command = 'mrconvert ' + diff_mif + ' -coord 2 ' + end_vol + '  -clear dw_scheme - | mrcat ' + diff_mif + ' - ' + diff_pad2_mif + ' -axis 2 -force'
+            print(command)
+            os.system(command)
+
         ##### Command: converting unwarped b0s to 'topup'
-        topup_in_nii = os.path.join(data_path_output, 'topup_in.nii')
+
+        topup_in_nii = os.path.join(scratch_path, 'topup_in.nii')
         topup_datain_txt =  os.path.join(data_path_output, 'topup_datain.txt')
         if not os.path.exists(topup_in_nii) or not os.path.exists(topup_datain_txt) or overwrite:
             command = 'mrconvert '+ se_epi_pad2_mif +' ' + topup_in_nii + ' -import_pe_table ' + se_epi_manual_pe_scheme_txt + ' -strides -1,+2,+3,+4 -export_pe_table '+ topup_datain_txt + ' -force'
@@ -220,30 +298,14 @@ for subj in subjects:
             os.system(command)
 
         #### Command: getting the field map out of the topup info
-        field_map_nii_gz = os.path.join(data_path_output, 'field_map.nii.gz')
-        diff_topup = os.path.join(data_path_output, 'diff_topup')
+        field_map_nii_gz = os.path.join(scratch_path, 'field_map.nii.gz')
+        diff_topup = os.path.join(scratch_path, 'diff_topup')
         diff_topup_nii = diff_topup + '_fieldcoef.nii.gz'
         command = 'topup --imain=' + topup_in_nii + ' --datain=' + topup_datain_txt + ' --out=field --fout=' + field_map_nii_gz + ' --config=$FSLDIR/src/fsl-topup/flirtsch/b02b0.cnf --out=' + diff_topup + ' --verbose'
         if not os.path.exists(field_map_nii_gz) or not os.path.exists(diff_topup_nii) or overwrite:
             print(command)
             os.system(command)
 
-
-        #### Command: converting the original diff to a mif
-        diff_mif = os.path.join(subj_out_folder, 'diff.mif')
-        diff_json = os.path.join(subj_out_folder, 'diff.json')
-        if not os.path.exists(diff_mif) or overwrite:
-            command = 'mrconvert ' + output_denoise + " " + diff_mif + ' -fslgrad ' + bvec_path_orig + ' ' + bval_path_orig + ' -json_export ' + diff_json + ' -force'
-            print(command)
-            os.system(command)
-
-
-        #### Command: padding the diff mif
-        diff_pad2_mif = scratch_path + 'diff_pad2.mif'
-        if not os.path.exists(diff_pad2_mif):
-            command = 'mrconvert ' + diff_mif + ' -coord 2 ' + end_vol + '  -clear dw_scheme - | mrcat ' + diff_mif + ' - ' + diff_pad2_mif + ' -axis 2 -force'
-            print(command)
-            os.system(command)
 
         #### Command: Getting the popup config
         applytopup_config_txt = os.path.join(scratch_path, 'applytopup_config.txt')
@@ -297,7 +359,7 @@ for subj in subjects:
             os.system(command)
 
         #### Command: Running the eddy command
-        diff_post_eddy = scratch_path + "diff_post_eddy.nii"
+        diff_post_eddy = os.path.join(scratch_path, "diff_post_eddy.nii")
         diff_post_eddy_gz = diff_post_eddy + '.gz'
         if not os.path.exists(diff_post_eddy_gz) or overwrite:
             if socket.gethostname().split('.')[0]=='santorini':
@@ -315,7 +377,7 @@ for subj in subjects:
 
         #### Command: Converting the eddy corrected diffusion file nifti into the mif version, also unpadded the file at same time (using command  -coord 2 0:' + end_vol)
         den_preproc_mif = os.path.join(subj_out_folder,subj + '_den_preproc.mif')
-        diff_post_eddy_eddy_rotated_bvecs = scratch_path + 'diff_post_eddy.bvecs'
+        diff_post_eddy_eddy_rotated_bvecs = os.path.join(scratch_path, 'diff_post_eddy.bvecs')
         if not os.path.exists(den_preproc_mif) or not os.path.exists(diff_post_eddy_eddy_rotated_bvecs) or overwrite:
             command = 'mrconvert ' + diff_post_eddy_gz + ' ' + den_preproc_mif + ' -coord 2 0:' + end_vol + \
                       ' -strides -1,-2,3,4 -fslgrad ' + diff_post_eddy_eddy_rotated_bvecs + ' ' + bvals_eddy + ' -force'
@@ -332,9 +394,8 @@ for subj in subjects:
             os.system(command)
 
         #### Command: Converting the bias corrected diffusion mif file into the the nifti version (and extracting bvals/bvecs)
-        coreg_bvecs = os.path.join(subj_out_folder, subj + '_coreg_bvecs.txt')
-        coreg_bvals = os.path.join(subj_out_folder, subj + '_coreg_bvals.txt')
-        coreg_nii_gz = os.path.join(subj_out_folder, subj + '_coreg.nii.gz')
+
+        coreg_nii_gz = os.path.join(perm_subj_output, subj + '_coreg.nii.gz')
         command = 'mrconvert ' + den_unbiased_mif + ' ' + coreg_nii_gz + ' -export_grad_fsl ' + coreg_bvecs + ' ' + \
                   coreg_bvals + ' -force'
         if not os.path.exists(coreg_nii_gz) or overwrite:
@@ -371,22 +432,20 @@ for subj in subjects:
 
         #### Command: Converting the nifti of resampled diffusion images to mif
 
-        resampled_mif_path = os.path.join(subj_out_folder, subj + '_coreg_resampled.mif')
         command = 'mrconvert ' + resampled_path + ' ' + resampled_mif_path + ' -fslgrad ' + coreg_bvecs + ' ' + coreg_bvals + ' -bvalue_scaling false -force'
         if not os.path.exists(resampled_mif_path) or overwrite:
             print(command)
             os.system(command)
 
         #### Command: Extracting the b0s from the bias resampled diffusion file and making the average diffusion weighted image based on thsoe
-        dwi_mif = os.path.join(subj_out_folder, subj + '_dwi.mif')
+        dwi_mif = os.path.join(perm_subj_output, subj + '_dwi.mif')
         command = 'dwiextract ' + resampled_mif_path + ' - -no_bzero | mrmath - mean ' + dwi_mif + ' -axis 3 -force'
         if not os.path.exists(dwi_mif) or overwrite:
             print(command)
-            os.system('echo ' + command)
             os.system(command)
 
         #### Command: Converting the diffusion mean of b0s into a nifti
-        dwi_nii_gz = os.path.join(subj_out_folder, subj + '_dwi.nii.gz')
+        dwi_nii_gz = os.path.join(perm_subj_output, subj + '_dwi.nii.gz')
         if not os.path.exists(dwi_nii_gz) or overwrite:
             command = 'mrconvert ' + dwi_mif + ' ' + dwi_nii_gz + ' -force'
             print(command)
@@ -402,6 +461,7 @@ for subj in subjects:
 
         if not os.path.exists(mask_mif_path) or overwrite:
             command = 'mrconvert ' + mask_nii_path + ' ' + mask_mif_path + ' -force'
+            os.system(command)
 
     dt_mif = os.path.join(perm_subj_output, subj + '_dt.mif' + index_gz)
     fa_mif = os.path.join(perm_subj_output, subj + '_fa.mif' + index_gz)
@@ -416,13 +476,16 @@ for subj in subjects:
     if not os.path.exists(fa_nii) or overwrite:
 
         #Estimating the Basis Functions:
-        wm_txt =   subj_out_folder+subj+'_wm.txt' 
-        gm_txt =  subj_out_folder+subj+'_gm.txt' 
-        csf_txt = subj_out_folder+subj+'_csf.txt'
-        voxels_mif =  subj_out_folder+subj+'_voxels.mif'+index_gz
-        command = 'dwi2response dhollander '+den_unbiased_mif+ ' ' +wm_txt+ ' ' + gm_txt + ' ' + csf_txt + ' -voxels ' + voxels_mif+' -mask '+ mask_mif_path + ' -scratch ' +subj_out_folder + ' -fslgrad ' +coreg_bvecs + ' '+ coreg_bvals   +'  -force'
-        print(command)
-        os.system(command)
+        wm_txt = os.path.join(subj_out_folder,subj+'_wm.txt' )
+        gm_txt = os.path.join(subj_out_folder+subj+'_gm.txt')
+        csf_txt = os.path.join(subj_out_folder+subj+'_csf.txt')
+        voxels_mif = os.path.join(subj_out_folder, subj+'_voxels.mif'+index_gz)
+
+        ##Right now we are using the RESAMPLED mif of the 4D miff, to be discussed
+        if not os.path.exists(voxels_mif) or not os.path.exists(wm_txt) or not os.path.exists(gm_txt) or not os.path.exists(csf_txt) or overwrite:
+            command = 'dwi2response dhollander '+resampled_mif_path+ ' ' +wm_txt+ ' ' + gm_txt + ' ' + csf_txt + ' -voxels ' + voxels_mif+' -mask '+ mask_mif_path + ' -scratch ' +subj_out_folder + ' -fslgrad ' +coreg_bvecs + ' '+ coreg_bvals   +'  -force'
+            print(command)
+            os.system(command)
 
         #not on spider but on terminal
         #Viewing the Basis Functions:
@@ -432,21 +495,23 @@ for subj in subjects:
         #os.system('shview '+csf_txt)
 
         #Applying the basis functions to the diffusion data:
-        wmfod_mif =  subj_out_folder+subj+'_wmfod.mif'+index_gz
+        wmfod_mif = subj_out_folder+subj+'_wmfod.mif'+index_gz
         gmfod_mif = subj_out_folder+subj+'_gmfod.mif'+index_gz
         csffod_mif = subj_out_folder+subj+'_csffod.mif'+index_gz
 
         #os.system('dwi2fod msmt_csd ' +den_unbiased_mif+ ' -mask '+mask_mif+ ' ' +wm_txt+ ' ' + wmfod_mif+ ' ' +gm_txt+ ' ' + gmfod_mif+ ' ' +csf_txt+ ' ' + csffod_mif + ' -force' )
-        command = 'dwi2fod msmt_csd ' +den_unbiased_mif+ ' -mask '+mask_mif_path+ ' ' +wm_txt+ ' ' + wmfod_mif+ ' ' +gm_txt+ ' ' + gmfod_mif+ ' ' +csf_txt+ ' ' + csffod_mif + ' -force'
-        print(command)
-        os.system(command)
+        if not os.path.exists(wmfod_mif) or not os.path.exists(gmfod_mif) or not os.path.exists(csffod_mif) or overwrite:
+            command = 'dwi2fod msmt_csd ' +resampled_mif_path+ ' -mask '+mask_mif_path+ ' ' +wm_txt+ ' ' + wmfod_mif+ ' ' +gm_txt+ ' ' + gmfod_mif+ ' ' +csf_txt+ ' ' + csffod_mif + ' -force'
+            print(command)
+            os.system(command)
 
         #combine to single image to view them
         #Concatenating the FODs:
-        vf_mif =   subj_out_folder+subj+'_vf.mif' 
-        command = 'mrconvert -coord 3 0 ' +wmfod_mif+ ' -| mrcat '+csffod_mif+ ' ' +gmfod_mif+ ' - ' + vf_mif+' -force' 
-        print(command)
-        os.system(command)
+        vf_mif =   subj_out_folder+subj+'_vf.mif'
+        if not os.path.exists(vf_mif) or overwrite:
+            command = 'mrconvert -coord 3 0 ' +wmfod_mif+ ' -| mrcat '+csffod_mif+ ' ' +gmfod_mif+ ' - ' + vf_mif+' -force'
+            print(command)
+            os.system(command)
         #os.system('mrconvert -coord 3 0 ' +wmfod_mif+ ' -| mrcat ' +gmfod_mif+ ' - ' + vf_mif+' -force' ) # without csf
 
         #Viewing the FODs:
@@ -455,10 +520,11 @@ for subj in subjects:
         #Normalizing the FODs:
         wmfod_norm_mif =  subj_out_folder+subj+'_wmfod_norm.mif'+index_gz
         gmfod_norm_mif = subj_out_folder+subj+'_gmfod_norm.mif'
-        csffod_norm_mif = subj_out_folder+subj+'_csffod_norm.mif'  
-        command = 'mtnormalise ' +wmfod_mif+ ' '+wmfod_norm_mif+ ' ' +gmfod_mif+ ' '+gmfod_norm_mif + ' ' +csffod_mif+ ' '+csffod_norm_mif +' -mask ' + mask_mif_path + '  -force'
-        print(command)
-        os.system(command)
+        csffod_norm_mif = subj_out_folder+subj+'_csffod_norm.mif'
+        if not os.path.exists(wmfod_norm_mif) or not os.path.exists(gmfod_norm_mif) or not os.path.exists(csffod_norm_mif) or overwrite:
+            command = 'mtnormalise ' +wmfod_mif+ ' '+wmfod_norm_mif+ ' ' +gmfod_mif+ ' '+gmfod_norm_mif + ' ' +csffod_mif+ ' '+csffod_norm_mif +' -mask ' + mask_mif_path + '  -force'
+            print(command)
+            os.system(command)
 
 
         #making fa and Kurt:
@@ -466,38 +532,44 @@ for subj in subjects:
         dt_mif = os.path.join(perm_subj_output,subj+'_dt.mif'+index_gz)
         fa_mif = os.path.join(perm_subj_output,subj+'_fa.mif'+index_gz)
         dk_mif = os.path.join(perm_subj_output,subj+'_dk.mif'+index_gz)
-        mk_mif = os.path.join(perm_subj_output,subj+'_mk.mif'+index_gz)
         md_mif = os.path.join(perm_subj_output,subj+'_md.mif'+index_gz)
         ad_mif = os.path.join(perm_subj_output,subj+'_ad.mif'+index_gz)
         rd_mif = os.path.join(perm_subj_output,subj+'_rd.mif'+index_gz)
 
+        #mk_mif = os.path.join(perm_subj_output,subj+'_mk.mif'+index_gz)
+
+
         #output_denoise = '/Users/ali/Desktop/Feb23/mrtrix_pipeline/temp/N59141/N59141_subjspace_dwi_copy.mif.gz'#
 
-        new_bval = np.loadtxt(bval_path_orig)
+        bval_orig = np.loadtxt(bval_path_AP)
 
-        if np.unique(new_bval).shape[0] > 2 :
-            os.system('dwi2tensor ' + den_unbiased_mif + ' ' + dt_mif + ' -dkt ' +  dk_mif +' -fslgrad ' +  bvec_path_orig + ' ' + bval_path_orig + ' -force'  )
-            os.system('tensor2metric  -fa ' + fa_mif  + ' '+ dt_mif + ' -adc '  + md_mif+' -ad '  + ad_mif + ' -rd '  + rd_mif   + ' -force' ) 
+        #exists_all = checkallfiles([dt_mif, fa_mif, dk_mif, mk_mif, md_mif, ad_mif, rd_mif])
+        exists_all = checkallfiles([dt_mif, fa_mif, dk_mif, md_mif, ad_mif, rd_mif])
 
-            #os.system('mrview '+ fa_mif) #inspect residual
-        else: 
-            os.system('dwi2tensor ' + den_unbiased_mif + ' ' + dt_mif  +' -fslgrad ' +  bvec_path_orig + ' ' + bval_path_orig + ' -force'  )
-            os.system('tensor2metric  -fa ' + fa_mif  + ' '+ dt_mif + ' -force' ) 
-            os.system('tensor2metric  -rd ' + rd_mif  + ' '+ dt_mif + ' -force' ) # if doesn't work take this out :(
-            os.system('tensor2metric  -ad ' + ad_mif  + ' '+ dt_mif + ' -force' ) # if doesn't work take this out :(
-            os.system('tensor2metric  -adc ' + md_mif  + ' '+ dt_mif + ' -force' ) # if doesn't work take this out :(
-            #os.system('mrview '+ fa_mif) #inspect residual
+        if not exists_all:
 
-        command = 'mrconvert ' +fa_mif+ ' '+fa_nii + ' -force'
-        print(command)
-        os.system(command)
+            if np.unique(bval_orig).shape[0] > 2 :
+                os.system('dwi2tensor ' + resampled_mif_path + ' ' + dt_mif + ' -dkt ' +  dk_mif +' -fslgrad ' +  coreg_bvecs + ' ' + coreg_bvals + ' -force'  )
+                os.system('tensor2metric  -fa ' + fa_mif  + ' '+ dt_mif + ' -adc '  + md_mif+' -ad '  + ad_mif + ' -rd '  + rd_mif   + ' -force' )
 
-        T1_orig_res = subj_out_folder+subj+'_T1_res.nii.gz'
+                #os.system('mrview '+ fa_mif) #inspect residual
+            else:
+                os.system('dwi2tensor ' + resampled_mif_path + ' ' + dt_mif  +' -fslgrad ' +  coreg_bvecs + ' ' + coreg_bvals + ' -force'  )
+                os.system('tensor2metric  -fa ' + fa_mif  + ' '+ dt_mif + ' -force' )
+                os.system('tensor2metric  -rd ' + rd_mif  + ' '+ dt_mif + ' -force' ) # if doesn't work take this out :(
+                os.system('tensor2metric  -ad ' + ad_mif  + ' '+ dt_mif + ' -force' ) # if doesn't work take this out :(
+                os.system('tensor2metric  -adc ' + md_mif  + ' '+ dt_mif + ' -force' ) # if doesn't work take this out :(
+                #os.system('mrview '+ fa_mif) #inspect residual
 
-        T1_orig = T1_orig_res
+            command = 'mrconvert ' +fa_mif+ ' '+fa_nii + ' -force'
+            print(command)
+            os.system(command)
 
+    #T1_orig_res = os.path.join(subj_out_folder,subj+'_T1_res.nii.gz')
+    #T1_orig = T1_orig_res
 
-    shutil.rmtree(scratch_path)
+    if cleanup:
+        shutil.rmtree(scratch_path)
 
     smallerTracks = os.path.join(perm_subj_output, subj + '_smallerTracks2mill.tck')
 
@@ -579,5 +651,5 @@ for subj in subjects:
         # os.system('mrview ' + den_unbiased_mif + ' -tractography.load '+ smallerTracks)
         # os.system('mrview ' + den_unbiased_mif + ' -tractography.load '+ smallerTracks)
 
-
+    if cleanup:
         shutil.rmtree(subj_out_folder)

@@ -394,5 +394,9 @@ def checkfile_exists_all_faster(paths, percent = None):
 
 
 def checkallfiles(paths, sftp=None):
+    existing = True
     for path in paths:
         match_files = glob_remote(path, sftp)
+        if not match_files:
+            existing= False
+    return existing
