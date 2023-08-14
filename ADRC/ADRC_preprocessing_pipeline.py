@@ -87,12 +87,14 @@ for subj in subjects:
     subj_folder = os.path.join(data_path, subj,'visit1')
     subj_out_folder = os.path.join(data_path_output, subj)
     scratch_path = os.path.join(data_path_output, 'scratch')
-    mkcdir([subj_out_folder,scratch_path])
+    perm_subj_output = os.path.join(perm_output, subj)
+    mkcdir([subj_out_folder,scratch_path, perm_subj_output])
 
-    bvec_path_orig = os.path.join(perm_output, subj + '_bvec.txt')
-    bval_path_orig = os.path.join(perm_output, subj + '_bvals.txt')
-    bvec_path_PA = os.path.join(perm_output, subj+'_bvec_rvrs.txt')
-    bval_path_PA = os.path.join(perm_output, subj+'_bvals_rvrs.txt')
+    bvec_path_orig = os.path.join(perm_subj_output, subj + '_bvec.txt')
+    bval_path_orig = os.path.join(perm_subj_output, subj + '_bvals.txt')
+    bvec_path_PA = os.path.join(perm_subj_output, subj+'_bvec_rvrs.txt')
+    bval_path_PA = os.path.join(perm_subj_output, subj+'_bvals_rvrs.txt')
+
 
     overwrite=True
     if not os.path.exists(bvec_path_PA) or not os.path.exists(bval_path_PA) or overwrite:
@@ -117,8 +119,6 @@ for subj in subjects:
 
         bvec_rvrs[1, 1:] = -bvec_rvrs[1, 1:]
 
-
-         
         np.savetxt(bvec_path_PA ,bvec_rvrs,fmt='%.2f')
 
 
@@ -286,8 +286,8 @@ for subj in subjects:
             os.system(command)
 
         #### Command: Preparing the padded diff for eddy command
-        bvecs_eddy = os.path.join(perm_output, subj + "_bvecs_eddy.txt")
-        bvals_eddy = os.path.join(perm_output, subj + "_bvals_eddy.txt")
+        bvecs_eddy = os.path.join(perm_subj_output, subj + "_bvecs_eddy.txt")
+        bvals_eddy = os.path.join(perm_subj_output, subj + "_bvals_eddy.txt")
         eddy_config_txt = os.path.join(subj_out_folder, 'eddy_config.txt')
         eddy_indices_txt = os.path.join(subj_out_folder, 'eddy_indices.txt')
         eddy_in_nii = os.path.join(subj_out_folder, 'eddy_in.nii')
@@ -403,15 +403,15 @@ for subj in subjects:
         if not os.path.exists(mask_mif_path) or overwrite:
             command = 'mrconvert ' + mask_nii_path + ' ' + mask_mif_path + ' -force'
 
-    dt_mif = os.path.join(perm_output, subj + '_dt.mif' + index_gz)
-    fa_mif = os.path.join(perm_output, subj + '_fa.mif' + index_gz)
-    dk_mif = os.path.join(perm_output, subj + '_dk.mif' + index_gz)
-    mk_mif = os.path.join(perm_output, subj + '_mk.mif' + index_gz)
-    md_mif = os.path.join(perm_output, subj + '_md.mif' + index_gz)
-    ad_mif = os.path.join(perm_output, subj + '_ad.mif' + index_gz)
-    rd_mif = os.path.join(perm_output, subj + '_rd.mif' + index_gz)
+    dt_mif = os.path.join(perm_subj_output, subj + '_dt.mif' + index_gz)
+    fa_mif = os.path.join(perm_subj_output, subj + '_fa.mif' + index_gz)
+    dk_mif = os.path.join(perm_subj_output, subj + '_dk.mif' + index_gz)
+    mk_mif = os.path.join(perm_subj_output, subj + '_mk.mif' + index_gz)
+    md_mif = os.path.join(perm_subj_output, subj + '_md.mif' + index_gz)
+    ad_mif = os.path.join(perm_subj_output, subj + '_ad.mif' + index_gz)
+    rd_mif = os.path.join(perm_subj_output, subj + '_rd.mif' + index_gz)
 
-    fa_nii = os.path.join(perm_output, subj + '_fa.nii' + index_gz)
+    fa_nii = os.path.join(perm_subj_output, subj + '_fa.nii' + index_gz)
 
     if not os.path.exists(fa_nii) or overwrite:
 
@@ -463,13 +463,13 @@ for subj in subjects:
 
         #making fa and Kurt:
             
-        dt_mif = os.path.join(perm_output,subj+'_dt.mif'+index_gz)
-        fa_mif = os.path.join(perm_output,subj+'_fa.mif'+index_gz)
-        dk_mif = os.path.join(perm_output,subj+'_dk.mif'+index_gz)
-        mk_mif = os.path.join(perm_output,subj+'_mk.mif'+index_gz)
-        md_mif = os.path.join(perm_output,subj+'_md.mif'+index_gz)
-        ad_mif = os.path.join(perm_output,subj+'_ad.mif'+index_gz)
-        rd_mif = os.path.join(perm_output,subj+'_rd.mif'+index_gz)
+        dt_mif = os.path.join(perm_subj_output,subj+'_dt.mif'+index_gz)
+        fa_mif = os.path.join(perm_subj_output,subj+'_fa.mif'+index_gz)
+        dk_mif = os.path.join(perm_subj_output,subj+'_dk.mif'+index_gz)
+        mk_mif = os.path.join(perm_subj_output,subj+'_mk.mif'+index_gz)
+        md_mif = os.path.join(perm_subj_output,subj+'_md.mif'+index_gz)
+        ad_mif = os.path.join(perm_subj_output,subj+'_ad.mif'+index_gz)
+        rd_mif = os.path.join(perm_subj_output,subj+'_rd.mif'+index_gz)
 
         #output_denoise = '/Users/ali/Desktop/Feb23/mrtrix_pipeline/temp/N59141/N59141_subjspace_dwi_copy.mif.gz'#
 
@@ -499,7 +499,7 @@ for subj in subjects:
 
     shutil.rmtree(scratch_path)
 
-    smallerTracks = os.path.join(perm_output, subj + '_smallerTracks2mill.tck')
+    smallerTracks = os.path.join(perm_subj_output, subj + '_smallerTracks2mill.tck')
 
     if not os.path.exists(smallerTracks):
 
