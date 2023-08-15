@@ -1,6 +1,5 @@
 
 import os, subprocess, sys, shutil, glob, re, fnmatch
-from DTC.file_manager.file_tools import mkcdir
 import socket
 
 from dipy.segment.mask import median_otsu
@@ -12,7 +11,6 @@ from scipy.cluster.vq import kmeans, vq
 def regexify(string):
     newstring = ('^'+string+'$').replace('*','.*')
     return newstring
-
 
 def glob_remote(path, sftp=None):
     match_files = []
