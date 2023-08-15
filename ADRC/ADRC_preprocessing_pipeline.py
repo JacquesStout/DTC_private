@@ -1,5 +1,5 @@
 
-import os, subprocess, sys, shutil
+import os, subprocess, sys, shutil, glob, re, fnmatch
 from DTC.file_manager.file_tools import mkcdir
 import socket
 
@@ -7,7 +7,64 @@ from dipy.segment.mask import median_otsu
 from dipy.io.image import load_nifti, save_nifti
 import numpy as np
 from scipy.cluster.vq import kmeans, vq
-from DTC.file_manager.computer_nav import checkallfiles
+
+
+def regexify(string):
+    newstring = ('^'+string+'$').replace('*','.*')
+    return newstring
+
+
+def glob_remote(path, sftp=None):
+    match_files = []
+    if sftp is not None:
+        if '*' in path:
+            pathdir, pathname = os.path.split(path)
+            pathname = regexify(pathname)
+            allfiles = sftp.listdir(pathdir)
+            for file in allfiles:
+                if re.search(pathname, file) is not None:
+                    match_files.append(os.path.join(pathdir,file))
+        elif '.' not in path:
+            allfiles = sftp.listdir(path)
+            for filepath in allfiles:
+                match_files.append(os.path.join(path, filepath))
+            return match_files
+        else:
+            dirpath = os.path.dirname(path)
+            try:
+                sftp.stat(dirpath)
+            except:
+                return match_files
+            allfiles = sftp.listdir(dirpath)
+            #if '*' in path:
+            #    for filepath in allfiles:
+            #            match_files.append(os.path.join(dirpath,filepath))
+            #else:
+            for filepath in allfiles:
+                if fnmatch.fnmatch(os.path.basename(filepath), os.path.basename(path)):
+                    match_files.append(os.path.join(dirpath, filepath))
+    else:
+        if '.' not in path:
+            match_files = glob.glob(path)
+        else:
+            dirpath = os.path.dirname(path)
+            if not os.path.exists(dirpath):
+                return(match_files)
+            else:
+                allfiles = glob.glob(os.path.join(dirpath,'*'))
+                for filepath in allfiles:
+                    if fnmatch.fnmatch(os.path.basename(filepath), os.path.basename(path)):
+                        match_files.append(os.path.join(dirpath, filepath))
+    return(match_files)
+
+
+def checkallfiles(paths, sftp=None):
+    existing = True
+    for path in paths:
+        match_files = glob_remote(path, sftp)
+        if not match_files:
+            existing= False
+    return existing
 
 
 def mkcdir(folderpaths, sftp=None):
