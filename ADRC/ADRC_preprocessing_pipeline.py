@@ -65,20 +65,20 @@ def median_mask_make(inpath, outpath=None, outpathmask=None, median_radius=4, nu
     return outpath, outpathmask
 
 #inputs
-root = '/Volumes/Data/Badea/Lab/mouse/ADRC_mrtrix_dwifsl/'
-data_path = '/Volumes/dusom_mousebrains/All_Staff/Projects/ADRC/Data/raw_ADRC_data/ADRC-20230511/'
+root = '/mnt/munin2/Badea/Lab/mouse/ADRC_jacques_pipeline/'
+data_path = '/mnt/munin2/Badea/Lab/ADRC-20230511/'
 dwi_manual_pe_scheme_txt = os.path.join(root, 'dwi_manual_pe_scheme.txt')
 perm_output = os.path.join(root, 'perm_files/')
 se_epi_manual_pe_scheme_txt = os.path.join(root, 'se_epi_manual_pe_scheme.txt')
 
 #outputs
-data_path_output = '/Volumes/dusom_mousebrains/All_Staff/Projects/ADRC/Data/raw_ADRC_data/ADRC_JS_tests/'
+data_path_output = '/mnt/munin2/Badea/Lab/mouse/ADRC_jacques_pipeline/'
 
 mkcdir(data_path_output)
 
 #subjects to run
-#subjects = list(sys.argv[1])
-subjects = ['ADRC0001']
+subjects = list(sys.argv[1])
+#subjects = ['ADRC0001']
 
 index_gz = '.gz'
 overwrite = False
