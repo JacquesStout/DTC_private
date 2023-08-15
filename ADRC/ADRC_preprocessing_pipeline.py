@@ -119,9 +119,6 @@ def median_mask_make(inpath, outpath=None, outpathmask=None, median_radius=4, nu
         print(f'Saved masked file to {outpath}, saved mask to {outpathmask}')
     return outpath, outpathmask
 
-subjects = []
-subjects.append(sys.argv[1])
-
 
 #inputs
 root = '/mnt/munin2/Badea/Lab/mouse/ADRC_jacques_pipeline/'
@@ -137,7 +134,8 @@ data_path_output = '/mnt/munin2/Badea/Lab/mouse/ADRC_jacques_pipeline/'
 mkcdir(data_path_output)
 
 #subjects to run
-subjects = list(sys.argv[1])
+subjects = []
+subjects.append(sys.argv[1])
 #subjects = ['ADRC0001']
 
 index_gz = '.gz'
