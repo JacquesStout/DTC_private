@@ -119,11 +119,16 @@ def median_mask_make(inpath, outpath=None, outpathmask=None, median_radius=4, nu
         print(f'Saved masked file to {outpath}, saved mask to {outpathmask}')
     return outpath, outpathmask
 
+subjects = []
+subjects.append(sys.argv[1])
+
+
 #inputs
 root = '/mnt/munin2/Badea/Lab/mouse/ADRC_jacques_pipeline/'
 data_path = '/mnt/munin2/Badea/Lab/ADRC-20230511/'
 dwi_manual_pe_scheme_txt = os.path.join(root, 'dwi_manual_pe_scheme.txt')
 perm_output = os.path.join(root, 'perm_files/')
+mkcdir(perm_output)
 se_epi_manual_pe_scheme_txt = os.path.join(root, 'se_epi_manual_pe_scheme.txt')
 
 #outputs
