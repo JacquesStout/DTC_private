@@ -121,15 +121,22 @@ def median_mask_make(inpath, outpath=None, outpathmask=None, median_radius=4, nu
 
 
 #inputs
-root = '/mnt/munin2/Badea/Lab/mouse/ADRC_jacques_pipeline/'
-data_path = '/mnt/munin2/Badea/Lab/ADRC-20230511/'
+
+if socket.gethostname().split('.')[0]=='santorini':
+    root = '/Volumes/Data/Badea/Lab/mouse/ADRC_jacques_pipeline/'
+    data_path = '/Volumes/Data/Badea/Lab/ADRC-20230511/'
+    data_path_output = '/Volumes/Data/Badea/Lab/mouse/ADRC_jacques_pipeline/'
+else:
+    root = '/mnt/munin2/Badea/Lab/mouse/ADRC_jacques_pipeline/'
+    data_path = '/mnt/munin2/Badea/Lab/ADRC-20230511/'
+    data_path_output = '/mnt/munin2/Badea/Lab/mouse/ADRC_jacques_pipeline/'
+
 dwi_manual_pe_scheme_txt = os.path.join(root, 'dwi_manual_pe_scheme.txt')
 perm_output = os.path.join(root, 'perm_files/')
 mkcdir(perm_output)
 se_epi_manual_pe_scheme_txt = os.path.join(root, 'se_epi_manual_pe_scheme.txt')
 
 #outputs
-data_path_output = '/mnt/munin2/Badea/Lab/mouse/ADRC_jacques_pipeline/'
 
 mkcdir(data_path_output)
 
@@ -171,7 +178,7 @@ for subj in subjects:
 
     if not os.path.exists(bvec_path_AP) or not os.path.exists(bval_path_AP) or overwrite:
         bvec = []  # bvec extraction
-        with open(os.path.join(subj_folder, "HCP_DTI_reverse_phase.bxh")) as file:
+        with open(os.path.join(subj_folder, "HCP_DTI.bxh")) as file:
             for line in file:
                 if "<value>" in line:
                     temp_loop = line
@@ -188,11 +195,12 @@ for subj in subjects:
         bvec = bvec / norms.reshape(len(norms), 1)
         bvec = bvec.transpose()
 
-        np.savetxt(bvec_path_AP, bvec, fmt='%.2f')
+        bvec[1, 1:] = -bvec[1, 1:]  # flip y sign
 
-        with open(os.path.join(subj_folder, "HCP_DTI_reverse_phase.bxh")) as file:
-            line = file.readline()
-            while line:
+        np.savetxt(bvec_path_AP, bvec, fmt='%f')
+
+        with open(os.path.join(subj_folder, "HCP_DTI.bxh")) as file:
+            for line in file:
                 if "bvalues" in line:
                     temp_loop = line
                     temp_loop_split = temp_loop.split()
@@ -209,7 +217,6 @@ for subj in subjects:
         rnd_bvals = ccodebook2[cluster_indices]
         bvals = rnd_bvals
         bvals = bvals.reshape(1, len(bvals))
-        new_bval = bvals
         np.savetxt(bval_path_AP, bvals, fmt='%.2f')
 
 
@@ -235,13 +242,13 @@ for subj in subjects:
 
         bvec_rvrs[1, 1:] = -bvec_rvrs[1, 1:]
 
-        np.savetxt(bvec_path_PA ,bvec_rvrs,fmt='%.2f')
+        np.savetxt(bvec_path_PA ,bvec_rvrs,fmt='%f')
 
 
         bvals_rvrs = [] # bval extraction
         with open(os.path.join(subj_folder, "HCP_DTI_reverse_phase.bxh")) as file:
             line = file.readline()
-            while line:
+            for line in file:
                 if "bvalues" in line:
                     temp_loop = line
                     temp_loop_split = temp_loop.split()
@@ -318,8 +325,8 @@ for subj in subjects:
 
         #### Command: converting the original diff to a mif
 
-        diff_mif = os.path.join(subj_out_folder, subj+'_denoised_diff.mif')
-        diff_json = os.path.join(subj_out_folder, subj+'_denoised_diff.json')
+        diff_mif = os.path.join(scratch_path, subj+'_denoised_diff.mif')
+        diff_json = os.path.join(scratch_path, subj+'_denoised_diff.json')
         if not os.path.exists(diff_mif) or overwrite:
             command = 'mrconvert ' + output_denoise + " " + diff_mif + ' -fslgrad ' + bvec_path_AP + ' ' + bval_path_AP + ' -json_export ' + diff_json + ' -force'
             print(command)
