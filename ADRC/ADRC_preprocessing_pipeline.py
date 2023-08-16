@@ -143,6 +143,8 @@ overwrite = False
 
 cleanup = False
 
+verbose = True
+
 for subj in subjects:
 
     subj_folder = os.path.join(data_path, subj,'visit1')
