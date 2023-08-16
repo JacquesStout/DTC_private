@@ -159,6 +159,9 @@ for subj in subjects:
     DTI_forward_nii_gz = os.path.join(subj_folder, 'HCP_DTI.nii.gz')
     nii_gz_path_PA = os.path.join(subj_folder, 'HCP_DTI_reverse_phase.nii.gz')
 
+    if verbose:
+        print(f'Running subject {subj}')
+
     if not os.path.exists(DTI_forward_nii_gz):
         print(f'Missing {DTI_forward_nii_gz}')
     if not os.path.exists(nii_gz_path_PA):
@@ -256,6 +259,8 @@ for subj in subjects:
 
         np.savetxt(bval_path_PA ,bvals,fmt='%.2f')
 
+    if verbose:
+        print(f'Bval and bvecs obtained')
 
     DTI_forward_nii_gz = os.path.join(subj_folder,'HCP_DTI.nii.gz')
 
@@ -521,6 +526,9 @@ for subj in subjects:
             command = 'mrconvert ' + mask_nii_path + ' ' + mask_mif_path + ' -force'
             os.system(command)
 
+    if verbose:
+        print(f'Created {resampled_path}')
+
     dt_mif = os.path.join(perm_subj_output, subj + '_dt.mif' + index_gz)
     fa_mif = os.path.join(perm_subj_output, subj + '_fa.mif' + index_gz)
     dk_mif = os.path.join(perm_subj_output, subj + '_dk.mif' + index_gz)
@@ -623,6 +631,9 @@ for subj in subjects:
             print(command)
             os.system(command)
 
+    if verbose:
+        print(f'Created the file {fa_nii}')
+
     #T1_orig_res = os.path.join(subj_out_folder,subj+'_T1_res.nii.gz')
     #T1_orig = T1_orig_res
 
@@ -708,6 +719,9 @@ for subj in subjects:
         # os.system('tckedit '+ tracks_10M_tck + ' -number 2000000 -minlength 2 ' + smallerTracks + ' -force')
         # os.system('mrview ' + den_unbiased_mif + ' -tractography.load '+ smallerTracks)
         # os.system('mrview ' + den_unbiased_mif + ' -tractography.load '+ smallerTracks)
+
+    if verbose:
+        print(f'Created {smallerTracks}')
 
     if cleanup:
         shutil.rmtree(subj_out_folder)
