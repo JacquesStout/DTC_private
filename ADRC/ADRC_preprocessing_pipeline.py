@@ -135,7 +135,10 @@ dwi_manual_pe_scheme_txt = os.path.join(root, 'dwi_manual_pe_scheme.txt')
 perm_output = os.path.join(root, 'perm_files/')
 mkcdir(perm_output)
 se_epi_manual_pe_scheme_txt = os.path.join(root, 'se_epi_manual_pe_scheme.txt')
-
+if socket.gethostname().split('.')[0]=='santorini':
+    fsl_config_path = '$FSLDIR/src/fsl-topup/flirtsch/b02b0.cnf'
+else:
+    fsl_config_path = '$FSLDIR/src/topup/flirtsch/b02b0.cnf'
 #outputs
 
 mkcdir(data_path_output)
@@ -373,7 +376,7 @@ for subj in subjects:
         field_map_nii_gz = os.path.join(scratch_path, 'field_map.nii.gz')
         diff_topup = os.path.join(scratch_path, 'diff_topup')
         diff_topup_nii = diff_topup + '_fieldcoef.nii.gz'
-        command = 'topup --imain=' + topup_in_nii + ' --datain=' + topup_datain_txt + ' --out=field --fout=' + field_map_nii_gz + ' --config=$FSLDIR/src/fsl-topup/flirtsch/b02b0.cnf --out=' + diff_topup + ' --verbose'
+        command = 'topup --imain=' + topup_in_nii + ' --datain=' + topup_datain_txt + ' --out=field --fout=' + field_map_nii_gz + f' --config={fsl_config_path} --out=' + diff_topup + ' --verbose'
         if not os.path.exists(field_map_nii_gz) or not os.path.exists(diff_topup_nii) or overwrite:
             print(command)
             os.system(command)
