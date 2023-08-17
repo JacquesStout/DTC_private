@@ -452,7 +452,7 @@ for subj in subjects:
 
         #### Command: Converting the eddy corrected diffusion file nifti into the mif version, also unpadded the file at same time (using command  -coord 2 0:' + end_vol)
         den_preproc_mif = os.path.join(subj_out_folder,subj + '_den_preproc.mif')
-        diff_post_eddy_eddy_rotated_bvecs = os.path.join(scratch_path, 'diff_post_eddy.bvecs')
+        diff_post_eddy_eddy_rotated_bvecs = os.path.join(scratch_path, 'diff_post_eddy.nii.eddy_rotated_bvecs')
         if not os.path.exists(den_preproc_mif) or not os.path.exists(diff_post_eddy_eddy_rotated_bvecs) or overwrite:
             command = 'mrconvert ' + diff_post_eddy_gz + ' ' + den_preproc_mif + ' -coord 2 0:' + end_vol + \
                       ' -strides -1,-2,3,4 -fslgrad ' + diff_post_eddy_eddy_rotated_bvecs + ' ' + bvals_eddy + ' -force'
