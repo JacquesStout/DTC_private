@@ -91,7 +91,7 @@ def mkcdir(folderpaths, sftp=None):
 
 
 def median_mask_make(inpath, outpath=None, outpathmask=None, median_radius=4, numpass=4, binary_dilation=None,
-                     vol_idx=None, affine=None, verbose = False):
+                     vol_idx=None, affine=None, verbose = False, overwrite=False):
     if type(inpath) == str:
         data, affine = load_nifti(inpath)
         if outpath is None:
@@ -107,7 +107,7 @@ def median_mask_make(inpath, outpath=None, outpathmask=None, median_radius=4, nu
             raise Exception('Needs affine')
         if outpath is None:
             raise Exception('Needs outpath')
-    if os.path.exists(outpath) and os.path.exists(outpathmask):
+    if os.path.exists(outpath) and os.path.exists(outpathmask) and not overwrite:
         print('Already wrote mask')
         return outpath, outpathmask
     data = np.squeeze(data)
@@ -158,15 +158,18 @@ verbose = True
 for subj in subjects:
 
     subj_folder = os.path.join(data_path, subj,'visit1')
-    subj_out_folder = os.path.join(data_path_output, subj)
+    allsubjs_out_folder = os.path.join(data_path_output, 'temp')
+    subj_out_folder = os.path.join(allsubjs_out_folder, subj)
     scratch_path = os.path.join(subj_out_folder, 'scratch')
-    perm_subj_output = os.path.join(perm_output, subj)
-    mkcdir([subj_out_folder,scratch_path, perm_subj_output])
+    perm_subj_output = perm_output
+    #perm_subj_output = os.path.join(perm_output, subj)
 
-    bvec_path_AP = os.path.join(perm_subj_output, subj + '_bvecs.txt')
-    bval_path_AP = os.path.join(perm_subj_output, subj + '_bvals.txt')
-    bvec_path_PA = os.path.join(perm_subj_output, subj+'_bvecs_rvrs.txt')
-    bval_path_PA = os.path.join(perm_subj_output, subj+'_bvals_rvrs.txt')
+    mkcdir([allsubjs_out_folder, subj_out_folder,scratch_path, perm_subj_output])
+
+    bvec_path_AP = os.path.join(subj_out_folder, subj + '_bvecs.txt')
+    bval_path_AP = os.path.join(subj_out_folder, subj + '_bvals.txt')
+    bvec_path_PA = os.path.join(subj_out_folder, subj+'_bvecs_rvrs.txt')
+    bval_path_PA = os.path.join(subj_out_folder, subj+'_bvals_rvrs.txt')
 
     DTI_forward_nii_gz = os.path.join(subj_folder, 'HCP_DTI.nii.gz')
     nii_gz_path_PA = os.path.join(subj_folder, 'HCP_DTI_reverse_phase.nii.gz')
@@ -276,17 +279,20 @@ for subj in subjects:
 
     DTI_forward_nii_gz = os.path.join(subj_folder,'HCP_DTI.nii.gz')
 
-    resampled_path = os.path.join(perm_subj_output, subj + '_coreg_resampled.nii.gz')
-    dwi_nii_gz = os.path.join(perm_subj_output, subj + '_dwi.nii.gz')
-    mask_nii_path = os.path.join(perm_subj_output, subj + '_mask.nii.gz')
-    mask_mif_path = os.path.join(perm_subj_output, subj + '_mask.mif')
+    resampled_nii_path = os.path.join(subj_out_folder, subj + '_coreg_resampled.nii.gz')
     resampled_mif_path = os.path.join(perm_subj_output, subj + '_coreg_resampled.mif')
+
+    dwi_nii_gz = os.path.join(perm_subj_output, subj + '_dwi.nii.gz')
+
+    mask_nii_path = os.path.join(subj_out_folder, subj + '_mask.nii.gz')
+    mask_mif_path = os.path.join(perm_subj_output, subj + '_mask.mif')
 
     coreg_bvecs = os.path.join(perm_subj_output, subj + '_coreg_bvecs.txt')
     coreg_bvals = os.path.join(perm_subj_output, subj + '_coreg_bvals.txt')
 
-    if not os.path.exists(resampled_path) or not os.path.exists(dwi_nii_gz) or not os.path.exists(mask_mif_path) \
-            or not os.path.exists(resampled_mif_path) or not os.path.exists(coreg_bvecs) or overwrite:
+
+    if not os.path.exists(resampled_mif_path) or not os.path.exists(dwi_nii_gz) or not os.path.exists(mask_mif_path) \
+            or not os.path.exists(coreg_bvecs) or True:
 
         ######### denoise:
 
@@ -423,8 +429,8 @@ for subj in subjects:
             os.system(command)
 
         #### Command: Preparing the padded diff for eddy command
-        bvecs_eddy = os.path.join(perm_subj_output, subj + "_bvecs_eddy.txt")
-        bvals_eddy = os.path.join(perm_subj_output, subj + "_bvals_eddy.txt")
+        bvecs_eddy = os.path.join(subj_out_folder, subj + "_bvecs_eddy.txt")
+        bvals_eddy = os.path.join(subj_out_folder, subj + "_bvals_eddy.txt")
         eddy_config_txt = os.path.join(subj_out_folder, 'eddy_config.txt')
         eddy_indices_txt = os.path.join(subj_out_folder, 'eddy_indices.txt')
         eddy_in_nii = os.path.join(subj_out_folder, 'eddy_in.nii')
@@ -470,7 +476,7 @@ for subj in subjects:
 
         #### Command: Converting the bias corrected diffusion mif file into the the nifti version (and extracting bvals/bvecs)
 
-        coreg_nii_gz = os.path.join(perm_subj_output, subj + '_coreg.nii.gz')
+        coreg_nii_gz = os.path.join(subj_out_folder, subj + '_coreg.nii.gz')
         command = 'mrconvert ' + den_unbiased_mif + ' ' + coreg_nii_gz + ' -export_grad_fsl ' + coreg_bvecs + ' ' + \
                   coreg_bvals + ' -force'
         if not os.path.exists(coreg_nii_gz) or overwrite:
@@ -495,51 +501,74 @@ for subj in subjects:
 
         median_radius = 4
         numpass = 7
-        binary_dilation = 3
+        binary_dilation = 1
         full_name = False
         verbose = False
 
         #### Command: Resampling the diffusion into the 1x1x1x1 dimensions
-        command = f'ResampleImage 4 {coreg_nii_gz} {resampled_path} 1x1x1x1 0 0 2'
-        if not os.path.exists(resampled_path) or overwrite:
+        command = f'ResampleImage 4 {coreg_nii_gz} {resampled_nii_path} 1x1x1x1 0 0 2'
+        if not os.path.exists(resampled_nii_path) or overwrite:
             print(command)
             os.system(command)
 
         #### Command: Converting the nifti of resampled diffusion images to mif
 
-        command = 'mrconvert ' + resampled_path + ' ' + resampled_mif_path + ' -fslgrad ' + coreg_bvecs + ' ' + coreg_bvals + ' -bvalue_scaling false -force'
+        command = 'mrconvert ' + resampled_nii_path + ' ' + resampled_mif_path + ' -fslgrad ' + coreg_bvecs + ' ' + coreg_bvals + ' -bvalue_scaling false -force'
         if not os.path.exists(resampled_mif_path) or overwrite:
             print(command)
             os.system(command)
 
+
         #### Command: Extracting the b0s from the bias resampled diffusion file and making the average diffusion weighted image based on thsoe
-        dwi_mif = os.path.join(perm_subj_output, subj + '_dwi.mif')
+        dwi_mif = os.path.join(subj_out_folder, subj + '_dwi.mif')
         command = 'dwiextract ' + resampled_mif_path + ' - -no_bzero | mrmath - mean ' + dwi_mif + ' -axis 3 -force'
         if not os.path.exists(dwi_mif) or overwrite:
             print(command)
             os.system(command)
 
+        #### Command: Extracting the b0s from the bias resampled diffusion file and making the average diffusion weighted image based on thsoe
+        b0_dwi_mif = os.path.join(subj_out_folder, subj + '_b0_mean.mif')
+        command = 'dwiextract ' + resampled_mif_path + ' - -bzero | mrmath - mean ' + b0_dwi_mif + ' -axis 3 -force'
+        if not os.path.exists(b0_dwi_mif) or overwrite:
+            print(command)
+            os.system(command)
+
         #### Command: Converting the diffusion mean of b0s into a nifti
-        dwi_nii_gz = os.path.join(perm_subj_output, subj + '_dwi.nii.gz')
         if not os.path.exists(dwi_nii_gz) or overwrite:
             command = 'mrconvert ' + dwi_mif + ' ' + dwi_nii_gz + ' -force'
             print(command)
             os.system(command)
 
+        #### Command: Converting the diffusion mean of b0s into a nifti
+        b0_dwi_nii_gz = os.path.join(subj_out_folder, subj + '_b0_mean.nii.gz')
+        if not os.path.exists(b0_dwi_nii_gz) or overwrite:
+            command = 'mrconvert ' + b0_dwi_mif + ' ' + b0_dwi_nii_gz + ' -force'
+            print(command)
+            os.system(command)
 
+
+        ####### According to previous tests, it is better to mask using the bzeros than it is using the standard dwi!'
+        """
         masked_dwi_path = os.path.join(subj_out_folder, subj + '_dwi_masked.nii.gz')
 
         #### Command: Create the mask for the diffusion images from the resampled diffusion images
         if not os.path.exists(masked_dwi_path) or not os.path.exists(mask_nii_path) or overwrite:
             median_mask_make(dwi_nii_gz, masked_dwi_path, median_radius=median_radius, binary_dilation=binary_dilation,
                              numpass=numpass, outpathmask=mask_nii_path, verbose=verbose)
+        """
+
+        #### Command: Create the mask for the diffusion images from the b0 of resampled diffusion images
+        masked_dwi_path = os.path.join(subj_out_folder, subj + '_b0_masked.nii.gz')
+        if not os.path.exists(masked_dwi_path) or not os.path.exists(mask_nii_path) or overwrite:
+            median_mask_make(b0_dwi_nii_gz, masked_dwi_path, median_radius=median_radius, binary_dilation=binary_dilation,
+                             numpass=numpass, outpathmask=mask_nii_path, verbose=verbose, overwrite=overwrite)
 
         if not os.path.exists(mask_mif_path) or overwrite:
             command = 'mrconvert ' + mask_nii_path + ' ' + mask_mif_path + ' -force'
             os.system(command)
 
     if verbose:
-        print(f'Created {resampled_path}')
+        print(f'Created {resampled_mif_path}')
 
     dt_mif = os.path.join(perm_subj_output, subj + '_dt.mif' + index_gz)
     fa_mif = os.path.join(perm_subj_output, subj + '_fa.mif' + index_gz)
@@ -712,9 +741,10 @@ for subj in subjects:
 
         # os.system('tckgen -act ' + fivett_coreg_mif + '  -backtrack -seed_gmwmi '+ gmwmSeed_coreg_mif + ' -maxlength 250 -cutoff 0.06 -select 10000000 ' + wmfod_norm_mif + ' ' + tracks_10M_tck + ' -force')
         # seconds1 = time.time()
-        command = 'tckgen -backtrack -seed_image ' + gmwmSeed_coreg_mif + ' -maxlength 250 -cutoff 0.1 -select 10000000 ' + wmfod_norm_mif + ' ' + tracks_10M_tck + ' -force'
-        print(command)
-        os.system(command)
+        if not os.path.exists(tracks_10M_tck):
+            command = 'tckgen -backtrack -seed_image ' + gmwmSeed_coreg_mif + ' -maxlength 250 -cutoff 0.1 -select 10000000 ' + wmfod_norm_mif + ' ' + tracks_10M_tck + ' -force'
+            print(command)
+            os.system(command)
 
         # os.system('tckgen -backtrack -seed_image '+ gmwmSeed_coreg_mif + ' -maxlength 1000 -cutoff 0.3 -select 50k ' + wmfod_norm_mif + ' ' + tracks_10M_tck + ' -force')
         # seconds2 = time.time()
@@ -724,9 +754,10 @@ for subj in subjects:
         # Extracting a subset of tracks:
         # os.system('echo tckedit '+ tracks_10M_tck + ' -number 2000000 -minlength 0.1 ' + smallerTracks + ' -force')
 
-        command = 'tckedit ' + tracks_10M_tck + ' -number 2000000 ' + smallerTracks + ' -force'
-        print(command)
-        os.system(command)
+        if not os.path.exists(smallerTracks):
+            command = 'tckedit ' + tracks_10M_tck + ' -number 2000000 ' + smallerTracks + ' -force'
+            print(command)
+            os.system(command)
 
         # os.system('tckedit '+ tracks_10M_tck + ' -number 2000000 -minlength 2 ' + smallerTracks + ' -force')
         # os.system('mrview ' + den_unbiased_mif + ' -tractography.load '+ smallerTracks)
