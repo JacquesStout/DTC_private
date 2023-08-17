@@ -372,7 +372,7 @@ for subj in subjects:
         ##### Command: converting unwarped b0s to 'topup'
 
         topup_in_nii = os.path.join(scratch_path, 'topup_in.nii')
-        topup_datain_txt =  os.path.join(data_path_output, 'topup_datain.txt')
+        topup_datain_txt =  os.path.join(scratch_path, 'topup_datain.txt')
         if not os.path.exists(topup_in_nii) or not os.path.exists(topup_datain_txt) or overwrite:
             command = 'mrconvert '+ se_epi_pad2_mif +' ' + topup_in_nii + ' -import_pe_table ' + se_epi_manual_pe_scheme_txt + ' -strides -1,+2,+3,+4 -export_pe_table '+ topup_datain_txt + ' -force'
             print(command)
@@ -602,9 +602,9 @@ for subj in subjects:
         #os.system('shview '+csf_txt)
 
         #Applying the basis functions to the diffusion data:
-        wmfod_mif = subj_out_folder+subj+'_wmfod.mif'+index_gz
-        gmfod_mif = subj_out_folder+subj+'_gmfod.mif'+index_gz
-        csffod_mif = subj_out_folder+subj+'_csffod.mif'+index_gz
+        wmfod_mif = os.path.join(subj_out_folder,subj+'_wmfod.mif'+index_gz)
+        gmfod_mif = os.path.join(subj_out_folder,subj+'_gmfod.mif'+index_gz)
+        csffod_mif = os.path.join(subj_out_folder,subj+'_csffod.mif'+index_gz)
 
         #os.system('dwi2fod msmt_csd ' +den_unbiased_mif+ ' -mask '+mask_mif+ ' ' +wm_txt+ ' ' + wmfod_mif+ ' ' +gm_txt+ ' ' + gmfod_mif+ ' ' +csf_txt+ ' ' + csffod_mif + ' -force' )
         if not os.path.exists(wmfod_mif) or not os.path.exists(gmfod_mif) or not os.path.exists(csffod_mif) or overwrite:
@@ -614,7 +614,7 @@ for subj in subjects:
 
         #combine to single image to view them
         #Concatenating the FODs:
-        vf_mif =   subj_out_folder+subj+'_vf.mif'
+        vf_mif = os.path.join(subj_out_folder,subj+'_vf.mif')
         if not os.path.exists(vf_mif) or overwrite:
             command = 'mrconvert -coord 3 0 ' +wmfod_mif+ ' -| mrcat '+csffod_mif+ ' ' +gmfod_mif+ ' - ' + vf_mif+' -force'
             print(command)
@@ -625,9 +625,9 @@ for subj in subjects:
         #os.system('mrview ' +fa_mif+ ' -odf.load_sh '+wmfod_mif )
 
         #Normalizing the FODs:
-        wmfod_norm_mif =  subj_out_folder+subj+'_wmfod_norm.mif'+index_gz
-        gmfod_norm_mif = subj_out_folder+subj+'_gmfod_norm.mif'
-        csffod_norm_mif = subj_out_folder+subj+'_csffod_norm.mif'
+        wmfod_norm_mif = os.path.join(subj_out_folder,subj+'_wmfod_norm.mif'+index_gz)
+        gmfod_norm_mif = os.path.join(subj_out_folder,subj+'_gmfod_norm.mif')
+        csffod_norm_mif = os.path.join(subj_out_folder,subj+'_csffod_norm.mif')
         if not os.path.exists(wmfod_norm_mif) or not os.path.exists(gmfod_norm_mif) or not os.path.exists(csffod_norm_mif) or overwrite:
             command = 'mtnormalise ' +wmfod_mif+ ' '+wmfod_norm_mif+ ' ' +gmfod_mif+ ' '+gmfod_norm_mif + ' ' +csffod_mif+ ' '+csffod_norm_mif +' -mask ' + mask_mif_path + '  -force'
             print(command)
