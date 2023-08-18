@@ -151,7 +151,7 @@ subjects.append(sys.argv[1])
 index_gz = '.gz'
 overwrite = False
 
-cleanup = False
+cleanup = True
 
 verbose = True
 
