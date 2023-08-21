@@ -291,6 +291,7 @@ for subj in subjects:
     coreg_bvecs = os.path.join(perm_subj_output, subj + '_coreg_bvecs.txt')
     coreg_bvals = os.path.join(perm_subj_output, subj + '_coreg_bvals.txt')
 
+    resized = 0
 
     if not os.path.exists(resampled_mif_path) or not os.path.exists(dwi_nii_gz) or not os.path.exists(mask_mif_path) \
             or not os.path.exists(coreg_bvecs) or True:
