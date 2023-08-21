@@ -171,16 +171,17 @@ for subj in subjects:
     bvec_path_PA = os.path.join(subj_out_folder, subj+'_bvecs_rvrs.txt')
     bval_path_PA = os.path.join(subj_out_folder, subj+'_bvals_rvrs.txt')
 
-    DTI_forward_nii_gz = os.path.join(subj_folder, 'HCP_DTI.nii.gz')
-    nii_gz_path_PA = os.path.join(subj_folder, 'HCP_DTI_reverse_phase.nii.gz')
+    DTI_forward_nii_path = os.path.join(subj_folder, 'HCP_DTI.nii.gz')
+    DTI_reverse_nii_path = os.path.join(subj_folder, 'HCP_DTI_reverse_phase.nii.gz')
 
     if verbose:
         print(f'Running subject {subj}')
 
-    if not os.path.exists(DTI_forward_nii_gz):
-        print(f'Missing {DTI_forward_nii_gz}')
-    if not os.path.exists(nii_gz_path_PA):
-        print(f'Missing {nii_gz_path_PA}')
+    if not os.path.exists(DTI_forward_nii_path):
+        print(f'Missing {DTI_forward_nii_path}')
+    if not os.path.exists(DTI_reverse_nii_path):
+        print(f'Missing {DTI_reverse_nii_path}')
+
 
     if not os.path.exists(bvec_path_AP) or not os.path.exists(bval_path_AP) or overwrite:
         bvec = []  # bvec extraction
@@ -277,7 +278,7 @@ for subj in subjects:
     if verbose:
         print(f'Bval and bvecs obtained')
 
-    DTI_forward_nii_gz = os.path.join(subj_folder,'HCP_DTI.nii.gz')
+    DTI_forward_nii_path = os.path.join(subj_folder,'HCP_DTI.nii.gz')
 
     resampled_nii_path = os.path.join(subj_out_folder, subj + '_coreg_resampled.nii.gz')
     resampled_mif_path = os.path.join(perm_subj_output, subj + '_coreg_resampled.mif')
@@ -294,12 +295,27 @@ for subj in subjects:
     if not os.path.exists(resampled_mif_path) or not os.path.exists(dwi_nii_gz) or not os.path.exists(mask_mif_path) \
             or not os.path.exists(coreg_bvecs) or True:
 
+
+        ####### Checking positive to negative correspondence:
+        import nibabel as nib
+        AP_nii = nib.load(DTI_forward_nii_path)
+        PA_nii = nib.load(DTI_reverse_nii_path)
+        if AP_nii.shape[0:3] != PA_nii.shape[0:3]:
+            DTI_reverse_nii_path_resized = os.path.join(subj_out_folder, 'HCP_DTI_reverse_phase_resized.nii.gz')
+            AP_dims = AP_nii.header.get_zooms()[0:3]
+            command = f'ResampleImage 4 {DTI_reverse_nii_path} {DTI_reverse_nii_path_resized} {AP_dims[0]}x{AP_dims[1]}x{AP_dims[2]}x1 0 0 2'
+            if not os.path.exists(DTI_reverse_nii_path_resized) or overwrite:
+                print(command)
+                os.system(command)
+                resized = 1
+            DTI_reverse_nii_path = DTI_reverse_nii_path_resized
+
         ######### denoise:
 
         out_mif = os.path.join(subj_out_folder, subj + '_subjspace_diff.mif' + index_gz)
         if not os.path.exists(out_mif) or overwrite:
             os.system(
-                'mrconvert ' + DTI_forward_nii_gz + ' ' + out_mif + ' -fslgrad ' + bvec_path_AP + ' ' + bval_path_AP + ' -bvalue_scaling false -force')  # turn off the scaling otherwise bvals becomes 0 4000 1000 instead of 2000
+                'mrconvert ' + DTI_forward_nii_path + ' ' + out_mif + ' -fslgrad ' + bvec_path_AP + ' ' + bval_path_AP + ' -bvalue_scaling false -force')  # turn off the scaling otherwise bvals becomes 0 4000 1000 instead of 2000
 
         output_denoise = os.path.join(subj_out_folder, subj+'_den.mif')
         if not os.path.exists(output_denoise) or overwrite:
@@ -315,12 +331,12 @@ for subj in subjects:
         ##### b0 warp unphasing
 
         PA_mif = os.path.join(subj_out_folder,subj+'_PA.mif')
-        if not os.path.exists(PA_mif) or overwrite:
-            os.system('mrconvert '+nii_gz_path_PA+ ' ' +PA_mif + ' -force') #PA to mif
+        if not os.path.exists(PA_mif) or overwrite or resized:
+            os.system('mrconvert '+DTI_reverse_nii_path+ ' ' +PA_mif + ' -force') #PA to mif
 
         mean_b0_PA_mif = os.path.join(subj_out_folder,subj+'mean_b0_PA.mif')
             #take mean of PA and AP to unwarp
-        if not os.path.exists(mean_b0_PA_mif) or overwrite:
+        if not os.path.exists(mean_b0_PA_mif) or overwrite or resized:
             os.system('mrconvert '+PA_mif+ ' -fslgrad '+bvec_path_PA+ ' '+ bval_path_PA + ' - | mrmath - mean '+ mean_b0_PA_mif+' -axis 3 -force')
 
         ##### Command: Extracting b0 images from the AP dataset, and concatenating the b0 images across both AP and PA images:
