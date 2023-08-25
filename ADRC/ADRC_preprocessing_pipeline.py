@@ -286,7 +286,7 @@ for subj in subjects:
     dwi_nii_gz = os.path.join(perm_subj_output, subj + '_dwi.nii.gz')
 
     mask_nii_path = os.path.join(perm_subj_output, subj + '_mask.nii.gz')
-    mask_mif_path = os.path.join(subj_out_folder, subj + '_mask.mif')
+    mask_mif_path = os.path.join(perm_subj_output, subj + '_mask.mif')
 
     coreg_bvecs = os.path.join(perm_subj_output, subj + '_coreg_bvecs.txt')
     coreg_bvals = os.path.join(perm_subj_output, subj + '_coreg_bvals.txt')
