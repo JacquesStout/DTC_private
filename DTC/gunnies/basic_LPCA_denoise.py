@@ -81,8 +81,8 @@ def basic_LPCA_denoise_func(id,fdwi,bval_or_bvec_or_btable,outpath, processes=1,
     # It is assuming that the both have the same prefix, with the exeception of ending in bvecs.txt or bvals.txt
 
     #
-    fbval=bval_or_bvec_or_btable.replace("bvecs.txt","bvals.txt")
-    fbvec=fbval.replace("bvals.txt","bvecs.txt")
+    fbval=bval_or_bvec_or_btable.replace("bvecs","bvals")
+    fbvec=fbval.replace("bvals","bvecs")
 
     bvals, bvecs = read_bvals_bvecs(fbval, fbvec)
 

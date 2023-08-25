@@ -32,6 +32,7 @@ diffpath = os.path.join(mainpath, "Data","Anat")
 mkcdir(outpath)
 
 subjects = ['04086', '04129']
+subjects = ['04300', '01257', '01277', '04472', '01402']
 
 removed_list = []
 
@@ -39,7 +40,6 @@ for remove in removed_list:
     if remove in subjects:
         subjects.remove(remove)
 #subjects = ['02842']
-print(subjects)
 
 #subjects = ["03010", "03033", "03045"]
 
@@ -50,6 +50,9 @@ print(subjects)
 #02842, 03028 has apparently a 92 stack ? to investigate
 
 subject_processes, function_processes, firstsubj, lastsubj = parse_arguments(sys.argv,subjects)
+
+subjects = subjects[firstsubj:lastsubj]
+print(subjects)
 
 proc_subjn="J"
 proc_name ="diffusion_prep_"+proc_subjn
@@ -87,7 +90,7 @@ if btables=="extract":
         writeformat="tab"
         writeformat="dsi"
         subjectpath = glob.glob(os.path.join(os.path.join(diffpath, "*"+subject+"*")))[0]
-        bxh_file=largerfile(subjectpath).replace('.nii.gz','.bxh')
+        bxh_file=largerfile(os.path.join(subjectpath,'*.nii.gz')).replace('.nii.gz','.bxh')
         subject_outpath = os.path.join(outpath, 'diffusion_prep_' + proc_subjn + subject)
         mkcdir(subject_outpath)
         #fbvals, fbvecs = extractbvals(subjectpath, subject, outpath=subject_outpath, writeformat=writeformat, overwrite=overwrite)
