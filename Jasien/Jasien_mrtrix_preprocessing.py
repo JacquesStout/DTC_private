@@ -5,7 +5,7 @@ from dipy.segment.mask import median_otsu
 from dipy.io.image import load_nifti, save_nifti
 import numpy as np
 from scipy.cluster.vq import kmeans, vq
-
+import itertools
 
 def regexify(string):
     newstring = ('^' + string + '$').replace('*', '.*')
@@ -120,6 +120,58 @@ def median_mask_make(inpath, outpath=None, outpathmask=None, median_radius=4, nu
     return outpath, outpathmask
 
 
+def generate_bvec_gradscheme(bvecs_orig, bvals_orig, bvecs_new, bvals_new, gradscheme_path):
+
+    if isinstance(bvecs_orig,str):
+        bvecs_orig = np.loadtxt(bvecs_orig)
+        bvals_orig = np.loadtxt(bvals_orig)
+        bvecs_new = np.loadtxt(bvecs_new)
+        bvals_new = np.loadtxt(bvals_new)
+
+    bvecs_transpose = []
+
+    bvecs_orig = np.round(bvecs_orig, decimals=2)
+    bvecs_new = np.round(bvecs_new, decimals=2)
+    bvals_orig = np.round(bvals_orig, decimals=2)
+    bvals_new = np.round(bvals_new, decimals=2)
+
+    if np.any(bvecs_orig!=bvecs_new):
+        num_bvecs = np.shape(bvecs_orig)[1]
+        for i in range(3):
+            if all(bvecs_orig[i][j] == -bvecs_new[(i + 1) % 3][j] for j in range(num_bvecs)):
+                bvecs_transpose.append(f'-{chr(97 + i)}')
+            elif all(bvecs_orig[i][j] == bvecs_new[(i + 1) % 3][j] for j in range(num_bvecs)):
+                bvecs_transpose.append(f'{chr(97 + i)}')
+    else:
+        bvecs_transpose = ['1, 2, 3']
+    if np.any(bvals_orig!=bvals_new):
+        print('must investigate')
+        raise Exception
+    gradscheme_txt = f'bvecs: {bvecs_transpose}'
+
+    with open(gradscheme_path, 'w') as file:
+        file.write(gradscheme_txt)
+
+
+def save_new_bvecs(bvecs_orig, gradscheme_path, bvecs_new_path):
+
+    if isinstance(bvecs_orig, str):
+        bvecs_orig=np.loadtxt(bvecs_orig)
+    #bvecs_new = [row[:] for row in bvecs_orig]  # Create a copy of the original matrix
+
+    with open(gradscheme_path, 'r') as file:
+        bvecs_transpose = file.read()
+        bvecs_transpose = bvecs_transpose.split("'")[1].split(',')
+        bvecs_transpose = np.array(list(map(int, bvecs_transpose)))
+    #print(bvecs_transpose)
+
+    bvecs_new = np.vstack((bvecs_orig[abs(bvecs_transpose[0])-1]*np.sign(bvecs_transpose[0]),
+                           bvecs_orig[abs(bvecs_transpose[1])-1]*np.sign(bvecs_transpose[1]),
+                           bvecs_orig[abs(bvecs_transpose[2])-1]*np.sign(bvecs_transpose[2])))
+
+    np.savetxt(bvecs_new_path, bvecs_new, fmt='%.2f')
+
+
 # inputs
 
 if socket.gethostname().split('.')[0] == 'santorini':
@@ -154,6 +206,11 @@ index_gz = '.gz'
 overwrite = False
 
 cleanup = True
+
+median_radius = 4
+numpass = 7
+binary_dilation = 1
+full_name = False
 
 verbose = True
 
@@ -209,7 +266,7 @@ for subj in subjects:
         print(f'Missing {DTI_reverse_nii_path}')
 
 
-    if not os.path.exists(bvec_path_AP) or not os.path.exists(bval_path_AP) or overwrite:
+    if not os.path.exists(bvec_path_AP_unchecked) or not os.path.exists(bval_path_AP_unchecked) or overwrite:
         bvec = []  # bvec extraction
         with open(DTI_forward_bxh) as file:
             for line in file:
@@ -230,7 +287,7 @@ for subj in subjects:
 
         bvec[1, 1:] = -bvec[1, 1:]  # flip y sign
 
-        np.savetxt(bvec_path_AP, bvec, fmt='%f')
+        np.savetxt(bvec_path_AP_unchecked, bvec, fmt='%f')
 
         with open(DTI_forward_bxh) as file:
             for line in file:
@@ -250,7 +307,7 @@ for subj in subjects:
         rnd_bvals = ccodebook2[cluster_indices]
         bvals = rnd_bvals
         bvals = bvals.reshape(1, len(bvals))
-        np.savetxt(bval_path_AP, bvals, fmt='%.2f')
+        np.savetxt(bval_path_AP_unchecked, bvals, fmt='%.2f')
 
     if not os.path.exists(bvec_path_PA) or not os.path.exists(bval_path_PA) or overwrite:
         bvec_rvrs = []  # bvec extraction
@@ -301,17 +358,64 @@ for subj in subjects:
     if verbose:
         print(f'Bval and bvecs obtained')
 
-    if not os.path.exists(bvecs_grad_scheme_txt):
-        bvec_path_checked_AP = os.path.join(subj_out_folder, subj + '_checked_bvecs.txt')
-        bval_path_checked_AP = os.path.join(subj_out_folder, subj + '_checked_bvals.txt')
-        os.system(f'dwigradcheck ' + out_mif +  ' -fslgrad '+bvec_path_AP + ' '+ bval_path_AP +' -mask '+ mask_mif + ' -number 100000 -export_grad_fsl '+ bvec_path_checked_AP + ' '  + bval_path_checked_AP  +  ' -force' )
+
+    if not os.path.exists(bvecs_grad_scheme_txt) and not os.path.exists(bvec_path_AP):
+        bvec_path_AP = os.path.join(subj_out_folder, subj + '_bvecs.txt')
+        bval_path_AP = os.path.join(subj_out_folder, subj + '_bvals.txt')
+
+        out_mif_temp = os.path.join(subj_out_folder, subj + '_subjspace_diff_temp.mif' + index_gz)
+
+        if not os.path.exists(out_mif_temp) or overwrite:
+            os.system(
+                'mrconvert ' + DTI_forward_nii_path + ' ' + out_mif_temp + ' -fslgrad ' + bvec_path_AP_unchecked + ' ' + bval_path_AP_unchecked + ' -bvalue_scaling false -force')  # turn off the scaling otherwise bvals becomes 0 4000 1000 instead of 2000
+
+        #### Command: Extracting the b0s from the bias resampled diffusion file and making the average diffusion weighted image based on thsoe
+        b0_dwi_mif_temp = os.path.join(subj_out_folder, subj + '_b0_mean_temp.mif')
+        command = 'dwiextract ' + out_mif_temp + ' - -bzero | mrmath - mean ' + b0_dwi_mif_temp + ' -axis 3 -force'
+        if not os.path.exists(b0_dwi_mif_temp) or overwrite:
+            print(command)
+            os.system(command)
+
+        #### Command: Converting the diffusion mean of b0s into a nifti
+        b0_dwi_nii_gz_temp = os.path.join(subj_out_folder, subj + '_b0_mean_temp.nii.gz')
+        if not os.path.exists(b0_dwi_nii_gz_temp) or overwrite:
+            command = 'mrconvert ' + b0_dwi_mif_temp + ' ' + b0_dwi_nii_gz_temp + ' -force'
+            print(command)
+            os.system(command)
+
+        mask_nii_path_temp = os.path.join(subj_out_folder, subj + '_mask_temp.nii.gz')
+        masked_dwi_path_temp = os.path.join(subj_out_folder, subj + '_b0_masked_temp.nii.gz')
+        if not os.path.exists(masked_dwi_path_temp) or not os.path.exists(mask_nii_path_temp) or overwrite:
+            median_mask_make(b0_dwi_nii_gz_temp, masked_dwi_path_temp, median_radius=median_radius,
+                             binary_dilation=binary_dilation,
+                             numpass=numpass, outpathmask=mask_nii_path_temp, verbose=verbose, overwrite=overwrite)
+
+        mask_mif_path_temp = os.path.join(subj_out_folder, subj + '_mask_temp.mif')
+
+        if not os.path.exists(mask_mif_path_temp) or overwrite:
+            command = 'mrconvert ' + mask_nii_path_temp + ' ' + mask_mif_path_temp + ' -force'
+            os.system(command)
+
+        if not os.path.exists(bvec_path_AP) or overwrite:
+            os.system(f'dwigradcheck ' + out_mif_temp +  ' -fslgrad '+bvec_path_AP_unchecked + ' '+ bval_path_AP_unchecked +' -mask '+ mask_mif_path_temp + ' -number 100000 -export_grad_fsl '+ bvec_path_AP + ' '  + bval_path_AP  +  ' -force' )
+
+        generate_bvec_gradscheme(bvec_path_AP_unchecked, bval_path_AP_unchecked, bvec_path_AP, bval_path_AP, bvecs_grad_scheme_txt)
+
+    else:
+        bvec_orig = np.loadtxt(bvec_path_AP_unchecked)
+        bval_orig = np.loadtxt(bval_path_AP_unchecked)
+
+        save_new_bvecs(bvec_orig, bvecs_grad_scheme_txt, bvec_path_AP)
+        shutil.copy(bval_path_AP_unchecked, bval_path_AP)
 
     resampled_nii_path = os.path.join(subj_out_folder, subj + '_coreg_resampled.nii.gz')
     resampled_mif_path = os.path.join(perm_subj_output, subj + '_coreg_resampled.mif')
 
+
+
     dwi_nii_gz = os.path.join(perm_subj_output, subj + '_dwi.nii.gz')
 
-    mask_nii_path = os.path.join(subj_out_folder, subj + '_mask.nii.gz')
+    mask_nii_path = os.path.join(perm_subj_output, subj + '_mask.nii.gz')
     mask_mif_path = os.path.join(perm_subj_output, subj + '_mask.mif')
 
     coreg_bvecs = os.path.join(perm_subj_output, subj + '_coreg_bvecs.txt')
@@ -415,7 +519,19 @@ for subj in subjects:
 
         topup_in_nii = os.path.join(scratch_path, 'topup_in.nii')
         topup_datain_txt = os.path.join(scratch_path, 'topup_datain.txt')
+
+        #Create se epi manual pe scheme if it doesn't exist yet (should only happen on first subject)
+        if not os.path.exists(se_epi_manual_pe_scheme_txt):
+            pair_mif_temp = os.path.join(subj_out_folder, subj + '_pair_temp.mif')
+            den_preproc_temp_mif = os.path.join(subj_out_folder, subj + '_den_preproc_temp.mif')
+            command = f'dwifslpreproc {out_mif} {den_preproc_temp_mif} -nocleanup -pe_dir AP -rpe_pair -se_epi {b0_pair_mif} -eddy_options " --slm=linear --data_is_shelled" -force'
+            os.system(command)
+        # command_history: /Users/ali/opt/anaconda3/bin/dwifslpreproc /Users/ali/Desktop/Feb23/mrtrix_example/BTC_preop/sub-CON02/ses-preop/dwi/sub-CON02_den.mif /Users/ali/Desktop/Feb23/mrtrix_example/BTC_preop/sub-CON02/ses-preop/dwi/sub-CON02_den_preproc.mif -nocleanup -pe_dir AP -rpe_pair -se_epi /Users/ali/Desktop/Feb23/mrtrix_example/BTC_preop/sub-CON02/ses-preop/dwi/sub-CON02b0_pair.mif -eddy_options ' --slm=linear --data_is_shelled' -force  (version=3.0.3)
+
+
+        ##### Command: converting unwarped b0s to 'topup' nifti
         if not os.path.exists(topup_in_nii) or not os.path.exists(topup_datain_txt) or overwrite:
+            b0_pair_mif = os.path.join(subj_out_folder, subj + 'b0_pair.mif')
             command = 'mrconvert ' + se_epi_pad2_mif + ' ' + topup_in_nii + ' -import_pe_table ' + se_epi_manual_pe_scheme_txt + ' -strides -1,+2,+3,+4 -export_pe_table ' + topup_datain_txt + ' -force'
             print(command)
             os.system(command)
@@ -539,11 +655,6 @@ for subj in subjects:
             os.system(command)
         """
 
-        median_radius = 4
-        numpass = 7
-        binary_dilation = 1
-        full_name = False
-        verbose = False
 
         #### Command: Resampling the diffusion into the 1x1x1x1 dimensions
         command = f'ResampleImage 4 {coreg_nii_gz} {resampled_nii_path} 1x1x1x1 0 0 2'

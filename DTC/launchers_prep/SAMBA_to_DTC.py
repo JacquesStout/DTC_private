@@ -14,8 +14,9 @@ from DTC.file_manager.argument_tools import parse_arguments
 from DTC.nifti_handlers.atlas_handlers.create_backported_labels import get_info_SAMBA_headfile
 
 #project = "APOE"
-project = "AMD"
-#project = 'AD_Decode'
+#project = "AMD"
+project = 'AD_Decode'
+project = 'ADRC'
 #project = 'Chavez'
 verbose = True
 mainpath = getremotehome('Lab')
@@ -31,6 +32,7 @@ file_ids = []
 #    file_ids = ["relative_orientation"]
 
 mymax=-1
+identifier_SAMBA_folder = ''
 
 if project == 'Chavez':
     SAMBA_mainpath = os.path.join(mainpath, "mouse")
@@ -92,7 +94,8 @@ elif project == "AD_Decode":
     gunniespath = "~/gunnies/"
     recenter = 0
     #SAMBA_prep_folder = os.path.join(SAMBA_mainpath, SAMBA_projectname+"-inputs")
-    SAMBA_prep_folder = os.path.join(mainpath, "human","ADDeccode_symlink_pool_allfiles")
+    #SAMBA_prep_folder = os.path.join(mainpath, "human","ADDeccode_symlink_pool_allfiles")
+    SAMBA_prep_folder = os.path.join(mainpath, "mouse", "ADDeccode_symlink_pool2")
     atlas_labels = os.path.join(mainpath, "atlas","IITmean_RPI","IITmean_RPI_labels.nii.gz")
     atlas_legends = os.path.join(mainpath, "atlases/IITmean_RPI/IITmean_RPI_index.xlsx")
     DTC_DWI_folder = os.path.join(mainpath, "..","ADdecode.01","Analysis","DWI")
@@ -133,14 +136,14 @@ elif project == "AD_Decode":
                 'S02485', 'S02491', 'S02490', 'S02506']
     subjects = ['S03847', 'S03866', 'S03867', 'S03889', 'S03890', 'S03896']
 
-
     subjects_all = glob.glob(os.path.join(SAMBA_work_folder, 'preprocess','*_dwi_masked.nii.gz'))
     subjects = []
     for subject in subjects_all:
         subject_name = os.path.basename(subject)
         subjects.append(subject_name[:6])
 
-    subjects = ['S02506']
+    subjects = ['T01257', 'T01277' ,'T01402', 'T04086', 'T04129', 'T04300' ,'T04472']
+    identifier_SAMBA_folder = 'faMDT_NoName'
 
     removed_list = ['S02230', 'S02490', 'S02745']
     for remove in removed_list:
@@ -267,6 +270,33 @@ elif project == "AMD":
     subjects = ['H21593', 'H21729', 'H21836', 'H21850', 'H21915', 'H21956', 'H21990', 'H22101', 'H22102', 'H22140', 'H22228', 'H22331', 'H22368', 'H22369', 'H22683', 'H22825', 'H22864', 'H22898', 'H23028', 'H23157', 'H23309', 'H26578', 'H26637', 'H26660', 'H26765', 'H26841', 'H26862', 'H26890', 'H26949', 'H26966', 'H27100', 'H27111', 'H27126', 'H27163', 'H27164', 'H27246', 'H27381', 'H27391', 'H27488', 'H27495', 'H27682', 'H27686', 'H27719', 'H27841', 'H27842', 'H27869', 'H28029', 'H28068', 'H28115', 'H28182', 'H28208', 'H28308', 'H28325', 'H28373', 'H28433', 'H28698', 'H28861', 'H28955', 'H29002', 'H29020', 'H29060', 'H29225', 'H29264', 'H29304', 'H29403', 'H29410', 'H29502', 'H29556', 'H29618', 'H29627', 'H29878', 'H22276', 'H22320', 'H22536', 'H22574', 'H22644', 'H23143', 'H23210', 'H26745', 'H26850', 'H26880', 'H26958', 'H26974', 'H27017', 'H27610', 'H27640', 'H27680', 'H27778', 'H27852', 'H27982', 'H27999', 'H28262', 'H28338', 'H28377', 'H28437', 'H28463', 'H28532', 'H28662', 'H28748', 'H28809', 'H28820', 'H28856', 'H28857', 'H28869', 'H29013', 'H29025', 'H29044', 'H29056', 'H29089', 'H29127', 'H29161', 'H29242', 'H29254']
 
 
+elif project == "ADRC":
+
+    SAMBA_mainpath = os.path.join(mainpath, "mouse")
+    SAMBA_projectname = "VBM_23ADRC01_IITmean_RPI"
+    SAMBA_headfile = os.path.join(SAMBA_headfile_dir, "am983_SAMBA_ADRC_Jacques.headfile")
+    gunniespath = "~/gunnies/"
+    recenter = 0
+    #SAMBA_prep_folder = os.path.join(SAMBA_mainpath, "whitson_symlink_pool_allfiles")
+    SAMBA_prep_folder = os.path.join('/Volumes/Data/Badea/Lab/mouse/ADRC_jacques_pipeline/perm_files')
+    atlas_labels = os.path.join('/Volumes/Data/Badea/Lab/', "atlas","IITmean_RPI","IITmean_RPI_labels.nii.gz")
+
+    DTC_DWI_folder = "DWI"
+    DTC_labels_folder = "DWI"
+
+    SAMBA_label_folder = os.path.join(SAMBA_mainpath, SAMBA_projectname + "-results", "connectomics")
+    SAMBA_work_folder = os.path.join(SAMBA_mainpath, SAMBA_projectname + "-work")
+    orient_string = os.path.join(SAMBA_prep_folder, "relative_orientation.txt")
+    superpose = False
+    copytype = "truecopy"
+    overwrite = False
+
+    subjects_all = glob.glob(os.path.join(SAMBA_prep_folder,'*_fa.nii.gz'))
+    subjects = []
+    for subject in subjects_all:
+        subject_name = os.path.basename(subject)
+        subjects.append(subject_name[:8])
+    subjects.sort()
 
 else:
     raise Exception("Unknown project name")
@@ -289,6 +319,9 @@ mkcdir([outpath,DTC_DWI_folder,DTC_labels_folder,DTC_transforms],sftp)
 print(subjects)
 
 _, _, myiteration = get_info_SAMBA_headfile(SAMBA_headfile)
+##### for ADRC for some reason????
+myiteration=5
+################################
 
 
 subjects_notdone = []
@@ -296,7 +329,9 @@ for subject in subjects:
     create_MDT_labels(subject, SAMBA_mainpath, SAMBA_projectname, atlas_labels, myiteration=myiteration,
                       overwrite=overwrite, verbose=verbose)
     labelspath_remote = os.path.join(DTC_labels_folder, f'{subject}_labels.nii.gz')
-    subject_notdone = create_backport_labels(subject, SAMBA_mainpath, SAMBA_projectname, SAMBA_prep_folder, atlas_labels, headfile = SAMBA_headfile, overwrite=overwrite, verbose=verbose)
+    subject_notdone = create_backport_labels(subject, SAMBA_mainpath, SAMBA_projectname, SAMBA_prep_folder, atlas_labels,
+                                             headfile = SAMBA_headfile, overwrite=overwrite, verbose=verbose,
+                                             identifier = identifier_SAMBA_folder)
     if subject_notdone is not None:
         subjects_notdone.append(subject_notdone)
 

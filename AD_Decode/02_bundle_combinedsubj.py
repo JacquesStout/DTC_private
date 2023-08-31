@@ -85,10 +85,10 @@ if remote:
 else:
     username = None
     passwd = None
-inpath, _, _, sftp = get_mainpaths(remote,project = project, username=username,password=passwd)
+inpath, _, _, sftp_in = get_mainpaths(remote,project = project, username=username,password=passwd)
 
 
-test=False
+test=True
 if test:
     test_str = '_test'
 else:
@@ -98,18 +98,6 @@ if project=='AD_Decode':
     TRK_folder = '/mnt/paros_WORK/jacques/AD_Decode/TRK_MDT_real_testtemp'
 
     if test:
-        template_subjects = ['S01912', 'S02110', 'S02224', 'S02227', 'S02230', 'S02231', 'S02266', 'S02289', 'S02320',
-                             'S02361',
-                             'S02363',
-                             'S02373', 'S02386', 'S02390', 'S02402', 'S02410', 'S02421', 'S02424', 'S02446', 'S02451',
-                             'S02469',
-                             'S02473',
-                             'S02485', 'S02491', 'S02490', 'S02506', 'S02523', 'S02524', 'S02535', 'S02654', 'S02666',
-                             'S02670',
-                             'S02686',
-                             'S02690', 'S02695', 'S02715', 'S02720', 'S02737', 'S02745', 'S02753', 'S02765', 'S02771',
-                             'S02781',
-                             'S02802']
         template_subjects = ['S01912', 'S02110', 'S02224', 'S02227']
     else:
         template_subjects = ['S01912', 'S02110', 'S02224', 'S02227', 'S02230', 'S02231', 'S02266', 'S02289', 'S02320',
@@ -148,8 +136,16 @@ if project=='AD_Decode':
 
     figures_outpath = '/Users/jas/jacques/Figures_ADDecode'
 
-pickle_folder = os.path.join(inpath, 'pickle_roi')
-outpath_trk = os.path.join(inpath, 'trk_roi')
+if test:
+    sftp_out = None
+    outpath = '/Users/jas/jacques/AD_Decode/AD_Decode_bundlesplit/Test'
+else:
+    sftp_out = sftp_in
+    outpath = inpath
+
+pickle_folder = os.path.join(outpath, 'pickle_roi')
+outpath_trk = os.path.join(outpath, 'trk_roi')
+inpath_trk = os.path.join(inpath, 'trk_roi')
 if ratio > 1:
     pickle_folder = pickle_folder + f'_{ratio}'
     outpath_trk = outpath_trk + f'_{ratio}'
@@ -166,8 +162,8 @@ num_streamlines_right_all = 0
 
 num_points = 50
 
-combined_trk_folder = os.path.join(outpath_trk, 'combined_TRK')
-mkcdir(combined_trk_folder,sftp)
+combined_trk_folder = os.path.join(outpath, 'combined_TRK')
+mkcdir([outpath_trk,combined_trk_folder],sftp_out)
 trktemplate_paths = {}
 streams_dict_picklepaths = {}
 
@@ -195,26 +191,26 @@ trkpaths = {}
 for side in sides:
     streams_dict_side = {}
     timings.append(time.perf_counter())
-    if not checkfile_exists_remote(trktemplate_paths[side], sftp) \
-            or not checkfile_exists_remote(streams_dict_picklepaths[side], sftp) or overwrite:
+    if not checkfile_exists_remote(trktemplate_paths[side], sftp_out) \
+            or not checkfile_exists_remote(streams_dict_picklepaths[side], sftp_out) or overwrite:
         if side not in reversesides and side is not 'combined':
             num_streamlines_all = 0
             i=1
             for subject in template_subjects:
-                trkpaths[subject,'right'] = os.path.join(outpath_trk, f'{subject}_roi_rstream.trk')
-                trkpaths[subject,'left'] = os.path.join(outpath_trk, f'{subject}_roi_lstream.trk')
+                trkpaths[subject,'right'] = os.path.join(inpath_trk, f'{subject}_roi_rstream.trk')
+                trkpaths[subject,'left'] = os.path.join(inpath_trk, f'{subject}_roi_lstream.trk')
 
-                if not checkfile_exists_remote(trkpaths[subject, side], sftp):
+                if not checkfile_exists_remote(trkpaths[subject, side], sftp_in):
                     print(f'skipped subject {subject}')
                     continue
 
                 if 'header' not in locals():
-                    streamlines_temp_data = load_trk_remote(trkpaths[subject, side], 'same', sftp)
+                    streamlines_temp_data = load_trk_remote(trkpaths[subject, side], 'same', sftp_in)
                     header = streamlines_temp_data.space_attributes
                     streamlines_temp = streamlines_temp_data.streamlines
                     del streamlines_temp_data
                 else:
-                    streamlines_temp = load_trk_remote(trkpaths[subject, side], 'same', sftp).streamlines
+                    streamlines_temp = load_trk_remote(trkpaths[subject, side], 'same', sftp_in).streamlines
 
                 if setpoints:
                     streamlines_template[side].extend(set_number_of_points(streamlines_temp, num_points))
@@ -236,20 +232,20 @@ for side in sides:
 
                 num_streamlines_all += num_streamlines_subj
             save_trk_header(filepath=trktemplate_paths[side], streamlines=streamlines_template[side], header=header,
-                            affine=np.eye(4), verbose=verbose, sftp=sftp)
+                            affine=np.eye(4), verbose=verbose, sftp=sftp_out)
             timings.append(time.perf_counter())
             print(f'Saved streamlines at {trktemplate_paths[side]}, took {timings[-1] - timings[-2]} seconds')
-            pickledump_remote(streams_dict_side, streams_dict_picklepaths[side], sftp)
+            pickledump_remote(streams_dict_side, streams_dict_picklepaths[side], sftp_out)
             timings.append(time.perf_counter())
             print(f'Saved dictionary at {streams_dict_picklepaths[side]}, took {timings[-1] - timings[0]} seconds')
             i+=1
         elif side in reversesides:  # if side is right_f
-            if (not checkfile_exists_remote(trktemplate_paths[side], sftp) or overwrite):
+            if (not checkfile_exists_remote(trktemplate_paths[side], sftp_out) or overwrite):
                 affine_flip = np.eye(4)
                 affine_flip[0, 0] = -1
                 affine_flip[0, 3] = 0
                 if np.size(streamlines_template[dict_revtracker[side]]) == 0:
-                    streamlines_template_data = load_trk_remote(trktemplate_paths[dict_revtracker[side]], 'same', sftp)
+                    streamlines_template_data = load_trk_remote(trktemplate_paths[dict_revtracker[side]], 'same', sftp_in)
                     if 'header' not in locals():
                         header = streamlines_template_data.space_attributes
                     streamlines_template[dict_revtracker[side]] = streamlines_template_data.streamlines
@@ -263,21 +259,21 @@ for side in sides:
                     timings.append(time.perf_counter())
                     print(f'Flipped {dict_revtracker[side]} side, took {timings[-1] - timings[-2]} seconds')
                 save_trk_header(filepath=trktemplate_paths[side], streamlines=streamlines_template[side], header=header,
-                                affine=np.eye(4), verbose=verbose, sftp=sftp)
+                                affine=np.eye(4), verbose=verbose, sftp=sftp_out)
                 timings.append(time.perf_counter())
                 print(
                     f'Saved flipped {dict_revtracker[side]} side at {trktemplate_paths[side]}, took {timings[-1] - timings[-2]} seconds')
-                copy_remotefiles(streams_dict_picklepaths[dict_revtracker[side]], streams_dict_picklepaths[side], sftp)
+                copy_remotefiles(streams_dict_picklepaths[dict_revtracker[side]], streams_dict_picklepaths[side], sftp_out)
                 timings.append(time.perf_counter())
                 print(f'Saved dictionary at {streams_dict_picklepaths[side]} by copying {streams_dict_picklepaths[dict_revtracker[side]]}, took {timings[-1] - timings[-2]} seconds')
         elif side == 'combined':
             streams_dict_temp = {}
             for sidetemp in ['left','right']:
-                streams_dict.update(remote_pickle(streams_dict_picklepaths[dict_revtracker[sidetemp]], sftp=sftp))
+                streams_dict.update(remote_pickle(streams_dict_picklepaths[dict_revtracker[sidetemp]], sftp=sftp_out))
                 timings.append(time.perf_counter())
                 print(f'Loaded dictionary from {streams_dict_picklepaths[dict_revtracker[sidetemp]]}, took {timings[-1] - timings[-2]} seconds')
                 if np.size(streamlines_template[sidetemp]) == 0:
-                    streamlines_template_data = load_trk_remote(trktemplate_paths[sidetemp], 'same', sftp)
+                    streamlines_template_data = load_trk_remote(trktemplate_paths[sidetemp], 'same', sftp_in)
                     if 'header' not in locals():
                         header = streamlines_template_data.space_attributes
                     streamlines_template[sidetemp] = streamlines_template_data.streamlines
@@ -293,10 +289,10 @@ for side in sides:
             streamlines_comb = copy.copy(streamlines_template['left'])
             streamlines_comb.extend(streamlines_template['right_f'])
             save_trk_header(filepath=trktemplate_paths[side], streamlines=streamlines_comb, header=header,
-                            affine=np.eye(4), verbose=verbose, sftp=sftp)
+                            affine=np.eye(4), verbose=verbose, sftp=sftp_out)
             timings.append(time.perf_counter())
             print(f'Saved streamlines at {trktemplate_paths[side]}, took {timings[-1] - timings[-2]} seconds')
-            pickledump_remote(streams_dict_side, streams_dict_picklepaths[side], sftp)
+            pickledump_remote(streams_dict_side, streams_dict_picklepaths[side], sftp_out)
             timings.append(time.perf_counter())
             print(f'Saved dictionary at {streams_dict_picklepaths[side]}, took {timings[-1] - timings[-2]} seconds')
     else:

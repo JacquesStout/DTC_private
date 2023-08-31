@@ -60,7 +60,7 @@ def get_info_SAMBA_headfile(SAMBA_headfile, verbose=False):
     return orig_orientation, working_orientation, maxiteration
 
 
-def create_MDT_labels(subject, mainpath, project_name, atlas_labels, reg_type = 'dwi', overwrite=False, myiteration = -1, verbose=True):
+def create_MDT_labels(subject, mainpath, project_name, atlas_labels, reg_type = 'dwi', overwrite=False, myiteration = -1, identifier = '', verbose=True):
     out_dir_base = os.path.join(mainpath, f"{project_name}-results")
     out_dir = os.path.join(out_dir_base,'atlas_to_MDT')
     mkcdir([out_dir_base,out_dir])
@@ -83,7 +83,7 @@ def create_MDT_labels(subject, mainpath, project_name, atlas_labels, reg_type = 
         if myiteration == -1:
             raise Exception(f"Could not find template runs in {os.path.join(mainpath, f'{project_name}-work','dwi',template_type_prefix)}")
 
-    final_template_run = glob.glob(os.path.join(work_dir, reg_type, template_type_prefix, f"*i{myiteration}*/"))[0]
+    final_template_run = glob.glob(os.path.join(work_dir, reg_type, template_type_prefix, f"*{identifier}*i{myiteration}*/"))[0]
 
     MDT_ref = os.path.join(final_template_run, 'median_images',f"MDT_dwi.nii.gz")
     label_name = os.path.basename(atlas_labels)
@@ -116,7 +116,7 @@ def create_MDT_labels(subject, mainpath, project_name, atlas_labels, reg_type = 
         print(f"Already calculated the label file for subject {subject}")
 
 
-def create_backport_labels(subject, mainpath, project_name, prep_folder, atlas_labels, reg_type = 'dwi', headfile=None, overwrite=False, verbose=True):
+def create_backport_labels(subject, mainpath, project_name, prep_folder, atlas_labels, reg_type = 'dwi', headfile=None, overwrite=False, identifier = '', verbose=True):
 
     out_dir_base = os.path.join(mainpath, f"{project_name}-results","connectomics")
     out_dir = os.path.join(out_dir_base,subject)
@@ -147,7 +147,17 @@ def create_backport_labels(subject, mainpath, project_name, prep_folder, atlas_l
     if myiteration == -1:
         raise Exception(f"Could not find template runs in {os.path.join(mainpath, f'{project_name}-work',reg_type,template_type_prefix)}")
 
-    final_template_run = glob.glob(os.path.join(work_dir, reg_type, template_type_prefix, f"*i{myiteration}*/"))[0]
+
+
+    ######  ADRC forced parameters######  ADRC thing######  ADRC thing######  ADRC thing######  ADRC thing######  ADRC thing    myiteration = 5
+    #overwrite = True
+    #myiteration = 5
+    ######  ADRC thing######  ADRC thing######  ADRC thing######  ADRC thing######  ADRC thing######  ADRC thing######  ADRC thing
+
+
+
+
+    final_template_run = glob.glob(os.path.join(work_dir, reg_type, template_type_prefix, f"*{identifier}*i{myiteration}*/"))[0]
 
     #template_type_prefix = "faMDT_NoNameYet_n37_i6"
     #final_template_run = "SyN_0p5_3_0p5_fa"
@@ -188,6 +198,13 @@ def create_backport_labels(subject, mainpath, project_name, prep_folder, atlas_l
                 filenotfound = listfiles[i]
         return subject
 
+    ###################################################################################################################
+    ###Jasien forced parameters
+    #    overwrite = True
+    #orientation_out = 'RAS'
+    #orientation_in = 'LPS'
+    ##########################################################################################################################################
+
     preprocess_ref = os.path.join(work_dir,"preprocess",f"{subject}_fa_masked.nii.gz")
     preprocess_labels = os.path.join(dirty_dir,f"{subject}_preprocess_labels.nii.gz")
     fixed_preprocess_labels = os.path.join(dirty_dir,f"{subject}_fixed_preprocess_labels.nii.gz")
@@ -206,6 +223,7 @@ def create_backport_labels(subject, mainpath, project_name, prep_folder, atlas_l
     abb18s = glob.glob(os.path.join(dusom_path,f'18.abb.11/research/diffusion{subject}*/nii4D*{subject}.nii'))
     if np.size(abb18s) > 0:
         final_refs.append(abb18s[0])
+    final_refs.append(os.path.join(prep_folder, f"{subject}_coreg_resampled.nii.gz"))
     final_ref = None
     for pos_final_ref in final_refs:
         if isinstance(pos_final_ref, str) and os.path.exists(pos_final_ref):
@@ -225,6 +243,8 @@ def create_backport_labels(subject, mainpath, project_name, prep_folder, atlas_l
     final_labels = os.path.join(out_dir,f"{subject}_{label_name}_labels.nii.gz")
     final_labels_backup = os.path.join(dirty_dir,f"{subject}_{label_name}_labels.nii.gz")
     superpose=True
+
+
     if not os.path.exists(final_labels) or overwrite:
         if verbose:
             print(f"Backporting labels to raw space for subject: {subject} to {final_labels}")
