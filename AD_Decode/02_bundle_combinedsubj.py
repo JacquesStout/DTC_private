@@ -21,6 +21,7 @@ import time
 import nibabel as nib
 import copy
 import socket
+from DTC.tract_manager.tract_handler import ratio_to_str
 """
 import pandas as pd
 from dipy.segment.bundles import bundle_shape_similarity
@@ -87,71 +88,70 @@ else:
     passwd = None
 inpath, _, _, sftp_in = get_mainpaths(remote,project = project, username=username,password=passwd)
 
-
-test=True
-if test:
-    test_str = '_test'
+group = 'test'
+if group == 'test':
+    group_str = '_test'
 else:
     test_str = ''
 
+project='AD_Decode'
+type = 'mrtrix'
 if project=='AD_Decode':
-    TRK_folder = '/mnt/paros_WORK/jacques/AD_Decode/TRK_MDT_real_testtemp'
+    #TRK_folder = '/mnt/paros_WORK/jacques/AD_Decode/TRK_MDT_real_testtemp'
+    #TRK_folder = '/mnt/paros_WORK/jacques/AD_Decode/TRK_MDT'
 
-    if test:
-        template_subjects = ['S01912', 'S02110', 'S02224', 'S02227']
+    if group == 'test':
+        subjects = ['S01912', 'S02110', 'S02224', 'S02227']
     else:
-        template_subjects = ['S01912', 'S02110', 'S02224', 'S02227', 'S02230', 'S02231', 'S02266', 'S02289', 'S02320',
-                             'S02361',
-                             'S02363',
-                             'S02373', 'S02386', 'S02390', 'S02402', 'S02410', 'S02421', 'S02424', 'S02446', 'S02451',
-                             'S02469',
-                             'S02473',
-                             'S02485', 'S02491', 'S02490', 'S02506', 'S02523', 'S02524', 'S02535', 'S02654', 'S02666',
-                             'S02670',
-                             'S02686',
-                             'S02690', 'S02695', 'S02715', 'S02720', 'S02737', 'S02745', 'S02753', 'S02765', 'S02771',
-                             'S02781',
-                             'S02802',
-                             'S02804', 'S02813', 'S02812', 'S02817', 'S02840', 'S02842', 'S02871', 'S02877', 'S02898',
-                             'S02926',
-                             'S02938',
-                             'S02939', 'S02954', 'S02967', 'S02987', 'S03010', 'S03017', 'S03028', 'S03033', 'S03034',
-                             'S03045',
-                             'S03048',
-                             'S03069', 'S03225', 'S03265', 'S03293', 'S03308', 'S03321', 'S03343', 'S03350', 'S03378',
-                             'S03391',
-                             'S03394', 'S03847']  # , 'S03866', 'S03867', 'S03889', 'S03890', 'S03896']
-    viewed_subjects = template_subjects
-    removed_list = ['S02230', 'S02654', 'S02490', 'S02523', 'S02745','S03391','S03394','S03847']
-
+        subjects = ['S01912', 'S02110', 'S02224', 'S02227', 'S02230', 'S02231', 'S02266', 'S02289', 'S02320', 'S02361',
+                    'S02363',
+                    'S02373', 'S02386', 'S02390', 'S02402', 'S02410', 'S02421', 'S02424', 'S02446', 'S02451', 'S02469',
+                    'S02473',
+                    'S02485', 'S02491', 'S02490', 'S02506', 'S02523', 'S02524', 'S02535', 'S02654', 'S02666', 'S02670',
+                    'S02686',
+                    'S02690', 'S02695', 'S02715', 'S02720', 'S02737', 'S02745', 'S02753', 'S02765', 'S02771', 'S02781',
+                    'S02802',
+                    'S02804', 'S02813', 'S02812', 'S02817', 'S02840', 'S02842', 'S02871', 'S02877', 'S02898', 'S02926',
+                    'S02938',
+                    'S02939', 'S02954', 'S02967', 'S02987', 'S03010', 'S03017', 'S03028', 'S03033', 'S03034', 'S03045',
+                    'S03048',
+                    'S03069', 'S03225', 'S03265', 'S03293', 'S03308', 'S03321', 'S03343', 'S03350', 'S03378', 'S03391',
+                    'S03394', 'S03847', 'S03866', 'S03867', 'S03889', 'S03890', 'S03896']
+        #subjects = ['S02771']
+    removed_list = ['S02230', 'S02654', 'S02490', 'S02523', 'S02745']
     for remove in removed_list:
-        if remove in template_subjects:
-            template_subjects.remove(remove)
+        if remove in subjects:
+            subjects.remove(remove)
+
+    # Get the values from DTC_launcher_ADDecode. Should probalby create a single parameter file for each project one day
     stepsize = 2
-    ratio = 1
+    ratio = 100
     trkroi = ["wholebrain"]
-    prune = True
-    str_identifier = get_str_identifier(stepsize, ratio, trkroi)
+
+    if type == 'mrtrix':
+        prune = False
+    else:
+        prune = True
+    str_identifier = get_str_identifier(stepsize, ratio, trkroi,type = 'mrtrix')
     SAMBA_MDT = '/Volumes/Data/Badea/Lab/mouse/VBM_21ADDecode03_IITmean_RPI_fullrun-work/dwi/SyN_0p5_3_0p5_fa/faMDT_NoNameYet_n37_i6/median_images/MDT_dwi.nii.gz'
+    #subjects = ['S02715']
 
-    figures_outpath = '/Users/jas/jacques/Figures_ADDecode'
-
-if test:
+if group == 'test':
     sftp_out = None
     outpath = '/Users/jas/jacques/AD_Decode/AD_Decode_bundlesplit/Test'
 else:
     sftp_out = sftp_in
     outpath = inpath
 
-pickle_folder = os.path.join(outpath, 'pickle_roi')
-outpath_trk = os.path.join(outpath, 'trk_roi')
-inpath_trk = os.path.join(inpath, 'trk_roi')
-if ratio > 1:
-    pickle_folder = pickle_folder + f'_{ratio}'
-    outpath_trk = outpath_trk + f'_{ratio}'
-    ratiostr = f'_{ratio}'
-else:
-    ratiostr = ''
+ratiostr = ratio_to_str(ratio,spec_all=False)
+
+#path_TRK = os.path.join(inpath, 'TRK_MPCA_MDT'+ratio_str)
+path_TRK = os.path.join(inpath, 'TRK_MDT'+ratio_str)
+proj_path = os.path.join(inpath, 'TRK_bundle_splitter')
+
+pickle_folder = os.path.join(proj_path, 'pickle_roi'+ratio_str)
+inpath_trk = os.path.join(proj_path, 'trk_roi'+ratio_str)
+outpath_trk = os.path.join(proj_path, 'trk_roi'+ratio_str)
 
 srr = StreamlineLinearRegistration()
 
@@ -185,6 +185,9 @@ sides = ['left', 'right', 'right_f', 'left_f', 'combined']
 
 reversesides = ['right_f', 'left_f']
 dict_revtracker = {'right_f': 'right', 'left_f': 'left', 'right': 'right', 'left': 'left'}
+
+ratio_str = ratio_to_str(ratio)
+print(ratio_str)
 
 trkpaths = {}
 
@@ -228,9 +231,11 @@ for side in sides:
                 if verbose:
                     timings.append(time.perf_counter())
                     print(f'Loaded {side} side of subject {subject} from {trkpaths[subject, side]}, took {timings[-1] - timings[-2]} seconds')
-                    print(f'{i/np.size(template_subjects)}% done, has gone for {timings[-1] - timings[0]}, {(timings[-1] - timings[0])*(1-i/np.size(template_subjects))} seconds remaining')
+                    print(f'{(1-((np.size(subjects)-i)/np.size(subjects)))*100}% done, has gone for {timings[-1] - timings[0]}, {(timings[-1] - timings[0])*((np.size(subjects)-i)/i)} seconds remaining')
 
                 num_streamlines_all += num_streamlines_subj
+                i += 1
+
             save_trk_header(filepath=trktemplate_paths[side], streamlines=streamlines_template[side], header=header,
                             affine=np.eye(4), verbose=verbose, sftp=sftp_out)
             timings.append(time.perf_counter())
@@ -238,7 +243,6 @@ for side in sides:
             pickledump_remote(streams_dict_side, streams_dict_picklepaths[side], sftp_out)
             timings.append(time.perf_counter())
             print(f'Saved dictionary at {streams_dict_picklepaths[side]}, took {timings[-1] - timings[0]} seconds')
-            i+=1
         elif side in reversesides:  # if side is right_f
             if (not checkfile_exists_remote(trktemplate_paths[side], sftp_out) or overwrite):
                 affine_flip = np.eye(4)
@@ -282,7 +286,7 @@ for side in sides:
                         f'Loaded {dict_revtracker[sidetemp]} side from {trktemplate_paths[sidetemp]}, took {timings[-1] - timings[-2]} seconds')
                     del streamlines_template_data
 
-            for subject in template_subjects:
+            for subject in subjects:
                 #streams_dict_comb[subject] = streams_dict['left',subject] #streams_dict['left','right_f']
                 streams_dict_side[side,subject] = np.array(list(streams_dict['left', subject]) + (list(streams_dict['right',subject] + streams_dict['left', template_subjects[-1]][-1])))
 

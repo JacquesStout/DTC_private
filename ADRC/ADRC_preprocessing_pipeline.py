@@ -280,8 +280,8 @@ for subj in subjects:
 
     DTI_forward_nii_path = os.path.join(subj_folder,'HCP_DTI.nii.gz')
 
-    resampled_nii_path = os.path.join(subj_out_folder, subj + '_coreg_resampled.nii.gz')
-    resampled_mif_path = os.path.join(perm_subj_output, subj + '_coreg_resampled.mif')
+    resampled_nii_path = os.path.join(perm_subj_output, subj + '_coreg_resampled.nii.gz')
+    resampled_mif_path = os.path.join(subj_out_folder, subj + '_coreg_resampled.mif')
 
     dwi_nii_gz = os.path.join(perm_subj_output, subj + '_dwi.nii.gz')
 

@@ -363,7 +363,6 @@ def launch_preprocessing(subj, raw_nii, outpath, cleanup=False, nominal_bval=400
 
     #if (not os.path.exists(final_mask) and not os.path.exists(tmp_mask)) or overwrite:
 
-    overwrite=True
     if not os.path.exists(tmp_mask) or not os.path.exists(tmp) or overwrite:
         overwrite=False
         if not os.path.exists(raw_dwi) or overwrite:

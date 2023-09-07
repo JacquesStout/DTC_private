@@ -10,17 +10,17 @@ from dipy.tracking.streamline import set_number_of_points
 from dipy.tracking.streamline import transform_streamlines
 import os, glob
 import pickle
-from nifti_handlers.nifti_handler import getlabeltypemask
-from file_manager.file_tools import mkcdir, check_files
-from tract_manager.tract_manager.tract_handler import ratio_to_str, gettrkpath
-from nifti_handlers.atlas_handlers.convert_atlas_mask import atlas_converter
+from DTC.nifti_handlers.nifti_handler import getlabeltypemask
+from DTC.file_manager.file_tools import mkcdir, check_files
+from DTC.tract_manager.tract_manager.tract_handler import ratio_to_str, gettrkpath
+from DTC.nifti_handlers.atlas_handlers.convert_atlas_mask import atlas_converter
 import errno
 import socket
-from tract_manager.tract_save import save_trk_header
+from DTC.tract_manager.tract_save import save_trk_header
 from DTC.diff_handlers.connectome_handlers.excel_management import M_grouping_excel_save, extract_grouping
 import sys
-from file_manager.argument_tools import parse_arguments_function
-from diff_handlers.connectome_handlers.connectome_handler import connectivity_matrix_func
+from DTC.file_manager.argument_tools import parse_arguments_function
+from DTC.diff_handlers.connectome_handlers.connectome_handler import connectivity_matrix_func
 from dipy.tracking.utils import length
 from dipy.viz import window, actor
 from time import sleep

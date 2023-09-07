@@ -22,7 +22,8 @@ import time
 import nibabel as nib
 from DTC.visualization_tools.tract_visualize import show_bundles, setup_view, view_test, setup_view_colortest
 from dipy.tracking.streamline import transform_streamlines
-import copy
+from DTC.tract_manager.tract_handler import ratio_to_str
+
 """
 from os.path import expanduser, join
 from dipy.segment.clustering import ClusterCentroid, ClusterMapCentroid
@@ -33,6 +34,7 @@ import pickle
 from dipy.tracking.streamline import set_number_of_points
 from dipy.tracking.streamline import transform_streamlines
 import pandas as pd
+import copy
 """
 
 def set1(a, b):
@@ -90,16 +92,19 @@ else:
 inpath, _, _, sftp = get_mainpaths(remote, project=project, username=username, password=passwd)
 
 
+group = 'test'
 test=True
-if test:
-    test_str = '_test'
+if group == 'test':
+    group_str = '_test'
 else:
     test_str = ''
+
+
 if project == 'AD_Decode':
     TRK_folder = '/mnt/paros_WORK/jacques/AD_Decode/TRK_MDT_real_testtemp'
 
 
-    if test:
+    if  group == 'test':
         template_subjects = ['S01912', 'S02110', 'S02224', 'S02227']
     else:
         template_subjects = ['S01912', 'S02110', 'S02224', 'S02227', 'S02230', 'S02231', 'S02266', 'S02289', 'S02320',
@@ -123,14 +128,14 @@ if project == 'AD_Decode':
                              'S03069', 'S03225', 'S03265', 'S03293', 'S03308', 'S03321', 'S03343', 'S03350', 'S03378',
                              'S03391',
                              'S03394', 'S03847']  # , 'S03866', 'S03867', 'S03889', 'S03890', 'S03896']
-    viewed_subjects = template_subjects
     removed_list = ['S02230', 'S02654', 'S02490', 'S02523', 'S02745']
 
     for remove in removed_list:
         if remove in template_subjects:
             template_subjects.remove(remove)
+
     stepsize = 2
-    ratio = 1
+    ratio = 100
     trkroi = ["wholebrain"]
     prune = True
     str_identifier = get_str_identifier(stepsize, ratio, trkroi)
@@ -138,14 +143,10 @@ if project == 'AD_Decode':
 
     figures_outpath = '/Users/jas/jacques/Figures_ADDecode'
 
-pickle_folder = os.path.join(inpath, 'pickle_roi')
-outpath_trk = os.path.join(inpath, 'trk_roi')
-if ratio > 1:
-    pickle_folder = pickle_folder + f'_{ratio}'
-    outpath_trk = outpath_trk + f'_{ratio}'
-    ratiostr = f'_{ratio}'
-else:
-    ratiostr = ''
+ratiostr = ratio_to_str(ratio,spec_all=False)
+
+pickle_folder = os.path.join(inpath, 'pickle_roi'+ratiostr)
+outpath_trk = os.path.join(inpath, 'trk_roi'+ratiostr)
 
 srr = StreamlineLinearRegistration()
 
@@ -202,9 +203,11 @@ for side in sides:
     if checkfile_exists_remote(streams_dict_picklepaths[dict_revtracker[side]], sftp=sftp):
         streams_dict.update(remote_pickle(streams_dict_picklepaths[dict_revtracker[side]], sftp=sftp))
     else:
-        print('hi')
+        print(f'Could not find {streams_dict_picklepaths[dict_revtracker[side]]}')
 
 #streams_dict['left_f'] = streams_dict['left']
+
+raise Exception
 
 feature2 = ResampleFeature(nb_points=num_points)
 metric2 = AveragePointwiseEuclideanMetric(feature=feature2)
@@ -249,7 +252,7 @@ save_img = True
 
 anat_path = '/Volumes/Data/Badea/Lab/mouse/VBM_21ADDecode03_IITmean_RPI_fullrun-work/dwi/SyN_0p5_3_0p5_fa/faMDT_NoNameYet_n37_i6/median_images/MDT_fa.nii.gz'
 
-for subject in viewed_subjects:
+for subject in template_subjects:
     outpath_trk_subj_bundleset = os.path.join(outpath_trk, f'{subject}_{side_type}_{num_bundles}max')
     mkcdir(outpath_trk_subj_bundleset, sftp)
     if bundle_lr_combined:

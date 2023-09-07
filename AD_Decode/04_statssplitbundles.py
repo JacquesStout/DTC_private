@@ -30,7 +30,7 @@ from DTC.visualization_tools.tract_visualize import show_bundles, setup_view, vi
 from dipy.segment.clustering import ClusterCentroid, ClusterMapCentroid
 import warnings
 from dipy.segment.bundles import bundle_shape_similarity
-
+from DTC.tract_manager.tract_handler import ratio_to_str
 
 def set1(a, b):
     c = [value for value in a if value in b]

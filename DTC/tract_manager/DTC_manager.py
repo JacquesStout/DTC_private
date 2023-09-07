@@ -113,27 +113,37 @@ def strfile(string):
         except AttributeError:
             raise AttributeError("strfile error: not a usable number or string ")
 
+
 def chunks(lst, n):
     """Yield successive n-sized chunks from lst."""
     for i in range(0, len(lst), n):
         yield lst[i:i + n]
 
-def get_str_identifier(stepsize, ratio, trkroi):
 
-    if ratio == 1:
-        saved_streamlines = "_all"
-    else:
-        saved_streamlines = "_ratio_" + str(ratio)
+def get_str_identifier(stepsize, ratio, trkroi, type = 'dsi_studio'):
 
-    if len(trkroi) == 1:
-        roistring = "_" + trkroi[0]  # + "_"
-    elif len(trkroi) > 1:
-        roistring = "_"
-        for roi in trkroi:
-            roistring = roistring + roi[0:4]
-        roistring = roistring  # + "_"
-    str_identifier = '_stepsize_' + str(stepsize).replace(".", "_") + saved_streamlines + roistring
+    if type == 'dsi_studio':
+        if ratio == 1:
+            saved_streamlines = "_all"
+        else:
+            saved_streamlines = "_ratio_" + str(ratio)
+
+        if len(trkroi) == 1:
+            roistring = "_" + trkroi[0]  # + "_"
+        elif len(trkroi) > 1:
+            roistring = "_"
+            for roi in trkroi:
+                roistring = roistring + roi[0:4]
+            roistring = roistring  # + "_"
+        str_identifier = '_stepsize_' + str(stepsize).replace(".", "_") + saved_streamlines + roistring
+    elif type == 'mrtrix':
+        if ratio==1:
+            str_identifier = f'_smallerTracks2mill'
+        else:
+            num_tracks = str(int(2000000/ratio))
+            str_identifier = f'_smallerTracks{num_tracks}'
     return str_identifier
+
 
 def almicedf_fix(df, verbose=None):
     # masterFile='/Users/alex/AlexBadea_MyPapers/FIGURES/mwm/mwm_master_organized.csv'

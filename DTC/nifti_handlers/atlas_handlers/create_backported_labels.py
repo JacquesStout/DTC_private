@@ -191,6 +191,10 @@ def create_backport_labels(subject, mainpath, project_name, prep_folder, atlas_l
 
     listfiles = [trans, rigid, affine, MDT_to_subject, MDT_to_atlas_affine, atlas_to_MDT]
     [trans, rigid, affine, MDT_to_subject, MDT_to_atlas_affine, atlas_to_MDT], exists = check_files([trans,rigid,affine,MDT_to_subject,MDT_to_atlas_affine,atlas_to_MDT])
+
+    if os.path.getsize(atlas_to_MDT)<500:
+        atlas_to_MDT = os.path.join(final_template_run,"stats_by_region","labels","transforms",f"MDT_to_{label_name}_1InverseWarp.nii.gz")
+
     if not np.all(exists):
         for i in np.arange(np.size(exists)):
             if exists[i] is False:
@@ -224,6 +228,7 @@ def create_backport_labels(subject, mainpath, project_name, prep_folder, atlas_l
     if np.size(abb18s) > 0:
         final_refs.append(abb18s[0])
     final_refs.append(os.path.join(prep_folder, f"{subject}_coreg_resampled.nii.gz"))
+    final_refs.append(os.path.join(prep_folder, f"{subject}_dwi.nii.gz"))
     final_ref = None
     for pos_final_ref in final_refs:
         if isinstance(pos_final_ref, str) and os.path.exists(pos_final_ref):

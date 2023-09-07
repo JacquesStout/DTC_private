@@ -17,14 +17,18 @@ from DTC.tract_manager.tract_save import save_trk_header
 from DTC.file_manager.argument_tools import parse_arguments
 import sys
 from DTC.tract_manager.tract_to_roi_handler import filter_streamlines
+from DTC.tract_manager.tract_handler import ratio_to_str
 
 
 MDT_mask_folder = '/Volumes/Data/Badea/Lab/mouse/VBM_21ADDecode03_IITmean_RPI_fullrun-results/atlas_to_MDT'
 
+test= False
 project='AD_Decode'
+type = 'mrtrix'
 if project=='AD_Decode':
-    TRK_folder = '/mnt/paros_WORK/jacques/AD_Decode/TRK_MDT_real_testtemp'
-
+    #TRK_folder = '/mnt/paros_WORK/jacques/AD_Decode/TRK_MDT_real_testtemp'
+    #TRK_folder = '/mnt/paros_WORK/jacques/AD_Decode/TRK_MDT'
+    MDT_mask_folder
     if test:
         subjects = ['S01912', 'S02110', 'S02224', 'S02227']
     else:
@@ -52,8 +56,12 @@ if project=='AD_Decode':
     stepsize = 2
     ratio = 100
     trkroi = ["wholebrain"]
-    prune = True
-    str_identifier = get_str_identifier(stepsize, ratio, trkroi)
+
+    if type == 'mrtrix':
+        prune = False
+    else:
+        prune = True
+    str_identifier = get_str_identifier(stepsize, ratio, trkroi,type = 'mrtrix')
     SAMBA_MDT = '/Volumes/Data/Badea/Lab/mouse/VBM_21ADDecode03_IITmean_RPI_fullrun-work/dwi/SyN_0p5_3_0p5_fa/faMDT_NoNameYet_n37_i6/median_images/MDT_dwi.nii.gz'
     #subjects = ['S02715']
 
@@ -74,20 +82,20 @@ else:
     passwd = None
 inpath, _, _, sftp = get_mainpaths(remote,project = project, username=username,password=passwd)
 
-path_TRK = os.path.join(inpath, 'TRK_MPCA_MDT')
-if ratio>1:
-    path_TRK = path_TRK + f'_{ratio}'
 
-pickle_folder = os.path.join(inpath, 'pickle_roi')
-outpath_trk = os.path.join(inpath, 'trk_roi')
-if ratio>1:
-    pickle_folder = pickle_folder+f'_{ratio}'
-    outpath_trk = outpath_trk+f'_{ratio}'
+ratio_str = ratio_to_str(ratio,spec_all=False)
+
+#path_TRK = os.path.join(inpath, 'TRK_MPCA_MDT'+ratio_str)
+path_TRK = os.path.join(inpath, 'TRK_MDT'+ratio_str)
+proj_path = os.path.join(inpath, 'TRK_bundle_splitter')
+
+pickle_folder = os.path.join(proj_path, 'pickle_roi'+ratio_str)
+outpath_trk = os.path.join(proj_path, 'trk_roi'+ratio_str)
 
 overwrite = True
 verbose = False
 
-mkcdir([pickle_folder, outpath_trk], sftp)
+mkcdir([proj_path, pickle_folder, outpath_trk], sftp)
 
 method = 'dwi_roi_to_trk'
 
@@ -111,7 +119,6 @@ if method=='dwi_roi_to_trk':
         roi_mask_right = nib.load(right_mask_path)
         roi_mask_left = nib.load(left_mask_path)
         print(f'Loaded masks {right_mask_path} and {left_mask_path}')
-
 
         subj_trk, trkexists = gettrkpath(path_TRK, subject, str_identifier, pruned=prune, verbose=False, sftp=sftp)
 

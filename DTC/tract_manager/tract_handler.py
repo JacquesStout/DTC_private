@@ -448,9 +448,13 @@ def target(streamlines, affine, target_mask, include=True, strict=False):
                 yield sl
 
 
-def ratio_to_str(ratio):
+def ratio_to_str(ratio, spec_all=True):
+    #If spec_all true, if ratio=1 specify that it is all, otherwise return empty string
     if ratio == 1:
-        saved_streamlines = "_all"
+        if spec_all:
+            saved_streamlines = ''
+        else:
+            saved_streamlines = "_all"
     elif ratio > 1:
         saved_streamlines = "_ratio_" + str(ratio)
     else:

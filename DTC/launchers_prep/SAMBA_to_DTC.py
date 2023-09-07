@@ -273,7 +273,7 @@ elif project == "AMD":
 elif project == "ADRC":
 
     SAMBA_mainpath = os.path.join(mainpath, "mouse")
-    SAMBA_projectname = "VBM_23ADRC01_IITmean_RPI"
+    SAMBA_projectname = "VBM_23ADRC_IITmean_RPI"
     SAMBA_headfile = os.path.join(SAMBA_headfile_dir, "am983_SAMBA_ADRC_Jacques.headfile")
     gunniespath = "~/gunnies/"
     recenter = 0
@@ -320,7 +320,6 @@ print(subjects)
 
 _, _, myiteration = get_info_SAMBA_headfile(SAMBA_headfile)
 ##### for ADRC for some reason????
-myiteration=5
 ################################
 
 
