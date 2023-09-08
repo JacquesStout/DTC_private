@@ -12,12 +12,12 @@ import shutil
 from DTC.file_manager.argument_tools import parse_arguments
 
 gunniespath = "~/gunnies/"
-mainpath="/mnt/munin6/Badea/ADdecode.01/"
+mainpath="/mnt/munin2/Badea/ADdecode.01/"
 
 #outpath = "/Users/alex/jacques/APOE_temp"
-outpath = "/mnt/munin6/Badea/Lab/human/AD_Decode/diffusion_prep_locale/"
-SAMBA_inputs_folder = "/mnt/munin6/Badea/Lab/mouse/ADDeccode_symlink_pool/"
-shortcuts_all_folder = "/mnt/munin6/Badea/Lab/human/ADDeccode_symlink_pool_allfiles/"
+outpath = "/mnt/munin2/Badea/Lab/human/AD_Decode/diffusion_prep_locale/"
+SAMBA_inputs_folder = "/mnt/munin2/Badea/Lab/mouse/ADDeccode_symlink_pool2/"
+shortcuts_all_folder = "/mnt/munin2/Badea/Lab/human/ADDeccode_symlink_pool_allfiles/"
 diffpath = mainpath + "Data/Anat"
 mkcdir([SAMBA_inputs_folder, shortcuts_all_folder])
 
@@ -28,6 +28,7 @@ subjects = ['02227']
 subjects = ["02695","02686", "03010", "02670", "02666", "02654"]
 removed_list = ['02230','02231','02490','02523','02745','02266','02289','02320','02361','02363','02373','02386','02390','S02402']
 subjects = ['03847', '03866', '03867', '03889', '03890', '03896', '00775']
+subjects = ['00775' , '04491', '04493', '01412', '04526', '01470']
 for remove in removed_list:
     if remove in subjects:
         subjects.remove(remove)

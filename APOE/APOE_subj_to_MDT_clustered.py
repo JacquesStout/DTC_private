@@ -63,7 +63,7 @@ project = 'APOE'
 subj = sys.argv[1]
 
 
-test_mode = True
+test_mode = False
 
 if test_mode:
     subj = 'N57437'
