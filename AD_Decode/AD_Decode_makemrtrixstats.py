@@ -1,5 +1,5 @@
 import numpy as np
-import os, shutil, re, fnmatch, glob
+import os, shutil, re, fnmatch, glob, sys
 
 def generate_bvec_gradscheme(bvecs_orig, bvals_orig, bvecs_new, bvals_new, gradscheme_path):
 
@@ -153,7 +153,10 @@ else:
     shortcuts_all_folder = None
 
 
-subjects = ['00775', '04491', '04493', '01412', '04526', '01470']
+#subjects = ['00775', '04491', '04493', '01412', '04526', '01470']
+subjects = []
+#subjects.append(sys.argv[1])
+subjects = ['00775']
 proc_subjn="S"
 proc_name ="diffusion_prep_"+proc_subjn
 
