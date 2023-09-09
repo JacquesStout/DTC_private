@@ -31,7 +31,7 @@ GD = '/mnt/clustertmp/common/rja20_dev/gunnies/'
 # GD = '/mnt/munin2/Badea/Lab/mouse/mrtrix_pipeline/'
 
 
-data_folder_path = os.path.join(BD,'..',"human", "AD_Decode")
+data_folder_path = os.path.join(BD,'..',"human", "AD_Decode",'diffusion_prep_locale')
 # list_folders_path = '/Volumes/Data/Badea/Lab/ADRC-20230511/'
 list_folders_path = os.listdir(data_folder_path)
 directories = [item for item in list_folders_path if os.path.isdir(os.path.join(data_folder_path, item))]
@@ -40,12 +40,12 @@ list_of_subjs = [subj.split('prep_')[1] for subj in list_of_subjs_long]
 
 completion_checker = True
 cleanup = False
-test = True
+test = False
 
 list_of_subjs.sort()
 list_of_subjs_true = copy.deepcopy(list_of_subjs)
 
-
+print(list_of_subjs_true)
 proc_name ="diffusion_prep_"
 
 if completion_checker:
