@@ -68,7 +68,7 @@ if not test:
         # nib.load(fmri_file)
         #python_command = "python /mnt/munin2/Badea/Lab/mouse/ADRC_jacques_pipeline/ADRC_preprocessing_pipeline.py " + subj
         # python_command = "python /mnt/munin2/Badea/Lab/mouse/mrtrix_pipeline/main_trc_conn.py "+subj
-        python_command = "python ~/DTC_private/AD_Decode/AD_Decode_makemrtrixstats.py " + subj
+        python_command = "python3 /mnt/munin2/Badea/Lab/human/AD_Decode/diffusion_prep_locale/AD_Decode_makemrtrixstats.py " + subj
         job_name = job_descrp + "_" + subj
         command = GD + "submit_sge_cluster_job.bash " + sbatch_folder_path + " " + job_name + " 0 0 '" + python_command + "'"
         os.system(command)
