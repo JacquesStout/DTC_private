@@ -135,12 +135,17 @@ def checkallfiles(paths, sftp=None):
             existing= False
     return existing
 
+import socket
 
-munin=False
+if 'blade' in socket.gethostname().split('.')[0]:
+    munin=True
+else:
+    munin=False
+
 if munin:
     gunniespath = "~/wuconnectomes/gunnies"
-    mainpath = "/mnt/munin6/Badea/ADdecode.01/"
-    outpath = "/mnt/munin6/Badea/Lab/human/AD_Decode/diffusion_prep_locale/"
+    mainpath = "/mnt/munin2/Badea/ADdecode.01/"
+    outpath = "/mnt/munin2/Badea/Lab/human/AD_Decode/diffusion_prep_locale/"
     SAMBA_inputs_folder = "/mnt/munin6/Badea/Lab/mouse/ADDeccode_symlink_pool/"
     shortcuts_all_folder = "/mnt/munin6/Badea/Lab/human/ADDeccode_symlink_pool_allfiles/"
 
@@ -154,10 +159,10 @@ else:
 
 
 #subjects = ['00775', '04491', '04493', '01412', '04526', '01470']
-subjects = []
+subjects = ['S02402', 'S02410', 'S02421', 'S02424', 'S02446', 'S02451', 'S02469', 'S02473', 'S02485', 'S02490', 'S02491', 'S02506', 'S02523', 'S02524', 'S02535', 'S02654', 'S02666', 'S02670', 'S02686', 'S02690', 'S02695', 'S02715', 'S02720', 'S02737', 'S02745', 'S02753', 'S02765', 'S02771', 'S02781', 'S02802', 'S02804', 'S02812', 'S02813', 'S02817', 'S02840', 'S02842', 'S02871', 'S02877', 'S02898', 'S02926', 'S02938', 'S02939', 'S02954', 'S02967', 'S02987', 'S03010', 'S03017', 'S03028', 'S03033', 'S03034', 'S03045', 'S03048', 'S03069', 'S03225', 'S03265', 'S03293', 'S03847', 'S03866', 'S03867', 'S03889']
 #subjects.append(sys.argv[1])
-subjects = ['00775']
-proc_subjn="S"
+#subjects = ['00775']
+proc_subjn=""
 proc_name ="diffusion_prep_"+proc_subjn
 
 overwrite=False
@@ -172,6 +177,8 @@ for subject in subjects:
 
     bvecs_grad_scheme_txt = os.path.join(subj_path, 'bvecs_grad_scheme.txt')
 
+    bvecs_norm = os.path.join(subj_path, f'{subj}_bvecs.txt')
+    bvals_norm = os.path.join(subj_path, f'{subj}_bvals.txt')
     bvecs_fixed = os.path.join(subj_path, f'{subj}_bvecs_fix.txt')
     bvals_fixed = os.path.join(subj_path, f'{subj}_bvals_fix.txt')
 
@@ -201,23 +208,31 @@ for subject in subjects:
             os.system(command)
 
 
-        if not os.path.exists(bvecs_fixed) or overwrite:
+        if not os.path.exists(bvecs_check) or overwrite:
+            if os.path.exists(bvecs_fixed):
+                bvecs_touse = bvecs_fixed
+                bvals_touse = bvals_fixed
+            elif os.path.exists(bvecs_norm):
+                bvecs_touse = bvecs_norm
+                bvals_touse = bvals_norm
+            else:
+                raise Exception(f'Cannot find bvec file at {bvecs_orig} or {bvecs_fixed}')
             if not os.path.exists(bvecs_grad_scheme_txt):
                 os.system(
-                    f'dwigradcheck ' + coreg_preproced + ' -fslgrad ' + bvecs_fixed + ' ' + bvals_fixed + ' -mask ' + mask_mif + ' -number 100000 -export_grad_fsl ' + bvecs_check + ' ' + bvals_check + ' -force')
-                generate_bvec_gradscheme(bvecs_fixed, bvals_fixed, bvecs_check, bvals_check, bvecs_grad_scheme_txt)
+                    f'dwigradcheck ' + coreg_preproced + ' -fslgrad ' + bvecs_touse + ' ' + bvals_touse + ' -mask ' + mask_mif + ' -number 100000 -export_grad_fsl ' + bvecs_check + ' ' + bvals_check + ' -force')
+                generate_bvec_gradscheme(bvecs_touse, bvals_touse, bvecs_check, bvals_check, bvecs_grad_scheme_txt)
             else:
-                bvec_orig = np.loadtxt(bvecs_fixed)
-                bval_orig = np.loadtxt(bvals_fixed)
+                bvec_orig = np.loadtxt(bvecs_touse)
+                bval_orig = np.loadtxt(bvals_touse)
 
                 save_new_bvecs(bvec_orig, bvecs_grad_scheme_txt, bvecs_check)
                 save_new_bvals(bval_orig, bvecs_grad_scheme_txt, bvals_check)
 
-        bvals = np.loadtxt(bvals_fixed)
+        bvals = np.loadtxt(bvals_check)
         exists_all_mif = checkallfiles([dt_mif, fa_mif, rd_mif, ad_mif, md_mif])
 
         if not exists_all_mif:
-            if np.unique(bvals_fixed).shape[0] > 2 :
+            if np.unique(bvals_check).shape[0] > 2 :
                 os.system \
                     ('dwi2tensor ' + coreg_preproced + ' ' + dt_mif + ' -dkt ' +  dk_mif +' -fslgrad ' + bvecs_check + ' ' + bvals_check + ' -force')
                 os.system(
