@@ -7,7 +7,10 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from DTC.nifti_handlers.atlas_handlers.convert_atlas_mask import atlas_converter
 from DTC.file_manager.file_tools import mkcdir, check_files
-import shutil
+import shutil, socket
+
+from statsmodels.stats.multitest import multipletests
+
 
 def get_group(subject, excel_path, subj_column = 'RUNNO', group_column = 'Risk'):
     df = pd.read_excel(excel_path)
@@ -82,7 +85,12 @@ root = '/Volumes/Data/Badea/Lab'
 
 ROI_legends = os.path.join(root,'atlases/IITmean_RPI/IITmean_RPI_index.xlsx')
 
-excel_path = '/Users/jas/jacques/Jasien/Jasien_list.xlsx'
+if socket.gethostname().split('.')[0] == 'santorini':
+    excel_path = '/Users/jas/jacques/Jasien/Jasien_list.xlsx'
+    output_path = '/Users/jas/jacques/Jasien/'
+if socket.gethostname().split('.')[0] == 'lefkada':
+    excel_path = '/Users/alex/jacques/Jasien/Jasien_list.xlsx'
+    output_path =  '/Users/alex/jacques/Jasien/'
 
 index1_to_2, _, index2_to_struct, _ = atlas_converter(ROI_legends)
 index1_to_2.pop(0, None)
@@ -100,6 +108,7 @@ subjects = ['T04086', 'T04129', 'T04248', 'T04300', 'T01257', 'T01277', 'T04472'
 
 group_column = 'Ambulatory'
 #group_column = 'Genotype'
+group_column = 'Lesion'
 p_value_sig = 0.05
 
 for subj in subjects:
@@ -130,6 +139,9 @@ stat_types = ['fa', 'rd', 'md', 'ad', 'volume']
 
 connectome_folder = os.path.join(root, 'mouse/Jasien_mrtrix_pipeline/connectomes')
 
+stats_folder_results = os.path.join(output_path, f'ANOVA_results_all_{group_column}')
+stats_folder_results_sig = os.path.join(output_path, f'ANOVA_results_sig_{group_column}')
+stats_folder_results_fsig = os.path.join(output_path, f'ANOVA_results_fsig_{group_column}')
 
 if region_stats:
     for stat_type in stat_types:
@@ -142,15 +154,17 @@ if region_stats:
 
         stat_db = standardize_database(stat_db, subjects)
 
-        stats_folder_results = f'/Users/jas/jacques/Jasien/ANOVA_results_all_{group_column}'
-        stats_folder_results_sig = f'/Users/jas/jacques/Jasien/ANOVA_results_sig_{group_column}'
+
         stat_type_folder = os.path.join(stats_folder_results,stat_type)
         stat_type_folder_sig = os.path.join(stats_folder_results_sig,stat_type)
+        stat_type_folder_fsig = os.path.join(stats_folder_results_fsig,stat_type)
         mkcdir([stats_folder_results, stat_type_folder])
 
+        stat_ROIs = {}
+        p_values = []
+
         for ROI in ROIs:
-            stat_path = os.path.join\
-                (stat_type_folder,f'ANOVA_boxplot_{stat_type}_{index_to_struct[ROI].replace("-","_")}.png')
+
             stat_ROI = stat_db[stat_db['ROI']==ROI]
             stat_ROI = stat_ROI.drop(columns='ROI')
             stat_ROI = pd.concat([stat_ROI, group_vals])
@@ -158,20 +172,35 @@ if region_stats:
             stat_ROI.columns = [stat_type, 'Groups']
             stat_ROI = stat_ROI.dropna()
 
-            if stat_ROI[stat_type].isnull().all():
-                print(f'Could not find stat type {stat_type}')
-                continue
+            #if stat_ROI.isnull().all():
+            #    print(f'Could not find stat type {stat_type}')
+            #    break
+
+            grouped_data = [group[stat_type] for _, group in stat_ROI.dropna().groupby('Groups')]
+            f_statistic, p_value = stats.f_oneway(*grouped_data)
+
+            stat_ROIs[ROI] = stat_ROI
+
+            p_values.append(p_value)
+
+        _, corrected_p_values, _, _ = multipletests(p_values, method='fdr_bh')
+
+        for i,ROI in enumerate(ROIs):
+            stat_path = os.path.join\
+                (stat_type_folder,f'ANOVA_boxplot_{stat_type}_{index_to_struct[ROI].replace("-","_")}.png')
+
+            stat_ROI = stat_ROIs[ROI]
+            p_value = p_values[i]
+            corrected_p_value = corrected_p_values[i]
+
             ax = sns.boxplot(x='Groups', y=stat_type, data=stat_ROI, color='#99c2a2')
             ax = sns.swarmplot(x='Groups', y=stat_type, data=stat_ROI, color='#7d0013')
             #plt.xticks([0, 1], ['A', 'B'])
 
             plt.title(f'ROI {index_to_struct[ROI]}')
 
-            grouped_data = [group[stat_type] for _, group in stat_ROI.dropna().groupby('Groups')]
-            f_statistic, p_value = stats.f_oneway(*grouped_data)
-
             if group_column != 'Genotype':
-                plt.text(0.1, 0.9, f'pvalue = {"{:.2f}".format(p_value)}', transform=plt.gca().transAxes, fontsize=12, color='red')
+                p_value_text = plt.text(0.1, 0.9, f'pvalue = {"{:.2f}".format(p_value)}', transform=plt.gca().transAxes, fontsize=12, color='red')
 
             plt.savefig(stat_path)
             if p_value<p_value_sig:
@@ -179,6 +208,17 @@ if region_stats:
                 stat_path_sig = os.path.join \
                     (stat_type_folder_sig, f'ANOVA_boxplot_{stat_type}_{index_to_struct[ROI].replace("-", "_")}.png')
                 shutil.copy(stat_path, stat_path_sig)
+
+            if corrected_p_value<p_value_sig:
+                mkcdir([stats_folder_results_fsig, stat_type_folder_fsig])
+                if group_column != 'Genotype':
+                    p_value_text.remove()
+                    fp_value_text = plt.text(0.1, 0.9, f'fpvalue = {"{:.2f}".format(corrected_p_value)}', transform=plt.gca().transAxes, fontsize=12, color='red')
+                stat_path_fsig = os.path.join \
+                    (stat_type_folder_fsig, f'ANOVA_boxplot_{stat_type}_{index_to_struct[ROI].replace("-", "_")}.png')
+                plt.savefig(stat_path_fsig)
+                #if not os.path.exists(stat_path_fsig):
+                #    shutil.copy(stat_path, stat_path_sig)
 
 
             plt.close()
@@ -192,10 +232,10 @@ if connectome_stats:
 
     stat_type = 'DConn'
 
-    stats_folder_results = f'/Users/jas/jacques/Jasien/ANOVA_results_all_{group_column}'
-    stats_folder_results_sig = f'/Users/jas/jacques/Jasien/ANOVA_results_sig_{group_column}'
     stat_type_folder = os.path.join(stats_folder_results, stat_type)
     stat_type_folder_sig = os.path.join(stats_folder_results_sig, stat_type)
+    stat_type_folder_fsig = os.path.join(stats_folder_results_fsig,stat_type)
+
     mkcdir([stats_folder_results, stat_type_folder])
 
     group_vals = pd.DataFrame(subj_val, index=[2])
@@ -214,36 +254,70 @@ if connectome_stats:
 
         connectome_db[subj] = degree_c
 
+    stat_ROIs = {}
+    p_values = []
+
     for ROI in ROIs:
-        stat_ROI = connectome_db[connectome_db['ROI'] == ROI]
+        stat_ROI = connectome_db[connectome_db['ROI']==ROI]
         stat_ROI = stat_ROI.drop(columns='ROI')
         stat_ROI = pd.concat([stat_ROI, group_vals])
         stat_ROI = stat_ROI.transpose()
         stat_ROI.columns = [stat_type, 'Groups']
         stat_ROI = stat_ROI.dropna()
 
-        stat_path = os.path.join \
-            (stat_type_folder, f'ANOVA_boxplot_{stat_type}_{index_to_struct[ROI].replace("-", "_")}.png')
-
-        ax = sns.boxplot(x='Groups', y=stat_type, data=stat_ROI, color='#99c2a2')
-        ax = sns.swarmplot(x='Groups', y=stat_type, data=stat_ROI, color='#7d0013')
-        plt.title(f'ROI {index_to_struct[ROI]}')
+        #if stat_ROI.isnull().all():
+        #    print(f'Could not find stat type {stat_type}')
+        #    break
 
         grouped_data = [group[stat_type] for _, group in stat_ROI.dropna().groupby('Groups')]
         f_statistic, p_value = stats.f_oneway(*grouped_data)
 
+        stat_ROIs[ROI] = stat_ROI
+
+        p_values.append(p_value)
+
+    _, corrected_p_values, _, _ = multipletests(p_values, method='fdr_bh')
+
+    for i,ROI in enumerate(ROIs):
+
+        stat_path = os.path.join\
+            (stat_type_folder,f'ANOVA_boxplot_{stat_type}_{index_to_struct[ROI].replace("-","_")}.png')
+
+        stat_ROI = stat_ROIs[ROI]
+        p_value = p_values[i]
+        corrected_p_value = corrected_p_values[i]
+
+        ax = sns.boxplot(x='Groups', y=stat_type, data=stat_ROI, color='#99c2a2')
+        ax = sns.swarmplot(x='Groups', y=stat_type, data=stat_ROI, color='#7d0013')
+        #plt.xticks([0, 1], ['A', 'B'])
+
+        plt.title(f'ROI {index_to_struct[ROI]}')
+
         if group_column != 'Genotype':
-            plt.text(0.1, 0.9, f'pvalue = {"{:.2f}".format(p_value)}', transform=plt.gca().transAxes, fontsize=12,
-                     color='red')
+            p_value_text = plt.text(0.1, 0.9, f'pvalue = {"{:.2f}".format(p_value)}', transform=plt.gca().transAxes, fontsize=12, color='red')
 
         plt.savefig(stat_path)
-        if p_value < p_value_sig:
+        if p_value<p_value_sig:
             mkcdir([stats_folder_results_sig, stat_type_folder_sig])
             stat_path_sig = os.path.join \
                 (stat_type_folder_sig, f'ANOVA_boxplot_{stat_type}_{index_to_struct[ROI].replace("-", "_")}.png')
             shutil.copy(stat_path, stat_path_sig)
 
+        if corrected_p_value<p_value_sig:
+            mkcdir([stats_folder_results_fsig, stat_type_folder_fsig])
+            if group_column != 'Genotype':
+                p_value_text.remove()
+                fp_value_text = plt.text(0.1, 0.9, f'fpvalue = {"{:.2f}".format(corrected_p_value)}', transform=plt.gca().transAxes, fontsize=12, color='red')
+            stat_path_fsig = os.path.join \
+                (stat_type_folder_fsig, f'ANOVA_boxplot_{stat_type}_{index_to_struct[ROI].replace("-", "_")}.png')
+            plt.savefig(stat_path_fsig)
+            #if not os.path.exists(stat_path_fsig):
+            #    shutil.copy(stat_path, stat_path_sig)
+
+
         plt.close()
+        #for subject in subjects:
+
 
 """
 #VBM test code
