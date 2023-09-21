@@ -87,10 +87,10 @@ ROI_legends = os.path.join(root,'atlases/IITmean_RPI/IITmean_RPI_index.xlsx')
 
 if socket.gethostname().split('.')[0] == 'santorini':
     excel_path = '/Users/jas/jacques/Jasien/Jasien_list.xlsx'
-    output_path = '/Users/jas/jacques/Jasien/'
+    output_path = '/Users/jas/jacques/Jasien/ANOVA_results'
 if socket.gethostname().split('.')[0] == 'lefkada':
     excel_path = '/Users/alex/jacques/Jasien/Jasien_list.xlsx'
-    output_path =  '/Users/alex/jacques/Jasien/'
+    output_path =  '/Users/alex/jacques/Jasien/ANOVA_results'
 
 index1_to_2, _, index2_to_struct, _ = atlas_converter(ROI_legends)
 index1_to_2.pop(0, None)
@@ -104,19 +104,9 @@ subj_val_base = {}
 #subjects = [os.path.basename(file).split('_')[0].split('S')[1] for file in QSM_files]
 #subjects = [os.path.basename(file).split('_')[0] for file in QSM_files]
 subjects = ['T04086', 'T04129', 'T04248', 'T04300', 'T01257', 'T01277', 'T04472', 'T01402']
+subjects_orig = ['T04086', 'T04129', 'T04300', 'T01257', 'T01277', 'T04472', 'T01402']
 
-
-group_column = 'Ambulatory'
-#group_column = 'Genotype'
-group_column = 'Lesion'
 p_value_sig = 0.05
-
-for subj in subjects:
-    subj_J = subj.replace('T','J')
-    subj_val_base[subj] = get_group(subj_J, excel_path, subj_column = 'RUNNO', group_column = group_column)
-
-subj_val = {key:val for key, val in subj_val_base.items() if val is not None}
-subjects = list(subj_val.keys())
 
 #values_list = list(np.unique(list(subj_val.values())))
 #values_list.sort()
@@ -124,7 +114,7 @@ subjects = list(subj_val.keys())
 
 ROIs = [17, 53, 18, 54, 1031, 2031, 1023, 2023]
 ROIs_comb = [(17,53), (18,54), (1031,2031), (1023,2023)]
-#ROIs = list(index_to_struct.keys())
+ROIs = list(index_to_struct.keys())
 
 
 region_stats = True #Make the region comparison based on SAMBA stat files
@@ -132,40 +122,174 @@ connectome_stats = True #Make the degree of connectivity comparison based on con
 
 
 stat_folder = os.path.join(root, 'mouse/VBM_21ADDecode03_IITmean_RPI_fullrun-work/dwi/SyN_0p5_3_0p5_fa/faMDT_NoNameYet_n37_i6/stats_by_region/labels/pre_rigid_native_space/IITmean_RPI/stats/studywide_label_statistics/')
+VBM_folder = os.path.join(root, 'mouse','VBM_21ADDecode03_IITmean_RPI_fullrun-work/')
+
 #stat_types = ['b0', 'dwi', 'fa', 'volume'] b0 does not seem to be working yet
 #stat_types = ['b0', 'dwi', 'fa', 'QSM', 'volume']
-stat_types = ['fa', 'rd', 'md', 'ad', 'volume']
+stat_types = ['fa', 'rd', 'md', 'ad', 'volume', 'volume_prop']
+#stat_types = ['rd', 'md', 'ad']
+#stat_types = ['volume']
 #QSM_files = filter_strings_with_substrings(QSM_files,subjects)
 
 connectome_folder = os.path.join(root, 'mouse/Jasien_mrtrix_pipeline/connectomes')
 
-stats_folder_results = os.path.join(output_path, f'ANOVA_results_all_{group_column}')
-stats_folder_results_sig = os.path.join(output_path, f'ANOVA_results_sig_{group_column}')
-stats_folder_results_fsig = os.path.join(output_path, f'ANOVA_results_fsig_{group_column}')
 
-if region_stats:
-    for stat_type in stat_types:
-        stat_file = os.path.join(stat_folder, f'studywide_stats_for_{stat_type}.txt')
-        stat_db = pd.read_csv(stat_file, sep='\t')
 
-        #ROIs = list(stat_db['ROI'][stat_db['ROI']!=0])
+group_column = 'Ambulatory'
+#group_column = 'Genotype'
+#group_column = 'Lesion'
+
+group_columns = ['Ambulatory', 'Genotype', 'Lesion']
+
+
+for group_column in group_columns:
+    for subj in subjects_orig:
+        subj_J = subj.replace('T','J')
+        subj_val_base[subj] = get_group(subj_J, excel_path, subj_column = 'RUNNO', group_column = group_column)
+
+    subj_val = {key:val for key, val in subj_val_base.items() if val is not None}
+    subjects = list(subj_val.keys())
+
+    stats_folder_results = os.path.join(output_path, f'ANOVA_results_all_{group_column}')
+    stats_folder_results_sig = os.path.join(output_path, f'ANOVA_results_sig_{group_column}')
+    stats_folder_results_fsig = os.path.join(output_path, f'ANOVA_results_fsig_{group_column}')
+
+    if region_stats:
+        for stat_type in stat_types:
+
+            if 'prop' in stat_type:
+                stat_type_db = stat_type.split('_')[0]
+            else:
+                stat_type_db = stat_type
+
+            stat_file = os.path.join(stat_folder, f'studywide_stats_for_{stat_type_db}.txt')
+            stat_db = pd.read_csv(stat_file, sep='\t')
+
+            #ROIs = list(stat_db['ROI'][stat_db['ROI']!=0])
+
+            group_vals = pd.DataFrame(subj_val, index=[2])
+
+            stat_db = standardize_database(stat_db, subjects)
+
+
+            stat_type_folder = os.path.join(stats_folder_results,stat_type)
+            stat_type_folder_sig = os.path.join(stats_folder_results_sig,stat_type)
+            stat_type_folder_fsig = os.path.join(stats_folder_results_fsig,stat_type)
+            mkcdir([stats_folder_results, stat_type_folder])
+
+            if 'prop' in stat_type:
+                total_volumes = {'ROI': 'all'}
+                for subject in subjects:
+                    mask_path = os.path.join(VBM_folder,'preprocess','base_images',f'{subject}_mask.nii.gz')
+                    brain_mask_data = nib.load(mask_path).get_fdata()
+                    total_volumes[subject] = np.sum(brain_mask_data>0)
+
+                stat_db = stat_db.append(total_volumes, ignore_index=True)
+
+                last_row = stat_db.iloc[-1, 1:]
+                stat_db.iloc[1:, 1:] = stat_db.iloc[1:, 1:].div(last_row.iloc[:], axis=1)*100
+
+                #stat_db.loc[len(stat_db)] = total_volumes
+
+            stat_ROIs = {}
+            p_values = []
+
+            for ROI in ROIs:
+
+                stat_ROI = stat_db[stat_db['ROI']==ROI]
+                stat_ROI = stat_ROI.drop(columns='ROI')
+                stat_ROI = pd.concat([stat_ROI, group_vals])
+                stat_ROI = stat_ROI.transpose()
+                stat_ROI.columns = [stat_type, 'Groups']
+                stat_ROI = stat_ROI.dropna()
+
+                #if stat_ROI.isnull().all():
+                #    print(f'Could not find stat type {stat_type}')
+                #    break
+
+                grouped_data = [group[stat_type] for _, group in stat_ROI.dropna().groupby('Groups')]
+                f_statistic, p_value = stats.f_oneway(*grouped_data)
+
+                stat_ROIs[ROI] = stat_ROI
+
+                p_values.append(p_value)
+
+            _, corrected_p_values, _, _ = multipletests(p_values, method='fdr_bh')
+
+            for i,ROI in enumerate(ROIs):
+                stat_path = os.path.join\
+                    (stat_type_folder,f'ANOVA_boxplot_{stat_type}_{index_to_struct[ROI].replace("-","_")}.png')
+
+                stat_ROI = stat_ROIs[ROI]
+                p_value = p_values[i]
+                corrected_p_value = corrected_p_values[i]
+
+                ax = sns.boxplot(x='Groups', y=stat_type, data=stat_ROI, color='#99c2a2')
+                ax = sns.swarmplot(x='Groups', y=stat_type, data=stat_ROI, color='#7d0013')
+                #plt.xticks([0, 1], ['A', 'B'])
+
+                plt.title(f'ROI {index_to_struct[ROI]}')
+
+                if group_column != 'Genotype':
+                    p_value_text = plt.text(0.1, 0.9, f'pvalue = {"{:.2f}".format(p_value)}', transform=plt.gca().transAxes, fontsize=12, color='red')
+
+                plt.savefig(stat_path)
+                if p_value<p_value_sig:
+                    mkcdir([stats_folder_results_sig, stat_type_folder_sig])
+                    stat_path_sig = os.path.join \
+                        (stat_type_folder_sig, f'ANOVA_boxplot_{stat_type}_{index_to_struct[ROI].replace("-", "_")}.png')
+                    shutil.copy(stat_path, stat_path_sig)
+
+                if corrected_p_value<p_value_sig:
+                    mkcdir([stats_folder_results_fsig, stat_type_folder_fsig])
+                    if group_column != 'Genotype':
+                        p_value_text.remove()
+                        fp_value_text = plt.text(0.1, 0.9, f'fpvalue = {"{:.2f}".format(corrected_p_value)}', transform=plt.gca().transAxes, fontsize=12, color='red')
+                    stat_path_fsig = os.path.join \
+                        (stat_type_folder_fsig, f'ANOVA_boxplot_{stat_type}_{index_to_struct[ROI].replace("-", "_")}.png')
+                    plt.savefig(stat_path_fsig)
+                    #if not os.path.exists(stat_path_fsig):
+                    #    shutil.copy(stat_path, stat_path_sig)
+
+
+                plt.close()
+                #for subject in subjects:
+
+    if connectome_stats:
+
+        #stat_file = os.path.join(stat_folder, f'studywide_stats_for_fa.txt')
+        #stat_db = pd.read_csv(stat_file, sep='\t')
+        #stat_db = standardize_database(stat_db, subjects)
+
+        stat_type = 'DConn'
+
+        stat_type_folder = os.path.join(stats_folder_results, stat_type)
+        stat_type_folder_sig = os.path.join(stats_folder_results_sig, stat_type)
+        stat_type_folder_fsig = os.path.join(stats_folder_results_fsig,stat_type)
+
+        mkcdir([stats_folder_results, stat_type_folder])
 
         group_vals = pd.DataFrame(subj_val, index=[2])
 
-        stat_db = standardize_database(stat_db, subjects)
+        connectome_db = pd.DataFrame(columns=['ROI'])
+        connectome_db['ROI'] = list(index1_to_2.keys())
 
+        for subj in subj_val_base.keys():
+            subj_j = subj.replace('T','J')
+            connectome_path = os.path.join(connectome_folder,subj_j,f'{subj_j}_distances.csv')
+            if not os.path.exists(connectome_path):
+                continue
+            connectome = np.genfromtxt(connectome_path, delimiter=',')
 
-        stat_type_folder = os.path.join(stats_folder_results,stat_type)
-        stat_type_folder_sig = os.path.join(stats_folder_results_sig,stat_type)
-        stat_type_folder_fsig = os.path.join(stats_folder_results_fsig,stat_type)
-        mkcdir([stats_folder_results, stat_type_folder])
+            degree_c = degree_connectivity(connectome)
+
+            connectome_db[subj] = degree_c
 
         stat_ROIs = {}
         p_values = []
 
         for ROI in ROIs:
-
-            stat_ROI = stat_db[stat_db['ROI']==ROI]
+            stat_ROI = connectome_db[connectome_db['ROI']==ROI]
             stat_ROI = stat_ROI.drop(columns='ROI')
             stat_ROI = pd.concat([stat_ROI, group_vals])
             stat_ROI = stat_ROI.transpose()
@@ -186,6 +310,7 @@ if region_stats:
         _, corrected_p_values, _, _ = multipletests(p_values, method='fdr_bh')
 
         for i,ROI in enumerate(ROIs):
+
             stat_path = os.path.join\
                 (stat_type_folder,f'ANOVA_boxplot_{stat_type}_{index_to_struct[ROI].replace("-","_")}.png')
 
@@ -223,100 +348,6 @@ if region_stats:
 
             plt.close()
             #for subject in subjects:
-
-if connectome_stats:
-
-    #stat_file = os.path.join(stat_folder, f'studywide_stats_for_fa.txt')
-    #stat_db = pd.read_csv(stat_file, sep='\t')
-    #stat_db = standardize_database(stat_db, subjects)
-
-    stat_type = 'DConn'
-
-    stat_type_folder = os.path.join(stats_folder_results, stat_type)
-    stat_type_folder_sig = os.path.join(stats_folder_results_sig, stat_type)
-    stat_type_folder_fsig = os.path.join(stats_folder_results_fsig,stat_type)
-
-    mkcdir([stats_folder_results, stat_type_folder])
-
-    group_vals = pd.DataFrame(subj_val, index=[2])
-
-    connectome_db = pd.DataFrame(columns=['ROI'])
-    connectome_db['ROI'] = list(index1_to_2.keys())
-
-    for subj in subj_val_base.keys():
-        subj_j = subj.replace('T','J')
-        connectome_path = os.path.join(connectome_folder,subj_j,f'{subj_j}_distances.csv')
-        if not os.path.exists(connectome_path):
-            continue
-        connectome = np.genfromtxt(connectome_path, delimiter=',')
-
-        degree_c = degree_connectivity(connectome)
-
-        connectome_db[subj] = degree_c
-
-    stat_ROIs = {}
-    p_values = []
-
-    for ROI in ROIs:
-        stat_ROI = connectome_db[connectome_db['ROI']==ROI]
-        stat_ROI = stat_ROI.drop(columns='ROI')
-        stat_ROI = pd.concat([stat_ROI, group_vals])
-        stat_ROI = stat_ROI.transpose()
-        stat_ROI.columns = [stat_type, 'Groups']
-        stat_ROI = stat_ROI.dropna()
-
-        #if stat_ROI.isnull().all():
-        #    print(f'Could not find stat type {stat_type}')
-        #    break
-
-        grouped_data = [group[stat_type] for _, group in stat_ROI.dropna().groupby('Groups')]
-        f_statistic, p_value = stats.f_oneway(*grouped_data)
-
-        stat_ROIs[ROI] = stat_ROI
-
-        p_values.append(p_value)
-
-    _, corrected_p_values, _, _ = multipletests(p_values, method='fdr_bh')
-
-    for i,ROI in enumerate(ROIs):
-
-        stat_path = os.path.join\
-            (stat_type_folder,f'ANOVA_boxplot_{stat_type}_{index_to_struct[ROI].replace("-","_")}.png')
-
-        stat_ROI = stat_ROIs[ROI]
-        p_value = p_values[i]
-        corrected_p_value = corrected_p_values[i]
-
-        ax = sns.boxplot(x='Groups', y=stat_type, data=stat_ROI, color='#99c2a2')
-        ax = sns.swarmplot(x='Groups', y=stat_type, data=stat_ROI, color='#7d0013')
-        #plt.xticks([0, 1], ['A', 'B'])
-
-        plt.title(f'ROI {index_to_struct[ROI]}')
-
-        if group_column != 'Genotype':
-            p_value_text = plt.text(0.1, 0.9, f'pvalue = {"{:.2f}".format(p_value)}', transform=plt.gca().transAxes, fontsize=12, color='red')
-
-        plt.savefig(stat_path)
-        if p_value<p_value_sig:
-            mkcdir([stats_folder_results_sig, stat_type_folder_sig])
-            stat_path_sig = os.path.join \
-                (stat_type_folder_sig, f'ANOVA_boxplot_{stat_type}_{index_to_struct[ROI].replace("-", "_")}.png')
-            shutil.copy(stat_path, stat_path_sig)
-
-        if corrected_p_value<p_value_sig:
-            mkcdir([stats_folder_results_fsig, stat_type_folder_fsig])
-            if group_column != 'Genotype':
-                p_value_text.remove()
-                fp_value_text = plt.text(0.1, 0.9, f'fpvalue = {"{:.2f}".format(corrected_p_value)}', transform=plt.gca().transAxes, fontsize=12, color='red')
-            stat_path_fsig = os.path.join \
-                (stat_type_folder_fsig, f'ANOVA_boxplot_{stat_type}_{index_to_struct[ROI].replace("-", "_")}.png')
-            plt.savefig(stat_path_fsig)
-            #if not os.path.exists(stat_path_fsig):
-            #    shutil.copy(stat_path, stat_path_sig)
-
-
-        plt.close()
-        #for subject in subjects:
 
 
 """
