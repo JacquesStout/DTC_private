@@ -28,6 +28,22 @@ def getremotehome(computer):
     return homepath
 
 
+def get_scp(server,username=None,password=None):
+
+    #home = getremotehome(server)
+    if username is None or password is None:
+        username = input("Username:")
+        password = getpass.getpass("Password for " + username + ":")
+    # inpath = inpath.split(":")[1]
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    ssh.load_host_keys(os.path.expanduser(os.path.join("~", ".ssh", "known_hosts")))
+    ssh.connect(server, username=username, password=password)
+    sftp = ssh.open_sftp()
+
+    return sftp
+
+
 def get_mainpaths(remote=False, project='any',username=None,password=None):
     computer_name = socket.gethostname()
     project_rename = {'Chavez':'21.chavez.02','AD_Decode':'AD_Decode','APOE':'APOE','AMD':'AMD','Daniel':'Daniel', 'Vitek':'Vitek', 'ADRC':'ADRC'}
@@ -294,7 +310,7 @@ def glob_remote(path, sftp=None):
             for file in allfiles:
                 if re.search(pathname, file) is not None:
                     match_files.append(os.path.join(pathdir,file))
-        elif '.' not in path:
+        elif '.' not in path and 'method' not in path and 'fid' not in path:
             allfiles = sftp.listdir(path)
             for filepath in allfiles:
                 match_files.append(os.path.join(path, filepath))

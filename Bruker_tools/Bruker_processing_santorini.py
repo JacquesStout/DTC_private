@@ -4,6 +4,9 @@ import subprocess
 ndir = '/Users/jas/jacques/CS_Project/CS_Data_all/Bruker_niftis'
 raw_dir = '/Users/jas/jacques/CS_Project/CS_Data_all/Bruker_data/'
 
+ndir = '/Volumes/dusom_mousebrains/All_Staff/jacques/Bruker_niftis'
+raw_dir = '/Volumes/dusom_mousebrains/All_Staff/jacques/Bruker_data/'
+
 if not os.path.isdir(ndir):
     os.mkdir(ndir, mode=0o775)
 

@@ -1,272 +1,344 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Tue Jan 31 16:21:13 2023
-@author: ali
-"""
-
-import os
-import nibabel as nib
-from nibabel import load, save, Nifti1Image, squeeze_image
-# import multiprocessing
+import os, shutil
+from DTC.file_manager.file_tools import buildlink, mkcdir
+from dipy.segment.mask import median_otsu
+from dipy.io.image import load_nifti, save_nifti
 import numpy as np
-import pandas as pd
-import shutil
+import nibabel as nib
+from scipy.ndimage import binary_dilation
+import sys
+from DTC.nifti_handlers.transform_handler import img_transform_exec
 
-work_dir = '/Volumes/Data/Badea/Lab/mouse/CS_Recon_Optimization/trk_dir'
 
-orig_folder = '/Volumes/Data/Badea/Lab/mouse/CS_Recon_Optimization/'
+def median_mask_make(inpath, outpath=None, outpathmask=None, median_radius=4, numpass=4, binary_dilation_val=None,
+                     vol_idx=None, affine=None, verbose=False, overwrite=False):
+    if type(inpath) == str:
+        data, affine = load_nifti(inpath)
+        if outpath is None:
+            outpath = inpath.replace(".nii", "_masked.nii")
+        elif outpath is None and outpathmask is None:
+            outpath = inpath.replace(".nii", "_masked.nii")
+            outpathmask = inpath.replace(".nii", "_mask.nii")
+        elif outpathmask is None:
+            outpathmask = outpath.replace(".nii", "_mask.nii")
+    else:
+        data = inpath
+        if affine is None:
+            raise Exception('Needs affine')
+        if outpath is None:
+            raise Exception('Needs outpath')
+    if os.path.exists(outpath) and os.path.exists(outpathmask) and not overwrite:
+        print('Already wrote mask')
+        return outpath, outpathmask
+    data = np.squeeze(data)
+    data_masked, mask = median_otsu(data, median_radius=median_radius, numpass=numpass, dilate=binary_dilation_val,
+                                    vol_idx=vol_idx)
+    save_nifti(outpath, data_masked.astype(np.float32), affine)
+    save_nifti(outpathmask, mask.astype(np.float32), affine)
+    if verbose:
+        print(f'Saved masked file to {outpath}, saved mask to {outpathmask}')
+    return outpath, outpathmask
 
-nominal_bval = 2000
 
-diff_name = 'Bruker_diffusion_test_15_0.045_af_4x__TV_and_L1_wavelet_0.01_0.01_bart_recon.nii.gz'
-diff_path = os.path.join(orig_folder, diff_name)
+verbose=False
+overwrite=False
 
-dwi_name = diff_name.replace('.nii','_dwi.nii')
-dwi_path = os.path.join(work_dir, dwi_name)
+in_path = '/Volumes/dusom_mousebrains/All_Staff/jacques/CS_project/February_runs/'
+out_path = os.path.join(in_path,'trks')
 
-bval_name = '15_1_fully_sampled_DWI_16p25_120_21directions_Brukerdirs.bval'
-bvec_name = '15_1_fully_sampled_DWI_16p25_120_21directions_Brukerdirs.bvec'
-
-bval_path_orig = os.path.join(orig_folder, bval_name)
-bvec_path_orig = os.path.join(orig_folder, bvec_name)
-
-if not os.path.isfile(bval_path_orig): print('where is original bval?')
-if not os.path.isfile(bvec_path_orig): print('where is original bvec?')
-if not os.path.isfile(diff_path): print('where is original 4d?')
-if not os.path.isfile(dwi_path): print('where is original DWI?')
-
-bval_checked = os.path.join(work_dir, bval_name)
-bvec_checked = os.path.join(work_dir, bvec_name)
-
-# changing to mif format
-dwi_mif = dwi_path.replace('.nii.gz','.mif')
-diff_mif = os.path.join(work_dir, diff_name.replace('.nii.gz','.mif'))
-
-os.system('mrconvert ' + dwi_path + ' ' + dwi_mif + ' -force')
-
-if not os.path.exists(dwi_path):
-    cmd = f'select_dwi_vols {diff_path} {bval_checked} {dwi_path} {nominal_bval}  -m'
-    os.system(cmd)
-
-os.system('mrconvert ' + diff_path + ' ' + diff_mif + ' -fslgrad ' + bvec_checked + ' ' + bval_checked + ' -bvalue_scaling 0 -force')  # turn off the scaling otherwise bvals becomes 0 4000 1000 instead of 2000
-
-if not os.path.exists(bval_checked) and not os.path.exists(bvec_checked):
-    os.system('dwigradcheck ' + dwi_mif + ' -fslgrad '+bvec_path_orig + ' ' + bval_path_orig +
-              ' -number 50000 -export_grad_fsl ' + bvec_checked + ' ' + bval_checked + ' -force')
-
-output_denoise = dwi_mif  #####skip denoise
-
-# making fa and Kurt:
-
-dt_mif = os.path.join(work_dir, diff_path.replace('_dwi.mif','_dt.mif'))
-fa_mif = os.path.join(work_dir, diff_path.replace('_dwi.mif','_fa.mif'))
-dk_mif = os.path.join(work_dir, diff_path.replace('_dwi.mif','_dk.mif'))
-mk_mif = os.path.join(work_dir, diff_path.replace('_dwi.mif','_mk.mif'))
-md_mif = os.path.join(work_dir, diff_path.replace('_dwi.mif','_md.mif'))
-ad_mif = os.path.join(work_dir, diff_path.replace('_dwi.mif','_ad.mif'))
-rd_mif = os.path.join(work_dir, diff_path.replace('_dwi.mif','_rd.mif'))
-
-# output_denoise = '***/mrtrix_pipeline/temp/N59141/N59141_subjspace_dwi_copy.mif.gz'#
-
-os.system(
-    'dwi2tensor ' + output_denoise + ' ' + dt_mif + ' -dkt ' + dk_mif + ' -fslgrad ' + bvec_checked + ' ' + bval_checked + ' -force')
-os.system(
-    'tensor2metric  -fa ' + fa_mif + ' ' + dt_mif + ' -adc ' + md_mif + ' -ad ' + ad_mif + ' -rd ' + rd_mif + ' -force')
-
-# os.system('mrview '+ fa_mif) #inspect residual
-"""
+orient = 'RAS'
+if orient =='PLS':
+    orient_str = ''
 else:
-    os.system('dwi2tensor ' + output_denoise + ' ' + dt_mif + ' -fslgrad ' + bvec_path + ' ' + bval_path + ' -force')
-    os.system('tensor2metric  -fa ' + fa_mif + ' ' + dt_mif + ' -force')
-    os.system('tensor2metric  -rd ' + rd_mif + ' ' + dt_mif + ' -force')  # if doesn't work take this out :(
-    os.system('tensor2metric  -ad ' + ad_mif + ' ' + dt_mif + ' -force')  # if doesn't work take this out :(
-    os.system('tensor2metric  -adc ' + md_mif + ' ' + dt_mif + ' -force')  # if doesn't work take this out :(
-"""
+    orient_str = f'_{orient}'
 
-den_preproc_mif = output_denoise  # already skipping preprocessing (always)
+cs_vals = [4,6,8,10,12,1]
+cs_vals = []
+cs_vals.append(sys.argv[1])
+subjects = [f'Bruker_diffusion_test_15_0.045_af_{cs_val}x__TV_and_L1_wavelet_0.0025_0.0025_bart_recon{orient_str}.nii.gz' for cs_val in cs_vals]
 
-den_unbiased_mif = den_preproc_mif  # bypassing
+bval_path = '/Volumes/dusom_mousebrains/All_Staff/jacques/CS_project/February_runs/15_1_fully_sampled_DWI_16p25_120_21directions_Brukerdirs.bval'
+bvec_path = '/Volumes/dusom_mousebrains/All_Staff/jacques/CS_project/February_runs/15_1_fully_sampled_DWI_16p25_120_21directions_Brukerdirs.bvec'
 
+mkcdir(out_path)
 
-"""
-########### making a mask out of labels
+orig_nii_path = '/Volumes/dusom_mousebrains/All_Staff/jacques/CS_project/February_runs/Bruker_diffusion_test_15_bounded.nii.gz'
 
-label_path_orig = orig_subj_path + subj + '_labels_RAS.nii.gz'
-label_path = label_path_orig
-mask_output = subj_path + subj + '_mask_of_label.nii.gz'
-label_nii = nib.load(label_path)
-mask_labels_data = label_nii.get_fdata()
-mask_labels = np.unique(mask_labels_data)
-mask_labels = np.delete(mask_labels, 0)
-mask_of_label = label_nii.get_fdata() * 0
+out_mif_temp = f'/Volumes/dusom_mousebrains/All_Staff/jacques/CS_project/February_runs/Bruker_diffusion_test_15_bounded{orient_str}.mif.gz'
 
-path_atlas_legend = root + 'chass/CHASSSYMM3AtlasLegends.xlsx'
-legend = pd.read_excel(path_atlas_legend)
-index_csf = legend['Subdivisions_7'] == '8_CSF'
-# index_wm = legend [ 'Subdivisions_7' ] == '7_whitematter'
+mask_nii_path = f'/Volumes/dusom_mousebrains/All_Staff/jacques/CS_project/February_runs/Bruker_diffusion_test_15_bounded_mask.nii.gz'
+mask_mif_path = f'/Volumes/dusom_mousebrains/All_Staff/jacques/CS_project/February_runs/Bruker_diffusion_test_15_bounded_mask{orient_str}.mif.gz'
 
-vol_index_csf = legend[index_csf]
-vol_index_csf = vol_index_csf['index2']
+masked_nii_path = f'/Volumes/dusom_mousebrains/All_Staff/jacques/CS_project/February_runs/Bruker_diffusion_test_15_bounded_masked{orient_str}.nii.gz'
 
-mask_labels_no_csf = set(mask_labels) - set(vol_index_csf)
-for vol in mask_labels_no_csf: mask_of_label[mask_labels_data == int(vol)] = int(1)
-mask_of_label = mask_of_label.astype(int)
+bval_checked_path = f'/Volumes/dusom_mousebrains/All_Staff/jacques/CS_project/February_runs/15_dirs_checked{orient_str}.bval'
+bvec_checked_path = f'/Volumes/dusom_mousebrains/All_Staff/jacques/CS_project/February_runs/15_dirs_checked{orient_str}.bvec'
 
-file_result = nib.Nifti1Image(mask_of_label, label_nii.affine, label_nii.header)
-nib.save(file_result, mask_output)
-mask_mif = subj_path + subj + 'mask_of_label.mif' + index_gz
-os.system('mrconvert ' + mask_output + ' ' + mask_mif + ' -datatype uint16 -force')
-# os.system('mrview '+fa_mif + ' -overlay.load '+ mask_mif )
+median_radius = 4
+numpass = 7
+binary_dilation_val = 1
 
+dilation = '30'
+redilated_mask = f'/Volumes/dusom_mousebrains/All_Staff/jacques/CS_project/February_runs/Bruker_diffusion_test_15_bounded_mask_dilated_{dilation}.mif.gz'
+redilated_mask_nii = f'/Volumes/dusom_mousebrains/All_Staff/jacques/CS_project/February_runs/Bruker_diffusion_test_15_bounded_mask_dilated_{dilation}.nii'
+cleanup = False
 
-# new_bval_path = path_perm+subj+'_new_bvals.txt'
-# new_bvec_path = path_perm+subj+'_new_bvecs.txt'
-# os.system('dwigradcheck ' + dwi_mif +  ' -fslgrad '+bvec_path+ ' '+ bval_path +' -mask '+ mask_mif + ' -number 50000 -export_grad_fsl '+ new_bvec_path + ' '  + new_bval_path  +  ' -force' )
-# bvec_temp=np.loadtxt(new_bvec_path)
+checked_bvecs = True
 
+index_gz = '.gz'
 
-# Estimating the Basis Functions:
-wm_txt = subj_path + subj + '_wm.txt'
-gm_txt = subj_path + subj + '_gm.txt'
-csf_txt = subj_path + subj + '_csf.txt'
-voxels_mif = subj_path + subj + '_voxels.mif' + index_gz
-os.system(
-    'dwi2response dhollander ' + den_unbiased_mif + ' ' + wm_txt + ' ' + gm_txt + ' ' + csf_txt + ' -voxels ' + voxels_mif + ' -mask ' + mask_mif + ' -scratch ' + subj_path + ' -fslgrad ' + bvec_path + ' ' + bval_path + '  -force')
+new_orig_path = f'/Volumes/dusom_mousebrains/All_Staff/jacques/CS_project/February_runs/Bruker_diffusion_test_15_bounded{orient_str}.nii.gz'
+if orient != 'PLS':
+    if not os.path.exists(new_orig_path):
+        print(f'Reorienting {orig_nii_path}')
+        img_transform_exec(orig_nii_path, 'PLS', orient, output_path=new_orig_path, recenter_test=True)
+    orig_nii_path = new_orig_path
 
-# Viewing the Basis Functions:
-# os.system('mrview '+den_unbiased_mif+ ' -overlay.load '+ voxels_mif)
-# os.system('shview '+wm_txt)
-# os.system('shview '+gm_txt)
-# os.system('shview '+csf_txt)
-
-# Applying the basis functions to the diffusion data:
-wmfod_mif = subj_path + subj + '_wmfod.mif' + index_gz
-gmfod_mif = subj_path + subj + '_gmfod.mif' + index_gz
-csffod_mif = subj_path + subj + '_csffod.mif' + index_gz
-
-# os.system('dwi2fod msmt_csd ' +den_unbiased_mif+ ' -mask '+mask_mif+ ' ' +wm_txt+ ' ' + wmfod_mif+ ' ' +gm_txt+ ' ' + gmfod_mif+ ' ' +csf_txt+ ' ' + csffod_mif + ' -force' )
-os.system('dwi2fod msmt_csd ' + den_unbiased_mif + ' -mask ' + mask_mif + ' ' + wm_txt + ' ' + wmfod_mif + ' -force')
-
-# combine to single image to view them
-# Concatenating the FODs:
-##vf_mif =   subj_path+subj+'_vf.mif'
-# os.system('mrconvert -coord 3 0 ' +wmfod_mif+ ' -| mrcat '+csffod_mif+ ' ' +gmfod_mif+ ' - ' + vf_mif+' -force' )
-##os.system('mrconvert -coord 3 0 ' +wmfod_mif+ ' -| mrcat ' +gmfod_mif+ ' - ' + vf_mif+' -force' ) # without csf
-
-# Viewing the FODs:
-# os.system('mrview ' +fa_mif+ ' -odf.load_sh '+wmfod_mif )
-
-# Normalizing the FODs:
-wmfod_norm_mif = subj_path + subj + '_wmfod_norm.mif' + index_gz
-# gmfod_norm_mif = subj_path+subj+'_gmfod_norm.mif'
-# csffod_norm_mif = subj_path+subj+'_csffod_norm.mif'
-os.system('mtnormalise ' + wmfod_mif + ' ' + wmfod_norm_mif + ' -mask ' + mask_mif + '  -force')
-# Viewing the normalise FODs:
-# os.system('mrview ' +fa_mif+ ' -odf.load_sh '+wmfod_norm_mif )
+if not os.path.exists(out_mif_temp) or overwrite:
+    os.system(
+        'mrconvert ' + orig_nii_path + ' ' + out_mif_temp + ' -fslgrad ' + bvec_path + ' ' + bval_path + ' -bvalue_scaling false -force')  # turn off the scaling otherwise bvals becomes 0 4000 1000 instead of 2000
 
 
-gmwmSeed_coreg_mif = mask_mif
+if not os.path.exists(mask_nii_path) or overwrite:
 
-####read to create streamlines
-# Creating streamlines with tckgen: be carefull about number of threads on server
-tracks_10M_tck = subj_path + subj + '_tracks_10M.tck'
-# os.system('tckgen -act ' + fivett_coreg_mif + '  -backtrack -seed_gmwmi '+ gmwmSeed_coreg_mif + ' -maxlength 250 -cutoff 0.06 -select 10000000 ' + wmfod_norm_mif + ' ' + tracks_10M_tck + ' -force')
-# seconds1 = time.time()
-os.system(
-    'echo tckgen -backtrack -seed_image ' + gmwmSeed_coreg_mif + ' -maxlength 1000 -cutoff 0.1 -select 10000000 ' + wmfod_norm_mif + ' ' + tracks_10M_tck + ' -force')
-
-os.system(
-    'tckgen -backtrack -seed_image ' + gmwmSeed_coreg_mif + ' -maxlength 1000 -cutoff 0.1 -select 10000000 ' + wmfod_norm_mif + ' ' + tracks_10M_tck + ' -force')
-
-# os.system('tckgen -backtrack -seed_image '+ gmwmSeed_coreg_mif + ' -maxlength 1000 -cutoff 0.3 -select 50k ' + wmfod_norm_mif + ' ' + tracks_10M_tck + ' -force')
-# seconds2 = time.time()
-# (seconds2 - seconds1)/360 # a million track in hippo takes 12.6 mins
+    b0_dwi_mif_temp = os.path.join(in_path, f'orig_b0_mean_temp.mif')
+    if not os.path.exists(b0_dwi_mif_temp) or overwrite:
+        command = 'dwiextract ' + out_mif_temp + ' - -bzero | mrmath - mean ' + b0_dwi_mif_temp + ' -axis 3 -force'
+        #if not os.path.exists(b0_dwi_mif_temp) or overwrite:
+        print(command)
+        os.system(command)
 
 
-# Extracting a subset of tracks:
-smallerTracks = path_perm + subj + '_smallerTracks2mill.tck'
-os.system('echo tckedit ' + tracks_10M_tck + ' -number 2000000 -minlength 0.1 ' + smallerTracks + ' -force')
-os.system('tckedit ' + tracks_10M_tck + ' -number 2000000 -minlength 0.1 ' + smallerTracks + ' -force')
-# os.system('mrview ' + den_unbiased_mif + ' -tractography.load '+ smallerTracks)
+    b0_dwi_nii_temp = os.path.join(in_path, f'orig_b0_mean_temp.nii.gz')
+    #if not os.path.exists(b0_dwi_nii_temp):
+    if not os.path.exists(b0_dwi_nii_temp) or overwrite:
+        os.system(f'mrconvert {b0_dwi_mif_temp} {b0_dwi_nii_temp} -force')
+
+    median_mask_make(b0_dwi_nii_temp, masked_nii_path, median_radius=median_radius,
+                     binary_dilation_val=binary_dilation_val,
+                     numpass=numpass, outpathmask=mask_nii_path, verbose=verbose, overwrite=True)
+
+    if cleanup:
+        os.remove(b0_dwi_mif_temp)
+        os.remove(b0_dwi_nii_temp)
+
+    new_mask_path = f'/Volumes/dusom_mousebrains/All_Staff/jacques/CS_project/February_runs/Bruker_diffusion_test_15_bounded_mask{orient_str}.nii.gz'
+    if orient != 'PLS':
+        if not os.path.exists(new_mask_path) or overwrite:
+            img_transform_exec(mask_nii_path, 'PLS', orient, output_path=new_mask_path, recenter_test=True)
+        mask_nii_path = new_mask_path
+        if not os.path.exists(mask_mif_path):
+            os.system(f'mrconvert {mask_nii_path} {mask_mif_path}')
+
+if not os.path.exists(mask_mif_path):
+    os.system(f'mrconvert {mask_nii_path} {mask_mif_path}')
+
+if not os.path.exists(bval_checked_path) or not os.path.exists(bvec_checked_path) and checked_bvecs:
+
+    os.system(
+        f'dwigradcheck ' + out_mif_temp + ' -fslgrad ' + bvec_path + ' ' + bval_path + ' -mask ' + mask_mif_path + ' -number 100000 -export_grad_fsl ' + bvec_checked_path + ' ' + bval_checked_path + ' -force')
 
 
-# Sifting the tracks with tcksift2: bc some wm tracks are over or underfitted
-sift_mu_txt = subj_path + subj + '_sift_mu.txt'
-sift_coeffs_txt = subj_path + subj + '_sift_coeffs.txt'
-sift_1M_txt = subj_path + subj + '_sift_1M.txt'
+if not os.path.exists(redilated_mask):
+    if not os.path.exists(mask_nii_path):
+        os.system(f'mrconvert {mask_mif_path} {mask_nii_path}')
 
-os.system(
-    'echo tcksift2  -out_mu ' + sift_mu_txt + ' -out_coeffs ' + sift_coeffs_txt + ' ' + smallerTracks + ' ' + wmfod_norm_mif + ' ' + sift_1M_txt + ' -force')
-os.system(
-    'tcksift2  -out_mu ' + sift_mu_txt + ' -out_coeffs ' + sift_coeffs_txt + ' ' + smallerTracks + ' ' + wmfod_norm_mif + ' ' + sift_1M_txt + ' -force')
+    img = nib.load(mask_nii_path)
+    mask_data = img.get_fdata()
 
-#####connectome
-##Running recon-all:
+    # Perform binary dilation
+    dilated_mask = binary_dilation(mask_data, iterations=int(dilation)).astype(np.uint8)
 
-# os.system("SUBJECTS_DIR=`pwd`")
-# sub_recon = subj_path+subj+'_recon3'
-# os.system('recon-all -i '+ T1 +' -s '+ sub_recon +' -all -force')
-# cant run here so do on command line
+    # Create a new NIfTI image with the dilated mask
+    dilated_img = nib.Nifti1Image(dilated_mask, img.affine)
 
+    nib.save(dilated_img, redilated_mask_nii)
+    os.system(f'mrconvert {redilated_mask_nii} {redilated_mask}')
 
-# Converting the labels:
-# parcels_mif = subj_path+subj+'_parcels.mif'
-# os.system('labelconvert '+ ' /Users/ali/sub-CON02_recon3/mri/aparc+aseg.mgz' + ' /Applications/freesurfer/7.3.2/FreeSurferColorLUT.txt ' +  '/Users/ali/opt/anaconda3/pkgs/mrtrix3-3.0.3-ha664bf1_0/share/mrtrix3/labelconvert/fs_default.txt '+ parcels_mif)
+if cleanup and os.path.exists(redilated_mask_nii):
+    shutil.remove(redilated_mask_nii)
 
 
-# Coregistering the parcellation:
-# diff2struct_mrtrix_txt = subj_path+subj+'_diff2struct_mrtrix.txt'
-# parcels_coreg_mif = subj_path+subj+'_parcels_coreg.mif'
-# os.system('mrtransform '+parcels_mif + ' -interp nearest -linear ' + diff2struct_mrtrix_txt + ' -inverse -datatype uint32 ' + parcels_coreg_mif )
+fastrun = False
+
+for subj_nii in subjects:
+
+    if checked_bvecs:
+        coreg_bvecs = bvec_checked_path
+        coreg_bvals = bval_checked_path
+        bvec_string = ''
+    else:
+        coreg_bvecs = bvec_path
+        coreg_bvals = bval_path
+        bvec_string = '_orig'
+
+    subj_min = subj_nii.split('af_')[1].split('x')[0]
+    subj_nii_path = os.path.join(in_path, subj_nii)
+    subj_out_folder = os.path.join(in_path,f'{subj_min}_temp{orient_str}{bvec_string}')
+    perm_subj_output = os.path.join(in_path,f'{subj_min}_perm{orient_str}{bvec_string}')
+
+    if orient != 'LPS' and not os.path.exists(subj_nii_path):
+        print(f'Reorienting {subj_nii_path}')
+        subj_nii_orig = subj_nii_path.replace(orient_str, '')
+        img_transform_exec(subj_nii_orig, 'PLS', orient, output_path=subj_nii_path, recenter_test=True)
+
+    mkcdir([subj_out_folder,perm_subj_output])
+
+    print(f'Starting process for {subj_nii} using {coreg_bvecs}')
+
+    """
+
+    dt_mif = os.path.join(perm_subj_output, subj + '_dt.mif' + index_gz)
+    fa_mif = os.path.join(perm_subj_output, subj + '_fa.mif' + index_gz)
+    dk_mif = os.path.join(perm_subj_output, subj + '_dk.mif' + index_gz)
+    mk_mif = os.path.join(perm_subj_output, subj + '_mk.mif' + index_gz)
+    md_mif = os.path.join(perm_subj_output, subj + '_md.mif' + index_gz)
+    ad_mif = os.path.join(perm_subj_output, subj + '_ad.mif' + index_gz)
+    rd_mif = os.path.join(perm_subj_output, subj + '_rd.mif' + index_gz)
+
+    fa_nii = os.path.join(perm_subj_output, subj + '_fa.nii' + index_gz)
+
+    wmfod_norm_mif = os.path.join(subj_out_folder, subj + '_wmfod_norm.mif' + index_gz)
+    gmfod_norm_mif = os.path.join(subj_out_folder, subj + '_gmfod_norm.mif')
+    csffod_norm_mif = os.path.join(subj_out_folder, subj + '_csffod_norm.mif')
+
+    if not os.path.exists(fa_nii) or overwrite:
+
+        # making fa and Kurt:
+
+        dt_mif = os.path.join(perm_subj_output, subj + '_dt.mif' + index_gz)
+        fa_mif = os.path.join(perm_subj_output, subj + '_fa.mif' + index_gz)
+        dk_mif = os.path.join(perm_subj_output, subj + '_dk.mif' + index_gz)
+        md_mif = os.path.join(perm_subj_output, subj + '_md.mif' + index_gz)
+        ad_mif = os.path.join(perm_subj_output, subj + '_ad.mif' + index_gz)
+        rd_mif = os.path.join(perm_subj_output, subj + '_rd.mif' + index_gz)
+
+        # mk_mif = os.path.join(perm_subj_output,subj+'_mk.mif'+index_gz)
+
+        # output_denoise = '/Users/ali/Desktop/Feb23/mrtrix_pipeline/temp/N59141/N59141_subjspace_dwi_copy.mif.gz'#
 
 
-# convert subj labels to mif
+        # exists_all = checkallfiles([dt_mif, fa_mif, dk_mif, mk_mif, md_mif, ad_mif, rd_mif])
+        exists_all = checkallfiles([dt_mif, fa_mif, dk_mif, md_mif, ad_mif, rd_mif])
 
-labels_data = label_nii.get_fdata()
-labels = np.unique(labels_data)
-labels = np.delete(labels, 0)
-for i in labels:
-    if i > 166:  labels_data[labels_data == i] = i + 166 - 1000
-file_result = nib.Nifti1Image(labels_data, label_nii.affine, label_nii.header)
-new_label = subj_path + subj + '_new_label.nii.gz'
-nib.save(file_result, new_label)
-parcels_mif = subj_path + subj + '_parcels.mif' + index_gz
-os.system('mrconvert ' + new_label + ' ' + parcels_mif + ' -force')
+        if not exists_all:
 
-# os.system('mrview '+ fa_mif + ' -tractography.load '+ smallerTracks)
+            if np.unique(bval_orig).shape[0] > 2:
+                os.system(
+                    'dwi2tensor ' + resampled_mif_path + ' ' + dt_mif + ' -dkt ' + dk_mif + ' -fslgrad ' + coreg_bvecs + ' ' + coreg_bvals + ' -force')
+                os.system(
+                    'tensor2metric  -fa ' + fa_mif + ' ' + dt_mif + ' -adc ' + md_mif + ' -ad ' + ad_mif + ' -rd ' + rd_mif + ' -force')
+
+                # os.system('mrview '+ fa_mif) #inspect residual
+            else:
+                os.system(
+                    'dwi2tensor ' + resampled_mif_path + ' ' + dt_mif + ' -fslgrad ' + coreg_bvecs + ' ' + coreg_bvals + ' -force')
+                os.system('tensor2metric  -fa ' + fa_mif + ' ' + dt_mif + ' -force')
+                os.system('tensor2metric  -rd ' + rd_mif + ' ' + dt_mif + ' -force')  # if doesn't work take this out :(
+                os.system('tensor2metric  -ad ' + ad_mif + ' ' + dt_mif + ' -force')  # if doesn't work take this out :(
+                os.system(
+                    'tensor2metric  -adc ' + md_mif + ' ' + dt_mif + ' -force')  # if doesn't work take this out :(
+                # os.system('mrview '+ fa_mif) #inspect residual
+
+            command = 'mrconvert ' + fa_mif + ' ' + fa_nii + ' -force'
+            print(command)
+            os.system(command)
+
+    if verbose:
+        print(f'Created the file {fa_nii}')
+
+    # T1_orig_res = os.path.join(subj_out_folder,subj+'_T1_res.nii.gz')
+    # T1_orig = T1_orig_res
+
+    if cleanup:
+        shutil.rmtree(scratch_path)
+        
+    """
+
+    wmfod_norm_mif = os.path.join(subj_out_folder, subj_min + '_wmfod_norm.mif' + index_gz)
+    gmfod_norm_mif = os.path.join(subj_out_folder, subj_min + '_gmfod_norm.mif' + index_gz)
+    csffod_norm_mif = os.path.join(subj_out_folder, subj_min + '_csffod_norm.mif' + index_gz)
+
+    if fastrun:
+        smallerTracks = os.path.join(perm_subj_output, subj_min + f'_smallerTracks10000{bvec_string}.tck')
+    else:
+        smallerTracks = os.path.join(perm_subj_output, subj_min + f'_smallerTracks2mill{bvec_string}.tck')
 
 
-# Creating the connectome without coregistration:
-### connectome folders :
+    if not os.path.exists(smallerTracks):
 
-conn_folder = root + 'connectome/'
-if not os.path.isdir(conn_folder): os.mkdir(conn_folder)
+        # Estimating the Basis Functions:
+        if not os.path.exists(wmfod_norm_mif) or overwrite:
+            wm_txt = os.path.join(subj_out_folder, subj_min + '_wm.txt')
+            gm_txt = os.path.join(subj_out_folder, subj_min + '_gm.txt')
+            csf_txt = os.path.join(subj_out_folder, subj_min + '_csf.txt')
+            voxels_mif = os.path.join(subj_out_folder, subj_min + '_voxels.mif' + index_gz)
 
-distances_csv = conn_folder + subj + '_distances.csv'
-os.system(
-    'tck2connectome ' + smallerTracks + ' ' + parcels_mif + ' ' + distances_csv + ' -zero_diagonal -symmetric -scale_length -stat_edge  mean' + ' -force')
-mean_FA_per_streamline = subj_path + subj + '_per_strmline_mean_FA.csv'
-mean_FA_connectome = conn_folder + subj + '_mean_FA_connectome.csv'
-os.system('tcksample ' + smallerTracks + ' ' + fa_mif + ' ' + mean_FA_per_streamline + ' -stat_tck mean ' + ' -force')
-os.system(
-    'tck2connectome ' + smallerTracks + ' ' + parcels_mif + ' ' + mean_FA_connectome + ' -zero_diagonal -symmetric -scale_file ' + mean_FA_per_streamline + ' -stat_edge mean ' + ' -force')
+            subj_mif_path = subj_nii_path.replace('.nii',f'{bvec_string}.mif')
 
-parcels_csv = conn_folder + subj + '_conn_sift_node.csv'
-assignments_parcels_csv = path_perm + subj + '_assignments_con_sift_node.csv'
-os.system(
-    'tck2connectome -symmetric -zero_diagonal -scale_invnodevol -tck_weights_in ' + sift_1M_txt + ' ' + smallerTracks + ' ' + parcels_mif + ' ' + parcels_csv + ' -out_assignment ' + assignments_parcels_csv + ' -force')
+            overwrite=True
 
-parcels_csv_2 = conn_folder + subj + '_conn_plain.csv'
-assignments_parcels_csv2 = path_perm + subj + '_assignments_con_plain.csv'
-os.system(
-    'tck2connectome -symmetric -zero_diagonal ' + smallerTracks + ' ' + parcels_mif + ' ' + parcels_csv_2 + ' -out_assignment ' + assignments_parcels_csv2 + ' -force')
+            if not os.path.exists(subj_mif_path) or overwrite:
+                os.system(f'mrconvert {subj_nii_path} {subj_mif_path} -fslgrad {coreg_bvecs} {coreg_bvals} -bvalue_scaling 0 -force')
 
-parcels_csv_3 = conn_folder + subj + '_conn_sift.csv'
-assignments_parcels_csv3 = path_perm + subj + '_assignments_con_sift.csv'
-os.system(
-    'tck2connectome -symmetric -zero_diagonal -tck_weights_in ' + sift_1M_txt + ' ' + smallerTracks + ' ' + parcels_mif + ' ' + parcels_csv_3 + ' -out_assignment ' + assignments_parcels_csv3 + ' -force')
+            ##Right now we are using the RESAMPLED mif of the 4D miff, to be discussed
+            if not os.path.exists(voxels_mif) or not os.path.exists(wm_txt) or not os.path.exists(
+                    gm_txt) or not os.path.exists(csf_txt) or overwrite:
+                command = f'dwi2response dhollander {subj_mif_path} {wm_txt} {gm_txt} {csf_txt} -voxels {voxels_mif} -mask {mask_mif_path} -scratch {subj_out_folder} -fslgrad {coreg_bvecs} {coreg_bvals} -force'
+                print(command)
+                os.system(command)
 
-shutil.rmtree(subj_path)
+            # Applying the basis functions to the diffusion data:
+            wmfod_mif = os.path.join(subj_out_folder, subj_min + '_wmfod.mif' + index_gz)
+            gmfod_mif = os.path.join(subj_out_folder, subj_min + '_gmfod.mif' + index_gz)
+            csffod_mif = os.path.join(subj_out_folder, subj_min + '_csffod.mif' + index_gz)
 
-"""
+
+            # os.system('dwi2fod msmt_csd ' +den_unbiased_mif+ ' -mask '+mask_mif+ ' ' +wm_txt+ ' ' + wmfod_mif+ ' ' +gm_txt+ ' ' + gmfod_mif+ ' ' +csf_txt+ ' ' + csffod_mif + ' -force' )
+            if not os.path.exists(wmfod_mif) or overwrite:
+                #command = 'dwi2fod msmt_csd ' + subj_mif_path + ' -mask ' + mask_mif_path + ' ' + wm_txt + ' ' + wmfod_mif + ' ' + gm_txt + ' ' + gmfod_mif + ' ' + csf_txt + ' ' + csffod_mif + ' -force'
+                #Only doing white matter in mouse brain
+                command = f'dwi2fod msmt_csd {subj_mif_path} -mask {mask_mif_path} {wm_txt} {wmfod_mif} -force'
+                print(command)
+                os.system(command)
+
+            """
+            # combine to single image to view them
+            # Concatenating the FODs:
+            vf_mif = os.path.join(subj_out_folder, subj_min + '_vf.mif')
+            if not os.path.exists(vf_mif) or overwrite:
+                command = 'mrconvert -coord 3 0 ' + wmfod_mif + ' -| mrcat ' + csffod_mif + ' ' + gmfod_mif + ' - ' + vf_mif + ' -force'
+                print(command)
+                os.system(command)
+            # os.system('mrconvert -coord 3 0 ' +wmfod_mif+ ' -| mrcat ' +gmfod_mif+ ' - ' + vf_mif+' -force' ) # without csf
+            """
+
+            if not os.path.exists(wmfod_norm_mif) or not os.path.exists(gmfod_norm_mif) or not os.path.exists(
+                    csffod_norm_mif) or overwrite:
+                #command = 'mtnormalise ' + wmfod_mif + ' ' + wmfod_norm_mif + ' ' + gmfod_mif + ' ' + gmfod_norm_mif + ' ' + csffod_mif + ' ' + csffod_norm_mif + ' -mask ' + mask_mif_path + '  -force'
+                command = 'mtnormalise ' + wmfod_mif + ' ' + wmfod_norm_mif + ' -mask ' + mask_mif_path + '  -force'
+                print(command)
+                os.system(command)
+
+        gmwmSeed_coreg_mif = mask_mif_path
+
+        if fastrun:
+            command = 'tckgen -backtrack -seed_image ' + gmwmSeed_coreg_mif + ' -maxlength 250 -cutoff 0.1 -select 10000 ' + wmfod_norm_mif + ' ' + smallerTracks + ' -force'
+            print(command)
+            os.system(command)
+        else:
+            tracks_10M_tck = os.path.join(subj_out_folder, subj_min + '_tracks_10M.tck')
+            if not os.path.exists(tracks_10M_tck):
+                command = 'tckgen -backtrack -seed_image ' + gmwmSeed_coreg_mif + ' -maxlength 250 -cutoff 0.1 -select 10000000 ' + wmfod_norm_mif + ' ' + tracks_10M_tck + ' -force'
+                print(command)
+                os.system(command)
+
+            if not os.path.exists(smallerTracks):
+                command = 'tckedit ' + tracks_10M_tck + ' -number 2000000 ' + smallerTracks + ' -force'
+                print(command)
+                os.system(command)
+
+    if verbose:
+        print(f'Created {smallerTracks}')
+
+    if cleanup:
+        shutil.rmtree(subj_out_folder)
