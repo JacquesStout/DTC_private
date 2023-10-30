@@ -16,6 +16,47 @@ set up the excel files for connectomes and grouping
 """
 
 
+def check_string_variable(variable):
+    if isinstance(variable, list):
+        # Check if all elements in the list are strings
+        if all(isinstance(item, str) for item in variable):
+            return "List"
+        else:
+            return "List of non strings"
+    elif isinstance(variable, str):
+        return "string"
+    else:
+        return "Neither a list nor a string"
+
+
+def get_group(subject, excel_path, subj_column = 'RUNNO', group_columns = 'Risk'):
+    df = pd.read_excel(excel_path)
+    columns_subj = []
+    for column_name in df.columns:
+        if subj_column in column_name:
+            columns_subj.append(column_name)
+
+    if isinstance(group_columns,str):
+        group_columns = [group_columns]
+    elif not isinstance(group_columns, list):
+        raise Exception
+
+    columns_group = []
+    for group_column in group_columns:
+        for column_name in df.columns:
+            if group_column in column_name:
+                columns_group.append(column_name)
+
+    #subjects = database[columns_subj[0]]
+
+    try:
+        result = df[df[columns_subj[0]] == subject][columns_group[:]].values[0]
+    except IndexError:
+        result = None
+
+    return result
+
+
 def connectomes_to_excel(connectome, index_to_struct, output_path, overwrite=False, verbose=False, sftp=None):
 
     #df = pd.read_excel(ROI_excel, sheet_name='Sheet1')

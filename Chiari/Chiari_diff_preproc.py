@@ -171,7 +171,6 @@ def save_new_bvecs(bvecs_orig, gradscheme_path, bvecs_new_path):
 
     np.savetxt(bvecs_new_path, bvecs_new, fmt='%.2f')
 
-
 # inputs
 
 if socket.gethostname().split('.')[0] == 'santorini':
@@ -200,6 +199,8 @@ mkcdir(data_path_output)
 # subjects to run
 subjects = []
 subjects.append(sys.argv[1])
+
+subjects = ['J01257', 'J01277' ,'J01402', 'J04086', 'J04129', 'J04300' ,'J04472', 'J01501', 'J01516', 'J01541', 'J04602']
 # subjects = ['ADRC0001']
 
 index_gz = '.gz'
@@ -217,6 +218,14 @@ verbose = True
 for subj in subjects:
 
     subj_folder = os.path.join(data_path, subj)
+    if not os.path.exists(subj_folder):
+        subj_folders = glob.glob(os.path.join(data_path,f'*{subj.replace("J","")}'))
+        if np.size(subj_folders)==1:
+            subj_folder = subj_folders[0]
+        else:
+            txt = f'Issue identifying the correct subject path folder for subject {subj}'
+            raise Exception(txt)
+
     allsubjs_out_folder = os.path.join(data_path_output, 'temp')
     subj_out_folder = os.path.join(allsubjs_out_folder, subj)
     scratch_path = os.path.join(subj_out_folder, 'scratch')
@@ -224,6 +233,12 @@ for subj in subjects:
     # perm_subj_output = os.path.join(perm_output, subj)
 
     mkcdir([allsubjs_out_folder, subj_out_folder, scratch_path, perm_subj_output])
+
+    smallerTracks = os.path.join(perm_subj_output, subj + '_smallerTracks2mill.tck')
+
+    if os.path.exists(smallerTracks):
+        print(f'Already processed subject {subj}')
+        continue
 
     bvec_path_AP = os.path.join(subj_out_folder, subj + '_bvecs.txt')
     bval_path_AP = os.path.join(subj_out_folder, subj + '_bvals.txt')

@@ -16,9 +16,9 @@ from plotnine import ggplot
 def get_group(subject, data_path, subj_column='RUNNO', group_column='Risk'):
     ext = os.path.splitext(data_path)[1]
     if ext == '.xlsx':
-        df = pd.read_excel(excel_path)
+        df = pd.read_excel(data_path)
     elif ext == '.csv':
-        df = pd.read_csv(excel_path)
+        df = pd.read_csv(data_path)
     else:
         txt = f'Unrecognized file type for {data_path}'
         raise Exception(txt)
@@ -147,7 +147,7 @@ stat_folder = '/Volumes/Data/Badea/Lab/mouse/VBM_21ADDecode03_IITmean_RPI_fullru
 root = '/Volumes/Data/Badea/Lab'
 
 if socket.gethostname().split('.')[0] == 'santorini':
-    excel_path = '/Users/jas/jacques/AD_Decode/ANOVA_results/AD_DECODE_data25april22.csv'
+    excel_path = '/Users/jas/jacques/AD_Decode/AD_DECODE_data2.csv'
     output_path = '/Users/jas/jacques/AD_Decode/ANOVA_results/'
 # if socket.gethostname().split('.')[0] == 'lefkada':
 
@@ -201,8 +201,8 @@ ROIs = list(index_to_struct.keys())
 
 
 stat_types = ['fa', 'md', 'ad', 'QSM', 'volume', 'volume_prop', 'DConn']
-stat_types = ['fa', 'md', 'ad', 'QSM', 'volume', 'volume_prop', 'DConn']
-stat_types = ['CBF']
+stat_types = ['mrtrixfa', 'mrtrixmd', 'mrtrixad', 'QSM', 'volume', 'volume_prop', 'DConn']
+#stat_types = ['mrtrixfa']
 # stat_types = ['dwi', 'fa', 'QSM', 'volume']
 # ROIs = [17, 53, 18, 54, 1031, 2031, 1023, 2023]
 
@@ -221,6 +221,9 @@ p_yval = 1
 
 p_xval = 0.3
 p_yval = 0.9
+
+plottype = 'box'
+plottype = 'violin'
 
 for group_column in group_columns:
 
@@ -386,7 +389,10 @@ for group_column in group_columns:
             #ax1= sns.scatterplot(data=stat_ROI, x=covariate_column, y=stat_type, hue=stat_ROI[group_column].tolist(), ax=axs[ax_val])
             #ax_val+=1
 
-            ax2 = sns.boxplot(x=group_column, y=stat_type, data=stat_ROI, hue=stat_ROI[group_column].tolist(), ax=axs[ax_val])
+            if plottype == 'box':
+                ax2 = sns.boxplot(x=group_column, y=stat_type, data=stat_ROI, hue=stat_ROI[group_column].tolist(), ax=axs[ax_val], fill=False)
+            if plottype == 'violin':
+                ax2 = sns.violinplot(x=group_column, y=stat_type, data=stat_ROI, hue=stat_ROI[group_column].tolist(), ax=axs[ax_val], fill=False)
             ax2 = sns.swarmplot(x=group_column, y=stat_type, data=stat_ROI, hue=stat_ROI[group_column].tolist(), ax=axs[ax_val])
             ax2.legend([], [], frameon=False)
             ax_val+=1

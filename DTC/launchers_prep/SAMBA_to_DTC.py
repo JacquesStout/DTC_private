@@ -16,7 +16,7 @@ from DTC.nifti_handlers.atlas_handlers.create_backported_labels import get_info_
 #project = "APOE"
 #project = "AMD"
 project = 'AD_Decode'
-project = 'ADRC'
+#project = 'ADRC'
 #project = 'Chavez'
 verbose = True
 mainpath = getremotehome('Lab')
@@ -142,7 +142,7 @@ elif project == "AD_Decode":
         subject_name = os.path.basename(subject)
         subjects.append(subject_name[:6])
 
-    subjects = ['T01257', 'T01277' ,'T01402', 'T04086', 'T04129', 'T04300' ,'T04472']
+    subjects = ['T01257', 'T01277' ,'T01402', 'T04086', 'T04129', 'T04300' ,'T04472', 'T01501', 'T01516', 'T01541', 'T04602']
     identifier_SAMBA_folder = 'faMDT_NoName'
 
     removed_list = ['S02230', 'S02490', 'S02745']

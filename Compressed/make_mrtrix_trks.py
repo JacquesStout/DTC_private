@@ -160,6 +160,10 @@ if cleanup and os.path.exists(redilated_mask_nii):
 
 fastrun = False
 
+keep_10mil = True
+
+denoise = True
+
 for subj_nii in subjects:
 
     if checked_bvecs:
@@ -184,6 +188,11 @@ for subj_nii in subjects:
     mkcdir([subj_out_folder,perm_subj_output])
 
     print(f'Starting process for {subj_nii} using {coreg_bvecs}')
+
+    if denoise:
+        denoise_str = '_denoised'
+    else:
+        denoise_str = ''
 
     """
 
@@ -258,13 +267,24 @@ for subj_nii in subjects:
     gmfod_norm_mif = os.path.join(subj_out_folder, subj_min + '_gmfod_norm.mif' + index_gz)
     csffod_norm_mif = os.path.join(subj_out_folder, subj_min + '_csffod_norm.mif' + index_gz)
 
+    if denoise:
+        output_denoise = subj_nii_path.replace('.nii.gz','_denoised.nii.gz')
+        if not os.path.exists(output_denoise) or overwrite:
+            os.system('dwidenoise ' + subj_nii_path + ' ' + output_denoise + ' -force')
+        output_denoise = subj_nii_path
+
     if fastrun:
-        smallerTracks = os.path.join(perm_subj_output, subj_min + f'_smallerTracks10000{bvec_string}.tck')
+        smallerTracks = os.path.join(perm_subj_output, subj_min + f'_smallerTracks10000{bvec_string}{denoise_str}.tck')
     else:
-        smallerTracks = os.path.join(perm_subj_output, subj_min + f'_smallerTracks2mill{bvec_string}.tck')
+        smallerTracks = os.path.join(perm_subj_output, subj_min + f'_smallerTracks2mill{bvec_string}{denoise_str}.tck')
+
+    if keep_10mil:
+        tracks_10M_tck = os.path.join(perm_subj_output, subj_min + denoise_str + '_tracks_10M.tck')
+    else:
+        tracks_10M_tck = os.path.join(subj_out_folder, subj_min + denoise_str + '_tracks_10M.tck')
 
 
-    if not os.path.exists(smallerTracks):
+    if not os.path.exists(smallerTracks) or (keep_10mil and not os.path.exists(tracks_10M_tck)):
 
         # Estimating the Basis Functions:
         if not os.path.exists(wmfod_norm_mif) or overwrite:
@@ -326,7 +346,7 @@ for subj_nii in subjects:
             print(command)
             os.system(command)
         else:
-            tracks_10M_tck = os.path.join(subj_out_folder, subj_min + '_tracks_10M.tck')
+
             if not os.path.exists(tracks_10M_tck):
                 command = 'tckgen -backtrack -seed_image ' + gmwmSeed_coreg_mif + ' -maxlength 250 -cutoff 0.1 -select 10000000 ' + wmfod_norm_mif + ' ' + tracks_10M_tck + ' -force'
                 print(command)

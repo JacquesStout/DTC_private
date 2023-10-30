@@ -51,17 +51,24 @@ ref_mask_path = '/Volumes/dusom_mousebrains/All_Staff/jacques/CS_project/Februar
 cs_vals = [1,4,6,8,10,12]
 #cs_vals = [1,4,6,8,10]
 #cs_vals = []
-#cs_vals.append(sys.argv[1])
+cs_vals.append(sys.argv[1])
 num_tracks = '2mill'
+num_tracks = '10M'
 
-get_tract_stats = True
-get_life_figs = False
+if num_tracks == '10M':
+    str_identifier = f'_denoised_tracks_{num_tracks}'
+else:
+    str_identifier = f'_smallerTracks{num_tracks}'
+
+
+get_tract_stats = False
+get_life_figs = True
 
 for cs_val in cs_vals:
     trk_path_folder = os.path.join(inpath, f'{cs_val}_perm_RAS')
-    trk_path = os.path.join(trk_path_folder,f'{cs_val}_smallerTracks{num_tracks}.trk')
+    trk_path = os.path.join(trk_path_folder,f'{cs_val}{str_identifier}.trk')
     if not os.path.exists(trk_path):
-        tck_path = os.path.join(trk_path_folder,f'{cs_val}_smallerTracks{num_tracks}.tck')
+        tck_path = os.path.join(trk_path_folder,f'{cs_val}{str_identifier}.tck')
         if os.path.exists(tck_path):
             convert_tck_to_trk(tck_path,trk_path,ref_mask_path)
         else:

@@ -9,6 +9,7 @@ data_path = '/Volumes/dusom_mousebrains/All_Staff/jacques/CS_Project/CS_data_all
 subjects = ['20230830_142204_230605_20_apoe_18abb11_1_1']
 subjects = ['20230621_142852_230508_14_CStesting_18abb11_DEV_1_1']
 subjects = ['20231004_102859_220905_10_b_apoe_18abb11_APOE_1_1']
+subjects = ['20231004_105847_230918_11_apoe_18abb11_APOE_1_1']
 #subjects = ['20221026_04086']
 
 for subject in subjects:

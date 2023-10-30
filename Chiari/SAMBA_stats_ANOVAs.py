@@ -52,7 +52,13 @@ def standardize_database(db, subjects):
         if np.size(indices)>1:
             test1 = np.all(abs(db[all_subj[indices[0]]]-db[all_subj[indices[1]]])<1e-1)
             if not test1:
-                print(f'{subj} has 2 dissimilar instances')
+                found=0
+                for indice in indices:
+                    if 'master' in all_subj[indice]:
+                        indices = [indice]
+                        found=1
+                if not found:
+                    print(f'{subj} has 2 dissimilar instances')
             if np.size(indices)>2:
                 test2 = np.all(abs(db[all_subj[indices[1]]]-db[all_subj[indices[2]]])<1e-1)
                 if not test2:
@@ -103,19 +109,24 @@ for key in index1_to_2.keys():
 subj_val_base = {}
 #subjects = [os.path.basename(file).split('_')[0].split('S')[1] for file in QSM_files]
 #subjects = [os.path.basename(file).split('_')[0] for file in QSM_files]
-subjects = ['T04086', 'T04129', 'T04248', 'T04300', 'T01257', 'T01277', 'T04472', 'T01402']
-subjects_orig = ['T04086', 'T04129', 'T04300', 'T01257', 'T01277', 'T04472', 'T01402']
+#subjects = ['T04086', 'T04129', 'T04248', 'T04300', 'T01257', 'T01277', 'T04472', 'T01402']
+subjects_orig = ['T04086', 'T04129', 'T04300', 'T01257', 'T01277', 'T04472', 'T01402','T01501','T01516','T04602','T01541']
 
 p_value_sig = 0.05
 
 #values_list = list(np.unique(list(subj_val.values())))
 #values_list.sort()
 
+ROIs_type = 'full'
 
-ROIs = [17, 53, 18, 54, 1031, 2031, 1023, 2023]
-ROIs_comb = [(17,53), (18,54), (1031,2031), (1023,2023)]
-ROIs = list(index_to_struct.keys())
+if ROIs_type == 'full':
+    ROIs = list(index_to_struct.keys())
+if ROIs_type == 'subset':
+    ROIs = [17, 53, 18, 54, 1031, 2031, 1023, 2023]
+    #ROIs_comb = [(17,53), (18,54), (1031,2031), (1023,2023)]
 
+output_path = os.path.join(output_path,ROIs_type)
+mkcdir(output_path)
 
 region_stats = True #Make the region comparison based on SAMBA stat files
 connectome_stats = True #Make the degree of connectivity comparison based on connectomes
@@ -127,22 +138,23 @@ VBM_folder = os.path.join(root, 'mouse','VBM_21ADDecode03_IITmean_RPI_fullrun-wo
 #stat_types = ['b0', 'dwi', 'fa', 'volume'] b0 does not seem to be working yet
 #stat_types = ['b0', 'dwi', 'fa', 'QSM', 'volume']
 stat_types = ['fa', 'rd', 'md', 'ad', 'volume', 'volume_prop']
+stat_types = ['DConn','fa', 'rd', 'md', 'ad', 'volume', 'volume_prop']
+
 #stat_types = ['rd', 'md', 'ad']
 #stat_types = ['volume']
 #QSM_files = filter_strings_with_substrings(QSM_files,subjects)
 
 connectome_folder = os.path.join(root, 'mouse/Jasien_mrtrix_pipeline/connectomes')
 
-
-
 group_column = 'Ambulatory'
 #group_column = 'Genotype'
 #group_column = 'Lesion'
 
 group_columns = ['Ambulatory', 'Genotype', 'Lesion']
-
+group_columns = ['Ambulatory']
 
 for group_column in group_columns:
+    print(f'Running it for group {group_column}')
     for subj in subjects_orig:
         subj_J = subj.replace('T','J')
         subj_val_base[subj] = get_group(subj_J, excel_path, subj_column = 'RUNNO', group_column = group_column)
@@ -157,25 +169,43 @@ for group_column in group_columns:
     if region_stats:
         for stat_type in stat_types:
 
+            print(f'Running the statistic {stat_type}')
+
             if 'prop' in stat_type:
                 stat_type_db = stat_type.split('_')[0]
             else:
                 stat_type_db = stat_type
 
             stat_file = os.path.join(stat_folder, f'studywide_stats_for_{stat_type_db}.txt')
-            stat_db = pd.read_csv(stat_file, sep='\t')
 
             #ROIs = list(stat_db['ROI'][stat_db['ROI']!=0])
 
             group_vals = pd.DataFrame(subj_val, index=[2])
-
-            stat_db = standardize_database(stat_db, subjects)
 
 
             stat_type_folder = os.path.join(stats_folder_results,stat_type)
             stat_type_folder_sig = os.path.join(stats_folder_results_sig,stat_type)
             stat_type_folder_fsig = os.path.join(stats_folder_results_fsig,stat_type)
             mkcdir([stats_folder_results, stat_type_folder])
+
+            if 'DConn' or 'FConn' in stat_type:
+                stat_db = pd.DataFrame(columns=['ROI'])
+                stat_db['ROI'] = list(index1_to_2.keys())
+
+                for subj in subj_val_base.keys():
+                    subj_j = subj.replace('T', 'J')
+                    connectome_path = os.path.join(connectome_folder, subj_j, f'{subj_j}_distances.csv')
+                    if not os.path.exists(connectome_path):
+                        continue
+                    connectome = np.genfromtxt(connectome_path, delimiter=',')
+
+                    degree_c = degree_connectivity(connectome)
+
+                    stat_db[subj] = degree_c
+
+            if 'DConn' not in stat_type:
+                stat_db = pd.read_csv(stat_file, sep='\t')
+                stat_db = standardize_database(stat_db, subjects)
 
             if 'prop' in stat_type:
                 total_volumes = {'ROI': 'all'}
@@ -190,6 +220,14 @@ for group_column in group_columns:
                 stat_db.iloc[1:, 1:] = stat_db.iloc[1:, 1:].div(last_row.iloc[:], axis=1)*100
 
                 #stat_db.loc[len(stat_db)] = total_volumes
+
+            if group_column is 'Genotype':
+                group_vals = group_vals.replace(
+                    {'APOE24': 'APOE4', 'APOE34': 'APOE4', 'APOE33': 'APOE3'}, regex=True)
+
+            if group_column is 'Ambulatory':
+                group_vals = group_vals.replace(
+                    {'FA': 'A'}, regex=True)
 
             stat_ROIs = {}
             p_values = []
@@ -230,8 +268,7 @@ for group_column in group_columns:
 
                 plt.title(f'ROI {index_to_struct[ROI]}')
 
-                if group_column != 'Genotype':
-                    p_value_text = plt.text(0.1, 0.9, f'pvalue = {"{:.2f}".format(p_value)}', transform=plt.gca().transAxes, fontsize=12, color='red')
+                p_value_text = plt.text(0.1, 0.9, f'pvalue = {"{:.2f}".format(p_value)}', transform=plt.gca().transAxes, fontsize=12, color='red')
 
                 plt.savefig(stat_path)
                 if p_value<p_value_sig:
@@ -242,9 +279,8 @@ for group_column in group_columns:
 
                 if corrected_p_value<p_value_sig:
                     mkcdir([stats_folder_results_fsig, stat_type_folder_fsig])
-                    if group_column != 'Genotype':
-                        p_value_text.remove()
-                        fp_value_text = plt.text(0.1, 0.9, f'fpvalue = {"{:.2f}".format(corrected_p_value)}', transform=plt.gca().transAxes, fontsize=12, color='red')
+                    p_value_text.remove()
+                    fp_value_text = plt.text(0.1, 0.9, f'fpvalue = {"{:.2f}".format(corrected_p_value)}', transform=plt.gca().transAxes, fontsize=12, color='red')
                     stat_path_fsig = os.path.join \
                         (stat_type_folder_fsig, f'ANOVA_boxplot_{stat_type}_{index_to_struct[ROI].replace("-", "_")}.png')
                     plt.savefig(stat_path_fsig)
@@ -254,134 +290,3 @@ for group_column in group_columns:
 
                 plt.close()
                 #for subject in subjects:
-
-    if connectome_stats:
-
-        #stat_file = os.path.join(stat_folder, f'studywide_stats_for_fa.txt')
-        #stat_db = pd.read_csv(stat_file, sep='\t')
-        #stat_db = standardize_database(stat_db, subjects)
-
-        stat_type = 'DConn'
-
-        stat_type_folder = os.path.join(stats_folder_results, stat_type)
-        stat_type_folder_sig = os.path.join(stats_folder_results_sig, stat_type)
-        stat_type_folder_fsig = os.path.join(stats_folder_results_fsig,stat_type)
-
-        mkcdir([stats_folder_results, stat_type_folder])
-
-        group_vals = pd.DataFrame(subj_val, index=[2])
-
-        connectome_db = pd.DataFrame(columns=['ROI'])
-        connectome_db['ROI'] = list(index1_to_2.keys())
-
-        for subj in subj_val_base.keys():
-            subj_j = subj.replace('T','J')
-            connectome_path = os.path.join(connectome_folder,subj_j,f'{subj_j}_distances.csv')
-            if not os.path.exists(connectome_path):
-                continue
-            connectome = np.genfromtxt(connectome_path, delimiter=',')
-
-            degree_c = degree_connectivity(connectome)
-
-            connectome_db[subj] = degree_c
-
-        stat_ROIs = {}
-        p_values = []
-
-        for ROI in ROIs:
-            stat_ROI = connectome_db[connectome_db['ROI']==ROI]
-            stat_ROI = stat_ROI.drop(columns='ROI')
-            stat_ROI = pd.concat([stat_ROI, group_vals])
-            stat_ROI = stat_ROI.transpose()
-            stat_ROI.columns = [stat_type, 'Groups']
-            stat_ROI = stat_ROI.dropna()
-
-            #if stat_ROI.isnull().all():
-            #    print(f'Could not find stat type {stat_type}')
-            #    break
-
-            grouped_data = [group[stat_type] for _, group in stat_ROI.dropna().groupby('Groups')]
-            f_statistic, p_value = stats.f_oneway(*grouped_data)
-
-            stat_ROIs[ROI] = stat_ROI
-
-            p_values.append(p_value)
-
-        _, corrected_p_values, _, _ = multipletests(p_values, method='fdr_bh')
-
-        for i,ROI in enumerate(ROIs):
-
-            stat_path = os.path.join\
-                (stat_type_folder,f'ANOVA_boxplot_{stat_type}_{index_to_struct[ROI].replace("-","_")}.png')
-
-            stat_ROI = stat_ROIs[ROI]
-            p_value = p_values[i]
-            corrected_p_value = corrected_p_values[i]
-
-            ax = sns.boxplot(x='Groups', y=stat_type, data=stat_ROI, color='#99c2a2')
-            ax = sns.swarmplot(x='Groups', y=stat_type, data=stat_ROI, color='#7d0013')
-            #plt.xticks([0, 1], ['A', 'B'])
-
-            plt.title(f'ROI {index_to_struct[ROI]}')
-
-            if group_column != 'Genotype':
-                p_value_text = plt.text(0.1, 0.9, f'pvalue = {"{:.2f}".format(p_value)}', transform=plt.gca().transAxes, fontsize=12, color='red')
-
-            plt.savefig(stat_path)
-            if p_value<p_value_sig:
-                mkcdir([stats_folder_results_sig, stat_type_folder_sig])
-                stat_path_sig = os.path.join \
-                    (stat_type_folder_sig, f'ANOVA_boxplot_{stat_type}_{index_to_struct[ROI].replace("-", "_")}.png')
-                shutil.copy(stat_path, stat_path_sig)
-
-            if corrected_p_value<p_value_sig:
-                mkcdir([stats_folder_results_fsig, stat_type_folder_fsig])
-                if group_column != 'Genotype':
-                    p_value_text.remove()
-                    fp_value_text = plt.text(0.1, 0.9, f'fpvalue = {"{:.2f}".format(corrected_p_value)}', transform=plt.gca().transAxes, fontsize=12, color='red')
-                stat_path_fsig = os.path.join \
-                    (stat_type_folder_fsig, f'ANOVA_boxplot_{stat_type}_{index_to_struct[ROI].replace("-", "_")}.png')
-                plt.savefig(stat_path_fsig)
-                #if not os.path.exists(stat_path_fsig):
-                #    shutil.copy(stat_path, stat_path_sig)
-
-
-            plt.close()
-            #for subject in subjects:
-
-
-"""
-#VBM test code
-
-
-design_matrix = np.zeros([np.size(subjects),np.size(values_list)])
-
-for i,subj in enumerate(subjects):
-    design_matrix[i,values_list.index(subj_val[subj])] = 1
-
-nifti_data = [nib.load(file).get_fdata() for file in QSM_files]
-
-
-nifti_data = np.array(nifti_data)
-design_matrix = design_matrix.T  # Transpose the design matrix
-n_voxels = np.prod(nifti_data.shape[1:])  # Calculate the number of voxels
-n_samples = nifti_data.shape[0]
-n_conditions = design_matrix.shape[0]
-n_samples_per_condition = n_samples // n_conditions
-0
-# Reshape NIfTI data for voxel-wise analysis
-nifti_data_reshaped = nifti_data.reshape((n_samples, n_voxels))
-
-# Prepare a list to store ANOVA results for each voxel
-anova_results = []
-
-# Perform ANOVA at each voxel
-for voxel_idx in range(n_voxels):
-    voxel_data = nifti_data_reshaped[:, voxel_idx]
-    voxel_data_per_condition = voxel_data.reshape((n_conditions, n_samples_per_condition))
-    f_statistic, p_value = stats.f_oneway(*voxel_data_per_condition)
-    anova_results.append((f_statistic, p_value))
-
-# Reshape the results back to the 3D NIfTI image dimensions
-anova_results = np.array(anova_results).reshape(nifti_data.shape[1:])
-"""

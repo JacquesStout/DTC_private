@@ -793,6 +793,7 @@ def img_transform_exec(img, current_vorder, desired_vorder, output_path=None, wr
 
     new_data = nii_data
     affine = nii._affine
+    vox_size = nii.header.get_zooms()[:3]
 
     if desired_vorder!=orig_current_vorder:
         if ((np.size(dims) > 4) and (dims(5) == 3)):
@@ -870,8 +871,12 @@ def img_transform_exec(img, current_vorder, desired_vorder, output_path=None, wr
                     ('is rgb not properly implemented')
                     #new=new(:,:,:,[xpos, ypos, zpos]);
                 new_data = new_data.transpose(xpos, ypos, zpos, 3)
+                new_vox_size = [0] * len(vox_size)
+                new_vox_size = [vox_size[[xpos, ypos, zpos].index(x)] for x in sorted([xpos, ypos, zpos])]
             elif np.size(dims) == 3:
                 new_data = new_data.transpose(xpos, ypos, zpos)
+                new_vox_size = [0] * len(vox_size)
+                new_vox_size = [vox_size[[xpos, ypos, zpos].index(x)] for x in sorted([xpos, ypos, zpos])]
 
         if not os.path.isfile(affine_out) and write_transform:
             intermediate_affine_matrix = [x_row , y_row, z_row];
@@ -942,6 +947,9 @@ def img_transform_exec(img, current_vorder, desired_vorder, output_path=None, wr
     else:
         ## ADDED THIS ELSE OPTION FOR CONSISTENCY, MIGHT NEED TO SWITCH BACK AFTERWARDS IF OTHER STUFF BREAKS!!!!!
         newaffine = affine
+
+    if new_vox_size!=vox_size:
+        newaffine[:3,:3] = new_vox_size*(newaffine[:3,:3]/vox_size)
 
     new_nii=nib.Nifti1Image(new_data, newaffine, hdr)
     output_path = str(output_path)
@@ -1105,7 +1113,7 @@ def get_flip_affine(current_vorder, desired_vorder):
 def get_flip_bvecs(bvecs, current_vorder, desired_vorder, output_file=None, writeformat = 'line'):
 
     if isinstance(bvecs,str):
-        from diff_handlers.bvec_handler import read_bvecs
+        from DTC.diff_handlers.bvec_handler import read_bvecs
         bvecs = read_bvecs(bvecs)
 
     for char in current_vorder:

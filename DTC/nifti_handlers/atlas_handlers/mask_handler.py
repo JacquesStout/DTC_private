@@ -11,7 +11,7 @@ from dipy.segment.mask import median_otsu
 import numpy as np
 import warnings, shutil
 import os
-
+import copy
 
 def mask_fixer(maskpath, outpath=None):
     mask_nii = nib.load(maskpath)
@@ -137,7 +137,7 @@ def create_mask_threshold(imgpath, threshold = 1, outpath = None):
 
 def applymask_array(data, mask):
 
-    data_new = data
+    data_new = copy.deepcopy(data)
     dims = np.size(np.shape(data))
     data_shape = np.shape(data)
     mask_shape = np.shape(mask)
