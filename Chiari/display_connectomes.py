@@ -5,6 +5,7 @@ import os
 from DTC.diff_handlers.connectome_handlers.excel_management import get_group
 
 connectome_path = '/Volumes/Data/Badea/Lab/mouse/Jasien_mrtrix_pipeline/connectomes/'
+connectome_func_path = os.path.join(connectome_path,'functional_conn')
 connectome_output = '/Users/jas/jacques/Jasien/connectome_figures'
 
 excel_path = '/Users/jas/jacques/Jasien/Jasien_list.xlsx'
@@ -48,12 +49,28 @@ if group_simplify:
 connectome_group = {}
 num_group = {}
 
+#[struct,func_ts,func_FC] ###func_ts doesn't work yet, due to it being over 600 time points
+con_type = 'func_FC'
+
+make_group_connectomes = False
 
 full_title = True
 
 for i,subject in enumerate(subjects):
-    connectome_subject_path = os.path.join(connectome_path,subject,f'{subject}_distances.csv')
-    connectome_figure_path = os.path.join(connectome_output,f'{subject}_distances.png')
+
+    if con_type == 'struct':
+        connectome_subject_path = os.path.join(connectome_path,subject,f'{subject}_distances.csv')
+        connectome_figure_path = os.path.join(connectome_output,f'{subject}_distances.png')
+    elif con_type =='func_ts':
+        connectome_subject_path = os.path.join(connectome_func_path, f'time_serts_{subject}.csv')
+        connectome_figure_path = os.path.join(connectome_output,f'{subject}_serts.png')
+    elif con_type =='func_FC':
+        connectome_subject_path = os.path.join(connectome_func_path, f'time_serFC_{subject}.csv')
+        connectome_figure_path = os.path.join(connectome_output, f'{subject}_serFC.png')
+
+    if not os.path.exists(connectome_subject_path):
+        print(f'Could not find {os.path.basename(connectome_subject_path)}, skipping {subject}')
+        continue
 
     df = pd.read_csv(connectome_subject_path, index_col=0)
     connectivity_matrix = df.to_numpy()
@@ -90,32 +107,33 @@ for i,subject in enumerate(subjects):
                 connectome_group[group_col]+=connectivity_matrix
                 num_group[group_col] += 1
 
-for key in connectome_group.keys():
+if make_group_connectomes:
+    for key in connectome_group.keys():
 
-    group_type = group_types[key]
+        group_type = group_types[key]
 
-    connectome_figure_path = os.path.join(connectome_output,f'{group_type}_{key}_average.png')
+        connectome_figure_path = os.path.join(connectome_output,f'{group_type}_{key}_average.png')
 
-    connectome_group_f = connectome_group[key]/num_group[key]
+        connectome_group_f = connectome_group[key]/num_group[key]
 
-    plt.figure(figsize=(8, 6))
+        plt.figure(figsize=(8, 6))
 
-    try:
-        plt.imshow(connectome_group_f, cmap=color, interpolation='nearest')
-    except:
-        print(f'Color {color} is invalid')
-    #plt.colorbar(label='Connectivity Strength')
+        try:
+            plt.imshow(connectome_group_f, cmap=color, interpolation='nearest')
+        except:
+            print(f'Color {color} is invalid')
+        #plt.colorbar(label='Connectivity Strength')
 
-    txt = f'Average Connectivity, {group_type} {key}'
-    plt.title(txt)
+        txt = f'Average Connectivity, {group_type} {key}'
+        plt.title(txt)
 
-    #plt.xticks(np.arange(len(df.columns)), df.columns, rotation=45)
-    #plt.yticks(np.arange(len(df.index)), df.index)
-    plt.tight_layout()
+        #plt.xticks(np.arange(len(df.columns)), df.columns, rotation=45)
+        #plt.yticks(np.arange(len(df.index)), df.index)
+        plt.tight_layout()
 
-    # Display the figure
-    plt.savefig(connectome_figure_path)
-    plt.close()
+        # Display the figure
+        plt.savefig(connectome_figure_path)
+        plt.close()
 
 """
 colors = ['autumn', 'bone','copper', 'flag','gray','hot','hsv','jet','pink','prism','spring','summer','winter','magma','inferno','plasma','viridis','nipy_spectral']

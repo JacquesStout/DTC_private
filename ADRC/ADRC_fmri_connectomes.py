@@ -1,17 +1,8 @@
-import os, socket
+import os, socket, sys, glob
 import numpy as np
 import nibabel as nib
 import pandas as pd
 from nibabel.processing import resample_to_output
-"""
-from scipy.ndimage import zoom
-#from ants.registration.resample_image import resample_image_to_target
-#import antspyx as antspy
-#from ants import image_read as ants_imgread
-#from ants.registration.apply_transforms import apply_transforms_to_points
-#from ants import image_write as ants_imgwrite
-#from dipy.tracking._utils import (_mapping_to_voxel, _to_voxel_coordinates)
-"""
 
 
 def mkcdir(folderpaths, sftp=None):
@@ -39,125 +30,31 @@ def mkcdir(folderpaths, sftp=None):
                     sftp.mkdir(folderpath)
 
 
-def label_mask_inplace(label_nii,target_nii):
-    label_aff = label_nii.affine
-    target_aff = target_nii.affine
-    new_shape = target_nii.shape
-
-    label_data = label_nii.get_fdata()
-    new_label_mat = np.zeros(new_shape[:3])
-
-    x_coord = target_aff[0, 3]
-    y_coord = target_aff[1, 3]
-    z_coord = target_aff[2, 3]
-
-    x_label = np.round((x_coord - label_aff[0, 3]) / label_aff[0, 0])
-    y_label = np.round((y_coord - label_aff[1, 3]) / label_aff[1, 1])
-    z_label = np.round((z_coord - label_aff[2, 3]) / label_aff[2, 2])
-
-    for x in np.arange(new_shape[0]):
-        y_coord = target_aff[1, 3]
-        for y in np.arange(new_shape[1]):
-            z_coord = target_aff[2, 3]
-            for z in np.arange(new_shape[2]):
-
-                """
-                x_coord = x * target_aff[0, 0] + target_aff[0, 3]
-                y_coord = y * target_aff[1, 1] + target_aff[1, 3]
-                z_coord = z * target_aff[2, 2] + target_aff[2, 3]
-
-                x_label = (x_coord-label_aff[0, 3])/label_aff[0, 0]
-                y_label = (y_coord-label_aff[1, 3])/label_aff[1, 1]
-                z_label = (z_coord-label_aff[2, 3])/label_aff[2, 2]
-                """
-
-                if x_label>=0 and y_label>=0 and z_label>=0:
-                    new_label_mat[x,y,z] = int(np.round(label_data[int(x_label),int(y_label),int(z_label)]))
-
-                z_coord += target_aff[2, 2]
-                z_label = np.round((z_coord - label_aff[2, 3]) / label_aff[2, 2])
-
-            y_coord += target_aff[1, 1]
-            y_label = np.round((y_coord - label_aff[1, 3]) / label_aff[1, 1])
-
-        x_coord+= target_aff[0,0]
-        x_label = np.round((x_coord - label_aff[0, 3]) / label_aff[0, 0])
-
-    return(new_label_mat)
-
-
-#time series
-def parcellated_matrix(sub_timeseries, atlas_idx, roi_list):
-    timeseries_dict = {}
-    for i in roi_list:
-        roi_mask = np.asarray(atlas_idx == i, dtype=bool)
-        timeseries_dict[i] = sub_timeseries[roi_mask].mean(axis=0)
-        #print (i)
-    roi_labels = list(timeseries_dict.keys())
-    sub_timeseries_mean = []
-    for roi in roi_labels:
-        sub_timeseries_mean.append(timeseries_dict[roi])
-        #print(sum(sub_timeseries_mean[int(roi)]==0))
-    #corr_matrix = np.corrcoef(sub_timeseries_mean)
-    return sub_timeseries_mean
-
-
-def parcellated_matrix_voxelindependent(sub_timeseries, atlas_idx, roi_list):
-    timeseries_dict = {}
-    for i in roi_list:
-        roi_mask = np.asarray(atlas_idx == i, dtype=bool)
-        timeseries_dict[i] = sub_timeseries[roi_mask].mean(axis=0)
-        #print (i)
-    roi_labels = list(timeseries_dict.keys())
-    sub_timeseries_mean = []
-    for roi in roi_labels:
-        sub_timeseries_mean.append(timeseries_dict[roi])
-        #print(sum(sub_timeseries_mean[int(roi)]==0))
-    #corr_matrix = np.corrcoef(sub_timeseries_mean)
-    return sub_timeseries_mean
-
-
-def parcellated_FC_matrix(sub_timeseries, atlas_idx, roi_list):
-    timeseries_dict = {}
-    for i in roi_list:
-        roi_mask = np.asarray(atlas_idx == i, dtype=bool)
-        timeseries_dict[i] = sub_timeseries[roi_mask].mean(axis=0)
-        #print (i)
-    roi_labels = list(timeseries_dict.keys())
-    sub_timeseries_mean = []
-    for roi in roi_labels:
-        sub_timeseries_mean.append(timeseries_dict[roi])
-        #print(sum(sub_timeseries_mean[int(roi)]==0))
-    corr_matrix = np.corrcoef(sub_timeseries_mean)
-    return corr_matrix
-
-
-if socket.gethostname().split('.')[0] == 'santorini':
+if socket.gethostname().split('.')[0]=='santorini':
     root = '/Volumes/Data/Badea/Lab/'
-    #root_proj = '/Volumes/Data/Badea/Lab/mouse/Jasien_mrtrix_pipeline/'
-    root_proj = '/Volumes/Data/Badea/Lab/human/Jasien/'
-    data_path = '/Volumes/Data/Jasien/ADSB.01/Data/Anat/'
+    root_proj = '/Volumes/Data/Badea/Lab/human/ADRC/'
+    data_path = '/Volumes/Data/Badea/Lab/ADRC-20230511/'
 else:
     root = '/mnt/munin2/Badea/Lab/'
-    #root_proj = '/mnt/munin2/Badea/Lab/mouse/Jasien_mrtrix_pipeline/'
-    root_proj = '/mnt/munin2/Badea/Lab/human/Jasien/'
-    data_path = '/mnt/munin2/Jasien/ADSB.01/Data/Anat/'
+    root_proj = '/mnt/munin2/Badea/Lab/human/ADRC/'
+    data_path = '/mnt/munin2/Badea/Lab/ADRC-20230511/'
 
 
-fmriprep_output = '/Volumes/Data/Badea/Lab/human/Jasien/fmriprep_output/'
+list_folders_path = os.listdir(data_path)
+list_of_subjs_long = [i for i in list_folders_path if 'ADRC' in i and not '.' in i]
+list_of_subjs = sorted(list_of_subjs_long)
+
+
+fmriprep_output = os.path.join(root_proj,'fmriprep_output')
 conn_path = os.path.join(root_proj, 'connectomes')
 func_conn_path = os.path.join(conn_path,'functional_conn')
 
-SAMBA_path_results = '/Volumes/Data/Badea/Lab/mouse/VBM_21ADDecode03_IITmean_RPI_fullrun-results/connectomics/'
-f
+SAMBA_path_results = '/Volumes/Data/Badea/Lab/mouse/VBM_23ADRC_IITmean_RPI-results/connectomics/'
+
 slice_func = False #Do you want to split the functionnal time series into just the first three hundred points
 
-subjects = ['J01277', 'J01402', 'J04472', 'J04129', 'J01257', 'J04300', 'J04086','J01501','J01516','J04602','J01541']
-#subjects = ['J01402','J01501']
 
-check_label = True
-
-overwrite=False
+subjects = []
 
 for subj in subjects:
     subj_strip = subj.replace('J','')

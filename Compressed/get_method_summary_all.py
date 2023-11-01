@@ -1,5 +1,5 @@
 import os, glob
-import matlab.engine
+#import matlab.engine
 from DTC.file_manager.file_tools import buildlink, mkcdir, getfromfile, glob_remote
 import subprocess
 
@@ -8,14 +8,18 @@ import subprocess
 data_path = '/Volumes/dusom_mousebrains/All_Staff/jacques/CS_project/CS_Data_all/Bruker_data/'
 results_path = '/Volumes/dusom_mousebrains/All_Staff/jacques/CS_project/CS_Data_all/Bruker_results/'
 niftis_path = '/Volumes/dusom_mousebrains/All_Staff/jacques/CS_project/CS_Data_all/Bruker_niftis/'
-matlab = matlab.engine.start_matlab()
 
-matlab.addpath('/Users/jas/bass/gitfolder/Compressed_sensing_recon')
-matlab.addpath('/Users/jas/bass/gitfolder/Compressed_sensing_recon/NIFTI_20140122_v2/')
+matlab_engaged = False
+
+if matlab_engaged:
+    matlab = matlab.engine.start_matlab()
+
+    matlab.addpath('/Users/jas/bass/gitfolder/Compressed_sensing_recon')
+    matlab.addpath('/Users/jas/bass/gitfolder/Compressed_sensing_recon/NIFTI_20140122_v2/')
 
 
 allowed_methods = ['cs_DtiStandard','DtiEpi','nmrsuDtiStandardAlex']
-allowed_methods = ['DtiEpi']
+allowed_methods = ['cs_DtiStandard']
 #allowed_methods = ['cs_DtiStandard']
 #allowed_methods = ['cs_DtiStandard','pCASL_FcFLASHv2']
 #subjects = ['20230830_142204_230605_20_apoe_18abb11_1_1']
@@ -27,7 +31,8 @@ subjects = ['20221117_163120_Dummy_17November2022_v12_18abb11_DEV_1_1']
 subjects = [folder_path.split('/')[-2] for folder_path in glob.glob(os.path.join(data_path,'20231024*/'))]
 subjects = ['20231024_163510_221101_22_apoe_18abb11_1_1']
 subjects = [folder_path.split('/')[-2] for folder_path in glob.glob(os.path.join(data_path,'*/'))]
-subjects = ['20231025_104100_221101_24_apoe_18abb11_1_1']
+subjects = ['20231024_175640_210222_17_exvivotestCS_apoe_18abb11_1_1']
+subjects = ['20231101_111601_221128_14_apoe_18abb11_1_1']
 #subjects = ['20231024_143134_221128_9_apoe_rev_phase_18abb11_1_1']
 
 #subjects = [folder_path.split('/')[-2] for folder_path in glob.glob(os.path.join(data_path,'202211*/'))]
@@ -37,9 +42,11 @@ subjects = ['20231025_104100_221101_24_apoe_18abb11_1_1']
 run_recon = True
 
 fid_size_lim_mb = 0
-dir_min_lim = 1
+dir_min_lim = 0
 
 verbose = False
+
+read_all_methods = True
 
 for subject in subjects:
     subject_path = os.path.join(data_path, subject)
@@ -123,13 +130,15 @@ for subject in subjects:
                 #if make_excel:
                 #    result_subj_path = os.path.join(results_path, subject)
                 #    df
+        else:
+            print(f'For {scan_path},\nThe method is {method_name}')
 
         if method_name == 'cs_DtiStandard' or method_name == 'nmrsuDtiStandardAlex':
             result_subj_path = os.path.join(results_path,subject)
             result_scanno_path = os.path.join(results_path,subject,str(scanno))
             mkcdir([result_subj_path, result_scanno_path])
             reconned_nii_path = os.path.join(result_scanno_path,f'{scanno}_CS_DWI_bart_recon.nii.gz')
-            if not os.path.exists(reconned_nii_path) and run_recon and int(dir_shape)>=dir_min_lim and int(sizefid_mb)>=fid_size_lim_mb:
+            if not os.path.exists(reconned_nii_path) and run_recon and int(dir_shape)>=dir_min_lim and int(sizefid_mb)>=fid_size_lim_mb and matlab_engaged:
                 mat_command = (f"{subject_path}, {scanno}, {result_scanno_path}, 0, 0, nargout=0")
                 matlab.Bruker_DWI_CS_recon_JSchanges(subject_path, scanno, result_scanno_path, 0, 0, nargout=0)
         else:
