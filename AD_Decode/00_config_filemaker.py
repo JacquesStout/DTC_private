@@ -47,7 +47,8 @@ if not os.path.exists(project_summary_file) or overwrite:
                             "S02954", "S02967", "S02987", "S03010", "S03017", "S03028", "S03033", "S03034", "S03045",
                             "S03048", "S03069", "S03225","S03265", "S03293", "S03308", "S03321", "S03343", "S03350",
                             "S03378", "S03391", "S03394"],
-        'removed_list' : ["S02745","S02230","S02490","S02523",'S02654']
+        'removed_list' : ["S02745","S02230","S02490","S02523",'S02654'],
+        'references' : ['fa', 'ln']
     }
     write_parameters_to_ini(project_summary_file, params)
 
@@ -82,7 +83,8 @@ if not os.path.exists(project_summary_file) or overwrite:
                             "S02954", "S02967", "S02987", "S03010", "S03017", "S03028", "S03033", "S03034", "S03045",
                             "S03048", "S03069", "S03225","S03265", "S03293", "S03308", "S03321", "S03343", "S03350",
                             "S03378", "S03391", "S03394"],
-        'removed_list' : ["S02745","S02230","S02490","S02523",'S02654']
+        'removed_list' : ["S02745","S02230","S02490","S02523",'S02654'],
+        'references': ['fa', 'ln']
     }
     write_parameters_to_ini(project_summary_file, params)
 

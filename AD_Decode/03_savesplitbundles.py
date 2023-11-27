@@ -39,7 +39,7 @@ import copy
 """
 
 
-project_headfile_folder = '/Users/jas/bass/gitfolder/DTC_private/Bundle_project_heafile'
+project_headfile_folder = '/Users/jas/bass/gitfolder/DTC_private/Bundle_project_headfile'
 project_run_identifier = '202311_10template_test02_configtest'
 
 project_summary_file = os.path.join(project_headfile_folder,project_run_identifier+'.ini')
