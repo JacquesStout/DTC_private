@@ -49,14 +49,14 @@ import copy
 """
 
 
-project_headfile_folder = '/Users/jas/bass/gitfolder/DTC_private/Bundle_project_headfile'
 
 if len(sys.argv)<2:
+    project_headfile_folder = '/Users/jas/bass/gitfolder/DTC_private/BuSA_headfiles'
     project_run_identifier = '202311_10template_test01'
+    project_summary_file = os.path.join(project_headfile_folder, project_run_identifier + '.ini')
 else:
-    project_run_identifier = sys.argv[1]
-
-project_summary_file = os.path.join(project_headfile_folder,project_run_identifier+'.ini')
+    project_summary_file = sys.argv[1]
+    project_run_identifier = os.path.basename(project_summary_file).split('.')[0]
 
 if not os.path.exists(project_summary_file):
     txt = f'Could not find configuration file at {project_summary_file}'

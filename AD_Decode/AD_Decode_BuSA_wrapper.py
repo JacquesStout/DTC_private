@@ -4,7 +4,7 @@ from DTC.file_manager.file_tools import mkcdir, getfromfile
 from DTC.file_manager.computer_nav import read_parameters_from_ini
 # import nibabel as nib
 import numpy as np
-
+import socket
 
 try:
     BD = os.environ['BIGGUS_DISKUS']
@@ -24,7 +24,11 @@ sbatch_folder_path = BD + "/ADRC_preprocessing_pipeline/" + job_descrp + '_sbatc
 
 GD = '/mnt/clustertmp/common/rja20_dev/gunnies/'
 
-project_headfile_folder = '/Users/jas/bass/gitfolder/DTC_private/Bundle_project_headfile'
+if 'santorini' in socket.gethostname().split('.')[0]:
+    project_headfile_folder = '/Users/jas/bass/gitfolder/DTC_private/BuSA_headfiles'
+if 'blade' in socket.gethostname().split('.')[0]:
+    project_headfile_folder = '/mnt/munin2/Badea/Lab/jacques/BuSA_headfiles'
+
 project_run_identifier = '202311_10template_test01'
 project_summary_file = os.path.join(project_headfile_folder,project_run_identifier+'.ini')
 
@@ -49,7 +53,7 @@ if '5' in parts:
     for subj in full_subjects_list:
         for side in sides:
             for bundle_id in bundle_ids:
-                python_command = f"python /home/jas297/linux/DTC_private/AD_Decode/stats_splitbundles.py {subj} {side} {bundle_id}"
+                python_command = f"python /home/jas297/linux/DTC_private/AD_Decode/stats_splitbundles.py {project_summary_file} {subj} {side} {bundle_id}"
                 job_name = job_descrp + "_" + subj
                 command = os.path.join(GD ,"submit_sge_cluster_job.bash") + " " + sbatch_folder_path + " " + job_name + " 0 0 '" + python_command + "'"
                 os.system(command)
