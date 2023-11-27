@@ -40,7 +40,7 @@ list_of_subjs = [subj.split('prep_')[1] for subj in list_of_subjs_long]
 
 completion_checker = True
 cleanup = False
-test = False
+test = True
 
 list_of_subjs.sort()
 list_of_subjs_true = copy.deepcopy(list_of_subjs)
@@ -49,7 +49,7 @@ print(list_of_subjs_true)
 proc_name ="diffusion_prep_"
 
 if completion_checker:
-    perm_folder = os.path.join(BD, 'ADRC_jacques_pipeline', 'perm_files')
+    #perm_folder = os.path.join(BD, 'ADRC_jacques_pipeline', 'perm_files')
     for subj in list_of_subjs:
         subj_path = os.path.join(data_folder_path, proc_name + subj)
 
