@@ -6,6 +6,37 @@ import numpy as np
 import pickle
 import nibabel as nib
 import shutil, re
+import pandas as pd
+import configparser
+
+
+def write_parameters_to_ini(file_path, parameters):
+    config = configparser.ConfigParser()
+    config.read_dict({'parameters': parameters})
+
+    with open(file_path, 'w') as config_file:
+        config.write(config_file)
+
+
+def read_parameters_from_ini(file_path):
+    config = configparser.ConfigParser()
+    config.read(file_path)
+
+    # Retrieve parameters from the 'parameters' section
+    parameters = dict(config.items('parameters'))
+
+    # Convert values to appropriate types
+    for key, value in parameters.items():
+        if value.lower() == 'true':
+            parameters[key] = True
+        elif value.lower() == 'false':
+            parameters[key] = False
+        elif '[' in value:
+            parameters[key] = [val.replace('[','').replace(']','').strip() for val in value.split(',')]
+        else:
+            parameters[key] = str(value)
+
+    return parameters
 
 
 def getremotehome(computer):
@@ -147,7 +178,7 @@ def load_nifti_remote(niipath, sftp=None, return_nii = False):
 
     if sftp is None:
         img = nib.load(niipath)
-        data = img.get_data()
+        data = img.get_fdata()
         vox_size = img.header.get_zooms()[:3]
         affine = img.affine
         header = img.header
@@ -181,6 +212,28 @@ def save_nifti_remote(niiobject,niipath, sftp):
         sftp.put(make_temppath(niipath),niipath)
         os.remove(make_temppath(niipath))
     return
+
+
+def save_df_remote(df,df_path, sftp):
+
+    if sftp is None:
+        df.to_excel(df_path)
+    else:
+        df.to_excel(make_temppath(df_path))
+        sftp.put(make_temppath(df_path),df_path)
+        os.remove(make_temppath(df_path))
+    return
+
+
+def load_df_remote(df_path, sftp):
+
+    if sftp is None:
+        db = pd.read_excel(df_path)
+    else:
+        sftp.get(df_path,make_temppath(df_path))
+        db = pd.read_excel(make_temppath(df_path))
+        os.remove(make_temppath(df_path))
+    return db
 
 
 def remove_remote(path, sftp=None):

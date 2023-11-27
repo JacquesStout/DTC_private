@@ -86,8 +86,9 @@ def label_mask_inplace(label_nii,target_nii):
     return(new_label_mat)
 
 
-#time series
-def parcellated_matrix(sub_timeseries, atlas_idx, roi_list):
+
+"""
+def parcellated_matrix_voxelindependent(sub_timeseries, atlas_idx, roi_list):
     timeseries_dict = {}
     for i in roi_list:
         roi_mask = np.asarray(atlas_idx == i, dtype=bool)
@@ -100,9 +101,10 @@ def parcellated_matrix(sub_timeseries, atlas_idx, roi_list):
         #print(sum(sub_timeseries_mean[int(roi)]==0))
     #corr_matrix = np.corrcoef(sub_timeseries_mean)
     return sub_timeseries_mean
+"""
 
-
-def parcellated_matrix_voxelindependent(sub_timeseries, atlas_idx, roi_list):
+#time series
+def parcellated_matrix(sub_timeseries, atlas_idx, roi_list):
     timeseries_dict = {}
     for i in roi_list:
         roi_mask = np.asarray(atlas_idx == i, dtype=bool)
@@ -132,7 +134,7 @@ def parcellated_FC_matrix(sub_timeseries, atlas_idx, roi_list):
     return corr_matrix
 
 
-if socket.gethostname().split('.')[0] == 'santorini':
+if 'santorini' in socket.gethostname().split('.')[0]:
     root = '/Volumes/Data/Badea/Lab/'
     #root_proj = '/Volumes/Data/Badea/Lab/mouse/Jasien_mrtrix_pipeline/'
     root_proj = '/Volumes/Data/Badea/Lab/human/Jasien/'
@@ -149,10 +151,11 @@ conn_path = os.path.join(root_proj, 'connectomes')
 func_conn_path = os.path.join(conn_path,'functional_conn')
 
 SAMBA_path_results = '/Volumes/Data/Badea/Lab/mouse/VBM_21ADDecode03_IITmean_RPI_fullrun-results/connectomics/'
-f
+
 slice_func = False #Do you want to split the functionnal time series into just the first three hundred points
 
 subjects = ['J01277', 'J01402', 'J04472', 'J04129', 'J01257', 'J04300', 'J04086','J01501','J01516','J04602','J01541']
+subjects = ['J04129']
 #subjects = ['J01402','J01501']
 
 check_label = True

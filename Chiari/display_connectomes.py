@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import os
 from DTC.diff_handlers.connectome_handlers.excel_management import get_group
 
-connectome_path = '/Volumes/Data/Badea/Lab/mouse/Jasien_mrtrix_pipeline/connectomes/'
+connectome_path = '/Volumes/Data/Badea/Lab/human/Jasien/connectomes/'
 connectome_func_path = os.path.join(connectome_path,'functional_conn')
 connectome_output = '/Users/jas/jacques/Jasien/connectome_figures'
 
@@ -50,10 +50,10 @@ connectome_group = {}
 num_group = {}
 
 #[struct,func_ts,func_FC] ###func_ts doesn't work yet, due to it being over 600 time points
-con_type = 'func_FC'
+con_type = 'struct'
 
-make_group_connectomes = False
-
+make_group_connectomes = True
+colorbars = True
 full_title = True
 
 for i,subject in enumerate(subjects):
@@ -65,7 +65,7 @@ for i,subject in enumerate(subjects):
         connectome_subject_path = os.path.join(connectome_func_path, f'time_serts_{subject}.csv')
         connectome_figure_path = os.path.join(connectome_output,f'{subject}_serts.png')
     elif con_type =='func_FC':
-        connectome_subject_path = os.path.join(connectome_func_path, f'time_serFC_{subject}.csv')
+        connectome_subject_path = os.path.join(connectome_func_path, f'time_serFC_{subject}_nartest.csv')
         connectome_figure_path = os.path.join(connectome_output, f'{subject}_serFC.png')
 
     if not os.path.exists(connectome_subject_path):
@@ -75,17 +75,19 @@ for i,subject in enumerate(subjects):
     df = pd.read_csv(connectome_subject_path, index_col=0)
     connectivity_matrix = df.to_numpy()
 
-    plt.figure(figsize=(8, 6))
+    plt.figure(figsize=(6, 6))
 
     try:
         plt.imshow(connectivity_matrix, cmap=color, interpolation='nearest')
     except:
         print(f'Color {color} is invalid')
-    #plt.colorbar(label='Connectivity Strength')
+    if colorbars:
+        plt.colorbar(label='Connectivity Strength')
     if full_title:
         txt = f'Connectivity Subject {subject}'
         for group in group_columns:
-            txt+=f', {group_vals[group_vals[subj_column]==subject][group]}'
+            txt+=f', {group_vals[group_vals[subj_column]==subject][group].iloc[0]}'
+            #print(txt)
         plt.title(txt)
     else:
         plt.title(f'Connectivity Subject {subject}')
@@ -95,6 +97,7 @@ for i,subject in enumerate(subjects):
 
     # Display the figure
     plt.savefig(connectome_figure_path)
+    print(f'Saved at {connectome_figure_path}')
     plt.close()
 
     if make_group_connectomes:
@@ -104,15 +107,15 @@ for i,subject in enumerate(subjects):
                 connectome_group[group_col] = connectivity_matrix
                 num_group[group_col] = 1
             else:
-                connectome_group[group_col]+=connectivity_matrix
-                num_group[group_col] += 1
+                connectome_group[group_col] = connectome_group[group_col] + connectivity_matrix
+                num_group[group_col] = num_group[group_col] + 1
 
 if make_group_connectomes:
     for key in connectome_group.keys():
 
         group_type = group_types[key]
 
-        connectome_figure_path = os.path.join(connectome_output,f'{group_type}_{key}_average.png')
+        connectome_figure_path = os.path.join(connectome_output,f'{group_type}_{key}_{con_type}_average.png')
 
         connectome_group_f = connectome_group[key]/num_group[key]
 
@@ -122,7 +125,8 @@ if make_group_connectomes:
             plt.imshow(connectome_group_f, cmap=color, interpolation='nearest')
         except:
             print(f'Color {color} is invalid')
-        #plt.colorbar(label='Connectivity Strength')
+        if colorbars:
+            plt.colorbar(label='Connectivity Strength')
 
         txt = f'Average Connectivity, {group_type} {key}'
         plt.title(txt)
@@ -133,6 +137,7 @@ if make_group_connectomes:
 
         # Display the figure
         plt.savefig(connectome_figure_path)
+        #plt.show()
         plt.close()
 
 """

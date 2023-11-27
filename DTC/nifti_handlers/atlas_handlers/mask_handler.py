@@ -135,6 +135,34 @@ def create_mask_threshold(imgpath, threshold = 1, outpath = None):
     return outpath
 
 
+def create_mask_labelval(imgpath, labelval = 1, outpath = None):
+    if outpath is None:
+        outpath = imgpath.replace('.nii','_mask.nii')
+    if outpath==imgpath:
+        raise Exception('Cant replace nifti by mask of nifti')
+    if 'mask' in imgpath:
+        warnings.warn('Creating a mask from a mask, seems dicey')
+        return outpath
+    if os.path.exists(outpath):
+        print(f'Already created mask {outpath}')
+        return outpath
+
+    img_nii = nib.load(imgpath)
+    img_data = img_nii.get_fdata()
+    mask_shape = np.shape(img_data)
+    mask_data = np.zeros(mask_shape)
+    for i in np.arange(mask_shape[0]):
+        for j in np.arange(mask_shape[1]):
+            for k in np.arange(mask_shape[2]):
+                if img_data[i, j, k] == labelval:
+                    mask_data[i,j,k] = 1
+
+    img_nii_new = nib.Nifti1Image(mask_data, img_nii.affine, img_nii.header)
+    nib.save(img_nii_new, outpath)
+    return outpath
+
+
+
 def applymask_array(data, mask):
 
     data_new = copy.deepcopy(data)

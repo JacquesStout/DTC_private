@@ -11,97 +11,94 @@ import os, socket, time
 import nibabel as nib
 from DTC.tract_manager.tract_handler import gettrkpath
 from DTC.file_manager.file_tools import mkcdir, check_files, getfromfile
-from DTC.file_manager.computer_nav import checkfile_exists_remote, get_mainpaths, load_nifti_remote, load_trk_remote, loadmat_remote, pickledump_remote
+from DTC.file_manager.computer_nav import checkfile_exists_remote, get_mainpaths, load_nifti_remote, load_trk_remote, \
+    loadmat_remote, pickledump_remote, write_parameters_to_ini, read_parameters_from_ini
 from DTC.tract_manager.DTC_manager import get_str_identifier, check_dif_ratio
 from DTC.tract_manager.tract_save import save_trk_header
 from DTC.file_manager.argument_tools import parse_arguments
 import sys
 from DTC.tract_manager.tract_to_roi_handler import filter_streamlines
 from DTC.tract_manager.tract_handler import ratio_to_str
+import configparser
 
 
-MDT_mask_folder = '/Volumes/Data/Badea/Lab/mouse/VBM_21ADDecode03_IITmean_RPI_fullrun-results/atlas_to_MDT'
+project_headfile_folder = '/Users/jas/bass/gitfolder/DTC_private/Bundle_project_heafile'
+project_run_identifier = '202311_10template_test02_configtest'
 
-test= False
-project='AD_Decode'
-type = 'mrtrix'
-if project=='AD_Decode':
-    #TRK_folder = '/mnt/paros_WORK/jacques/AD_Decode/TRK_MDT_real_testtemp'
-    #TRK_folder = '/mnt/paros_WORK/jacques/AD_Decode/TRK_MDT'
-    MDT_mask_folder
-    if test:
-        subjects = ['S01912', 'S02110', 'S02224', 'S02227']
-    else:
-        subjects = ['S01912', 'S02110', 'S02224', 'S02227', 'S02230', 'S02231', 'S02266', 'S02289', 'S02320', 'S02361',
-                    'S02363',
-                    'S02373', 'S02386', 'S02390', 'S02402', 'S02410', 'S02421', 'S02424', 'S02446', 'S02451', 'S02469',
-                    'S02473',
-                    'S02485', 'S02491', 'S02490', 'S02506', 'S02523', 'S02524', 'S02535', 'S02654', 'S02666', 'S02670',
-                    'S02686',
-                    'S02690', 'S02695', 'S02715', 'S02720', 'S02737', 'S02745', 'S02753', 'S02765', 'S02771', 'S02781',
-                    'S02802',
-                    'S02804', 'S02813', 'S02812', 'S02817', 'S02840', 'S02842', 'S02871', 'S02877', 'S02898', 'S02926',
-                    'S02938',
-                    'S02939', 'S02954', 'S02967', 'S02987', 'S03010', 'S03017', 'S03028', 'S03033', 'S03034', 'S03045',
-                    'S03048',
-                    'S03069', 'S03225', 'S03265', 'S03293', 'S03308', 'S03321', 'S03343', 'S03350', 'S03378', 'S03391',
-                    'S03394', 'S03847', 'S03866', 'S03867', 'S03889', 'S03890', 'S03896']
-        #subjects = ['S02771']
-    removed_list = ['S02230', 'S02654', 'S02490', 'S02523', 'S02745']
-    for remove in removed_list:
-        if remove in subjects:
-            subjects.remove(remove)
+project_summary_file = os.path.join(project_headfile_folder,project_run_identifier+'.ini')
 
-    # Get the values from DTC_launcher_ADDecode. Should probalby create a single parameter file for each project one day
-    stepsize = 2
-    ratio = 100
+labroot = '/Volumes/Data/Badea/Lab/'
+
+if not os.path.exists(project_summary_file):
+    txt = f'Could not find configuration file at {project_summary_file}'
+    raise Exception(txt)
+else:
+    params = read_parameters_from_ini(project_summary_file)
+
+#locals().update(params) #This line will add to the code the variables specified above from the config file, namely
+#project, streamline_type, text_folder, test, MDT_mask_folder, ratio, stepsize
+
+project = params['project']
+streamline_type = params['streamline_type']
+test = params['test']
+ratio = params['ratio']
+stepsize = params['stepsize']
+template_subjects = params['template_subjects']
+
+overwrite = True
+verbose = False
+
+if project == 'AD_Decode':
+    SAMBA_MDT = '/Volumes/Data/Badea/Lab/mouse/VBM_21ADDecode03_IITmean_RPI_fullrun-work/dwi/SyN_0p5_3_0p5_fa/faMDT_NoNameYet_n37_i6/median_images/MDT_dwi.nii.gz'
+    MDT_mask_folder = '/Volumes/Data/Badea/Lab/mouse/VBM_21ADDecode03_IITmean_RPI_fullrun-results/atlas_to_MDT'
+    ref_MDT_folder = '/Volumes/Data/Badea/Lab/mouse/VBM_21ADDecode03_IITmean_RPI_fullrun-work/dwi/SyN_0p5_3_0p5_fa/faMDT_NoNameYet_n37_i6/reg_images/'
+    anat_path = '/Volumes/Data/Badea/Lab/mouse/VBM_21ADDecode03_IITmean_RPI_fullrun-work/dwi/SyN_0p5_3_0p5_fa/faMDT_NoNameYet_n37_i6/median_images/MDT_fa.nii.gz'
+
+
+if streamline_type == 'mrtrix':
+    prune = False
+    trkroi = [""]
+else:
+    prune = True
     trkroi = ["wholebrain"]
 
-    if type == 'mrtrix':
-        prune = False
-    else:
-        prune = True
-    str_identifier = get_str_identifier(stepsize, ratio, trkroi,type = 'mrtrix')
-    SAMBA_MDT = '/Volumes/Data/Badea/Lab/mouse/VBM_21ADDecode03_IITmean_RPI_fullrun-work/dwi/SyN_0p5_3_0p5_fa/faMDT_NoNameYet_n37_i6/median_images/MDT_dwi.nii.gz'
-    #subjects = ['S02715']
+str_identifier = get_str_identifier(stepsize, ratio, trkroi, type='mrtrix')
 
-subject_processes, function_processes, firstsubj, lastsubj = parse_arguments(sys.argv,subjects)
-subjects = subjects[firstsubj:lastsubj]
-print(subjects)
+subject_processes, function_processes, firstsubj, lastsubj = parse_arguments(sys.argv,template_subjects)
+template_subjects = template_subjects[firstsubj:lastsubj]
+print(template_subjects)
 
 #method = ['trk_roiseeded', 'trk_roisplit']
-ext = ".nii.gz"
 computer_name = socket.gethostname()
 
 remote=True
-project='AD_Decode'
 if remote:
     username, passwd = getfromfile(os.path.join(os.environ['HOME'],'remote_connect.rtf'))
 else:
     username = None
     passwd = None
-inpath, _, _, sftp = get_mainpaths(remote,project = project, username=username,password=passwd)
 
+inpath, _, _, sftp = get_mainpaths(remote,project = project, username=username,password=passwd)
 
 ratio_str = ratio_to_str(ratio,spec_all=False)
 
 #path_TRK = os.path.join(inpath, 'TRK_MPCA_MDT'+ratio_str)
 path_TRK = os.path.join(inpath, 'TRK_MDT'+ratio_str)
-proj_path = os.path.join(inpath, 'TRK_bundle_splitter')
+
+outpath_all = os.path.join(inpath, 'TRK_bundle_splitter')
+proj_path = os.path.join(outpath_all,project_run_identifier)
 
 pickle_folder = os.path.join(proj_path, 'pickle_roi'+ratio_str)
 outpath_trk = os.path.join(proj_path, 'trk_roi'+ratio_str)
 
-overwrite = True
-verbose = False
 
-mkcdir([proj_path, pickle_folder, outpath_trk], sftp)
+mkcdir([outpath_all, proj_path, pickle_folder, outpath_trk], sftp)
 
 method = 'dwi_roi_to_trk'
 
 if method=='dwi_roi_to_trk':
 
-    for subject in subjects:
+    for subject in template_subjects:
 
         picklepath_r = os.path.join(pickle_folder, f'{subject}_roi_rstream.p')
         trkpath_right = os.path.join(outpath_trk, f'{subject}_roi_rstream.trk')

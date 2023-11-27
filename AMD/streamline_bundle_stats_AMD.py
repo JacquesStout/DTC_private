@@ -9,7 +9,7 @@ import nibabel as nib, socket
 from DTC.file_manager.file_tools import mkcdir
 from DTC.tract_manager.streamline_nocheck import load_trk as load_trk_spe
 from dipy.segment.clustering import QuickBundles
-from dipy.segment.metric import ResampleFeature, AveragePointwiseEuclideanMetric
+#from dipy.segment.metric import ResampleFeature, AveragePointwiseEuclideanMetric
 import warnings
 from dipy.align.streamlinear import StreamlineLinearRegistration
 import copy

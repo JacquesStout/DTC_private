@@ -60,6 +60,10 @@ work_dir = os.path.join(root_proj,'work_dir')
 
 run_fmriprep = False
 
+overwrite=False
+
+datatype_fix = True
+
 for subj in subjects:
     subj_folder_orig = os.path.join(data_path, subj,'visit1')
 
@@ -79,6 +83,7 @@ for subj in subjects:
     """
     t1_path_orig = os.path.join(subj_folder_orig,'T1.nii.gz')
     t1_json_path_orig = t1_path_orig.replace('.nii.gz', '.json')
+    t1_bxh_orig = t1_path_orig.replace('.nii.gz','.bxh')
 
     t1_nii_path = os.path.join(anat_folder,f'sub-{subj}_T1w.nii.gz')
     t1_json_path = os.path.join(anat_folder,f'sub-{subj}_T1w.json')
@@ -92,23 +97,39 @@ for subj in subjects:
             shutil.copy(t1_path_orig,t1_nii_path)
 
     # save dict in 'header.json'
-    if not os.path.exists(t1_json_path):
+    if not os.path.exists(t1_json_path) or True:
         # read image
-        if not os.path.exists(t1_json_path_orig):
+        if not os.path.exists(t1_json_path_orig) or overwrite:
+
             itk_image = sitk.ReadImage(t1_nii_path)
 
             # get metadata dict
             header = {k: itk_image.GetMetaData(k) for k in itk_image.GetMetaDataKeys()}
-            with open(t1_json_path, "w") as outfile:
+            with open(t1_json_path_orig, "w") as outfile:
                 json.dump(header, outfile, indent=4)
-        else:
-            shutil.copy(t1_json_path_orig,t1_json_path)
+            """
+            command = f'bxh2json --input {t1_bxh_orig}'
+            os.system(command)
+            """
 
+        shutil.copy(t1_json_path_orig,t1_json_path)
+        if datatype_fix:
+            with open(t1_json_path, 'r') as file:
+                lines = file.readlines()
 
-    func_path_orig = glob.glob(os.path.join(subj_folder_orig,'resting_state.nii.gz'))
-    if np.size(func_path_orig)==1:
-        func_path_orig = func_path_orig[0]
-        func_json_orig = func_path_orig.replace('.nii.gz','.json')
+            datatype_index = next((i for i, line in enumerate(lines) if line.strip().startswith('"datatype":')), None)
+            if datatype_index is not None:
+                lines[datatype_index] = '    "datatype": "anat",' + '\n'
+                with open(t1_json_path, 'w') as file:
+                    file.writelines(lines)
+            else:
+                print('to investigate')
+
+    func_nii_orig = glob.glob(os.path.join(subj_folder_orig,'resting_state.nii.gz'))
+    if np.size(func_nii_orig)==1:
+        func_nii_orig = func_nii_orig[0]
+        func_json_orig = func_nii_orig.replace('.nii.gz','.json')
+        func_bxh_orig = func_nii_orig.replace(".nii.gz", '.bxh')
 
     #os.path.join(data_path,subj,'visit1/resting_state.nii.gz')  # change this with your file
 
@@ -117,10 +138,11 @@ for subj in subjects:
 
     if not os.path.exists(func_nii_path):
         mkcdir([subj_folder, func_folder], None)
-        shutil.copy(func_path_orig,func_nii_path)
+        shutil.copy(func_nii_orig,func_nii_path)
 
     # save dict in 'header.json'
-    if not os.path.exists(func_json_path):
+    if not os.path.exists(func_json_path) or overwrite:
+        """
         if not os.path.exists(func_json_orig):
             # read image
             itk_image = sitk.ReadImage(func_nii_path)
@@ -131,7 +153,46 @@ for subj in subjects:
                 json.dump(header, outfile, indent=4)
         else:
             shutil.copy(func_json_orig,func_json_path)
+        """
+        if not os.path.exists(func_json_orig):
+            func_bxh_orig_2 = func_bxh_orig.replace('.bxh','_fixed.bxh')
+            func_json_orig_2 = func_json_orig.replace('.json','_fixed.json')
+            new_line = '      <datapoints label="acquisitiontimeindex">1 12 2 13 3 14 4 15 5 16 6 17 7 18 8 19 9 20 10 21 ' \
+                       '11 1 12 2 13 3 14 4 15 5 16 6 17 7 18 8 19 9 20 10 21 11 1 12 2 13 3 14 4 15 5 16 6 17 7 18 8 19 9 ' \
+                       '20 10 21</datapoints>'
 
+            with open(func_bxh_orig, 'r') as file:
+                lines = file.readlines()
+
+            # Find the index of the line starting with '<Tada>'
+            z_index = next((i for i, line in enumerate(lines) if line.strip().startswith('<dimension type="z">')), None)
+            spacing_index = next((i for i, line in enumerate(lines[z_index:]) if line.strip().startswith('<spacing>')),
+                                 None) + z_index
+            new_line_index = next(
+                (i for i, line in enumerate(lines) if line.strip().startswith('<datapoints label="acquisitiontimeindex">')),
+                None)
+
+            if new_line_index is None and spacing_index is not None:
+                # Insert the new line right below the '<Tada>' line
+                lines.insert(spacing_index + 1, new_line + '\n')
+
+                # Open the file for writing and overwrite its contents
+                with open(func_bxh_orig_2, 'w') as file:
+                    file.writelines(lines)
+            #elif new_line_index is not None:
+            #    print(f'Already did file {bxh_file_path}')
+            elif spacing_index is None:
+                print("'<spacing>' line not found in the file.")
+
+            command = f'bxh2json --input {func_bxh_orig_2}'
+            os.system(command)
+
+            if not os.path.exists(func_json_orig):
+                command = f'bxh2json --input {func_bxh_orig}'
+                os.system(command)
+            shutil.move(func_json_orig_2,func_json_orig)
+
+        shutil.copy(func_json_orig, func_json_path)
 
 for subj in subjects:
 

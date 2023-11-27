@@ -66,7 +66,7 @@ def parse_arguments(sys_argv, subjects):
         subject_processes = max_processors
 
 
-    function_processes = np.int(max_processors / subject_processes)
+    function_processes = int(max_processors / subject_processes)
 
     return subject_processes, function_processes, firstsubj, lastsubj
 

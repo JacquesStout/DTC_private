@@ -29,9 +29,9 @@ def mkcdir(folderpaths, sftp=None):
     else:
         if np.size(folderpaths) == 1:
             try:
-                sftp.chdir(folderpaths)
+                sftp.chdir(folderpaths[0])
             except:
-                sftp.mkdir(folderpaths)
+                sftp.mkdir(folderpaths[0])
         else:
             for folderpath in folderpaths:
                 try:

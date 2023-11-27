@@ -122,6 +122,7 @@ def chunks(lst, n):
 
 def get_str_identifier(stepsize, ratio, trkroi, type = 'dsi_studio'):
 
+    ratio = int(ratio)
     if type == 'dsi_studio':
         if ratio == 1:
             saved_streamlines = "_all"

@@ -1,5 +1,5 @@
 import os, glob
-#import matlab.engine
+#
 from DTC.file_manager.file_tools import buildlink, mkcdir, getfromfile, glob_remote
 import subprocess
 
@@ -9,9 +9,10 @@ data_path = '/Volumes/dusom_mousebrains/All_Staff/jacques/CS_project/CS_Data_all
 results_path = '/Volumes/dusom_mousebrains/All_Staff/jacques/CS_project/CS_Data_all/Bruker_results/'
 niftis_path = '/Volumes/dusom_mousebrains/All_Staff/jacques/CS_project/CS_Data_all/Bruker_niftis/'
 
-matlab_engaged = False
+run_recon = False
 
-if matlab_engaged:
+if run_recon:
+    import matlab.engine
     matlab = matlab.engine.start_matlab()
 
     matlab.addpath('/Users/jas/bass/gitfolder/Compressed_sensing_recon')
@@ -19,7 +20,7 @@ if matlab_engaged:
 
 
 allowed_methods = ['cs_DtiStandard','DtiEpi','nmrsuDtiStandardAlex']
-allowed_methods = ['cs_DtiStandard']
+allowed_methods = ['cs_DtiStandard','nmrsuDtiStandardAlex']
 #allowed_methods = ['cs_DtiStandard']
 #allowed_methods = ['cs_DtiStandard','pCASL_FcFLASHv2']
 #subjects = ['20230830_142204_230605_20_apoe_18abb11_1_1']
@@ -31,22 +32,28 @@ subjects = ['20221117_163120_Dummy_17November2022_v12_18abb11_DEV_1_1']
 subjects = [folder_path.split('/')[-2] for folder_path in glob.glob(os.path.join(data_path,'20231024*/'))]
 subjects = ['20231024_163510_221101_22_apoe_18abb11_1_1']
 subjects = [folder_path.split('/')[-2] for folder_path in glob.glob(os.path.join(data_path,'*/'))]
-subjects = ['20231024_175640_210222_17_exvivotestCS_apoe_18abb11_1_1']
-subjects = ['20231101_111601_221128_14_apoe_18abb11_1_1']
+subjects = ['20231011_155125_230925_11_apoe_18abb11_apoe_1_1']
+subjects = ['20231107_101335_210222_17_exvivotestCS_v2_18abb11_DEV_1_1']
+subjects = [folder_path.split('/')[-2] for folder_path in glob.glob(os.path.join(data_path,'20221115*/'))]
+#subjects = ['20231004_105847_230918_11_apoe_18abb11_APOE_1_1']
+#subjects = ['20231024_175640_210222_17_exvivotestCS_apoe_18abb11_1_1']
+#subjects = ['20231101_111601_221128_14_apoe_18abb11_1_1']
 #subjects = ['20231024_143134_221128_9_apoe_rev_phase_18abb11_1_1']
 
 #subjects = [folder_path.split('/')[-2] for folder_path in glob.glob(os.path.join(data_path,'202211*/'))]
 #subjects = ['20231017_140603_230925_16_apoe_18abb11_1_1']
 #subjects = ['20221117_163120_Dummy_17November2022_v12_18abb11_DEV_1_1']
 
-run_recon = True
 
 fid_size_lim_mb = 0
-dir_min_lim = 0
+dir_min_lim = 1
 
 verbose = False
 
 read_all_methods = True
+
+#info_type => 'Show_niipath' or 'Show_methodinfo'
+info_type = 'Show_methodinfo'
 
 for subject in subjects:
     subject_path = os.path.join(data_path, subject)
@@ -113,34 +120,23 @@ for subject in subjects:
                     if line.startswith('##$User_CS_factor'):
                         CS_val = line.split('=')[1].strip()
 
-        if method_name in allowed_methods:
-            if not os.path.exists(fidpath):
-                continue
-            else:
-                sizefid_mb = os.path.getsize(fidpath)/(1024*1024)
-                if sizefid_mb<fid_size_lim_mb:
-                    continue
-
-            if int(dir_shape)>=dir_min_lim and int(sizefid_mb)>=fid_size_lim_mb:
-                #scan_time_seconds = scan_time*
-                scan_t_sec_vol = (scan_time_seconds)/int(dir_shape)
-                print(f'For {scan_path},\nThe method is {method_name}\nThe spat_resol is {spat_resol_vals}\nThe size of the fid is {sizefid_mb}MB\nTR/TE is {TR}/{TE}\nThe number of volumes is {dir_shape}\nThe size of the matrix is {size_matrix_vals}\nThe CS undersampling value is {CS_val}\nThe bvalue is {bval}\n'
-                      f'The scan time is {int(scan_time_seconds//3600)}h{int((scan_time_seconds - 3600*(scan_time_seconds//3600))//60)}min{int((scan_time_seconds - 3600*(scan_time_seconds//3600))%60)}s \n'
-                      f'The scan time per volume is {int(scan_t_sec_vol//3600)}h{int((scan_t_sec_vol - 3600*(scan_t_sec_vol//3600))//60)}min{int((scan_t_sec_vol - 3600*(scan_t_sec_vol//3600))%60)}s\n\n\n')
-                #if make_excel:
-                #    result_subj_path = os.path.join(results_path, subject)
-                #    df
+        if not os.path.exists(fidpath):
+            continue
         else:
-            print(f'For {scan_path},\nThe method is {method_name}')
+            sizefid_mb = os.path.getsize(fidpath)/(1024*1024)
+            if sizefid_mb<fid_size_lim_mb:
+                continue
 
         if method_name == 'cs_DtiStandard' or method_name == 'nmrsuDtiStandardAlex':
             result_subj_path = os.path.join(results_path,subject)
             result_scanno_path = os.path.join(results_path,subject,str(scanno))
             mkcdir([result_subj_path, result_scanno_path])
             reconned_nii_path = os.path.join(result_scanno_path,f'{scanno}_CS_DWI_bart_recon.nii.gz')
-            if not os.path.exists(reconned_nii_path) and run_recon and int(dir_shape)>=dir_min_lim and int(sizefid_mb)>=fid_size_lim_mb and matlab_engaged:
+            scanno_nii_path = reconned_nii_path
+            if run_recon and not os.path.exists(reconned_nii_path) and int(dir_shape)>=dir_min_lim and int(sizefid_mb)>=fid_size_lim_mb:
                 mat_command = (f"{subject_path}, {scanno}, {result_scanno_path}, 0, 0, nargout=0")
                 matlab.Bruker_DWI_CS_recon_JSchanges(subject_path, scanno, result_scanno_path, 0, 0, nargout=0)
+
         else:
             cmd = f'/Users/jas/bass/gitfolder/nanconvert/Scripts/nanbruker -z -v -l -o {niftis_path} {subject_path}/'
             if not os.path.isdir(os.path.join(niftis_path, subject)):
@@ -151,5 +147,29 @@ for subject in subjects:
             elif verbose:
                 print(f'Result folder for {subject} already detected; skipping.')
 
+            try:
+                scanno_nii_path = glob.glob(os.path.join(niftis_path,subject,f'{scanno}_*'))[0]
+            except IndexError:
+                scanno_nii_path = None
+
+        if method_name in allowed_methods:
+
+            if int(dir_shape)>=dir_min_lim and int(sizefid_mb)>=fid_size_lim_mb:
+                #scan_time_seconds = scan_time*
+                scan_t_sec_vol = (scan_time_seconds)/int(dir_shape)
+                if info_type == 'Show_methodinfo':
+                    print(f'For {scan_path},\nThe method is {method_name}\nThe spat_resol is {spat_resol_vals}\nThe size of the fid is {sizefid_mb}MB\nTR/TE is {TR}/{TE}\nThe number of volumes is {dir_shape}\nThe size of the matrix is {size_matrix_vals}\nThe CS undersampling value is {CS_val}\nThe bvalue is {bval}\n'
+                          f'The scan time is {int(scan_time_seconds//3600)}h{int((scan_time_seconds - 3600*(scan_time_seconds//3600))//60)}min{int((scan_time_seconds - 3600*(scan_time_seconds//3600))%60)}s \n'
+                          f'The scan time per volume is {int(scan_t_sec_vol//3600)}h{int((scan_t_sec_vol - 3600*(scan_t_sec_vol//3600))//60)}min{int((scan_t_sec_vol - 3600*(scan_t_sec_vol//3600))%60)}s\n\n\n')
+                #if make_excel:
+                #    result_subj_path = os.path.join(results_path, subject)
+                #    df
+                elif info_type == 'Show_niipath':
+                    print(f'{scanno_nii_path}')
+        elif read_all_methods:
+            if info_type == 'Show_methodinfo':
+                print(f'For {scan_path},\nThe method is {method_name}')
+            else:
+                print(f'{scanno_nii_path}')
 
         #print(f'For {scan_path},\n the method is {method_name},\n the spat_resol is {spat_resol_vals}')
