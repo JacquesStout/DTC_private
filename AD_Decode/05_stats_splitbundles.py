@@ -204,6 +204,8 @@ for subject in full_subjects_list:
     for ref in references:
         if ref!='ln':
             column_names+=([f'point_{ID}_fa' for ID in np.arange(num_points)])
+        if ref=='ln':
+            column_names+=(['Length'])
 
     print(f'Files will be saved at {stat_folder}')
     for side in sides:
@@ -231,8 +233,11 @@ for subject in full_subjects_list:
     
             for ref in references:
                 if ref=='ln':
-                    dataf_subj[dataf_subj['Streamline_ID'] == sl][column_names_ref] = ref_values
-                    dataf_subj['Length'] = list(tract_length(bundle_streamlines[:]))
+
+                    row_index = dataf_subj.index[dataf_subj['Streamline_ID'] == sl].tolist()[0]
+                    column_indices = dataf_subj.columns.get_loc('Length')
+                    dataf_subj.iloc[:, column_indices] = list(tract_length(bundle_streamlines[:]))
+
                 if ref != 'ln':
                     ref_img_path = get_diff_ref(ref_MDT_folder, subject, ref, sftp=None)
                     ref_data, ref_affine, _, _, _ = load_nifti_remote(ref_img_path, sftp=None)
