@@ -6,7 +6,7 @@ Created on Thu Apr  7 15:18:05 2022
 """
 
 import numpy as np
-import os, fury
+import os
 from dipy.segment.clustering import QuickBundles
 from dipy.segment.featurespeed import ResampleFeature
 from dipy.segment.metric import AveragePointwiseEuclideanMetric
@@ -106,6 +106,10 @@ str_identifier = get_str_identifier(stepsize, ratio, trkroi, type='mrtrix')
 
 ratiostr = ratio_to_str(ratio,spec_all=False)
 
+if 'santorini' in socket.gethostname().split('.')[0]:
+    lab_folder = '/Volumes/Data/Badea/Lab'
+if 'blade' in socket.gethostname().split('.')[0]:
+    lab_folder = '/mnt/munin2/Badea/Lab'
 
 if project == 'AD_Decode':
     SAMBA_MDT = '/Volumes/Data/Badea/Lab/mouse/VBM_21ADDecode03_IITmean_RPI_fullrun-work/dwi/SyN_0p5_3_0p5_fa/faMDT_NoNameYet_n37_i6/median_images/MDT_dwi.nii.gz'

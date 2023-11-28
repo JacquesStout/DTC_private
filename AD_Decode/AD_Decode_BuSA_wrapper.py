@@ -53,7 +53,7 @@ if '5' in parts:
     for subj in full_subjects_list:
         for side in sides:
             for bundle_id in bundle_ids:
-                python_command = f"python /home/jas297/linux/DTC_private/AD_Decode/stats_splitbundles.py {project_summary_file} {subj} {side} {bundle_id}"
+                python_command = f"python /home/jas297/linux/DTC_private/AD_Decode/05_stats_splitbundles.py {project_summary_file} {subj} {side} {bundle_id}"
                 job_name = job_descrp + "_" + subj
                 command = os.path.join(GD ,"submit_sge_cluster_job.bash") + " " + sbatch_folder_path + " " + job_name + " 0 0 '" + python_command + "'"
                 os.system(command)
