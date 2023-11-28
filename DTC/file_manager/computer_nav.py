@@ -75,6 +75,13 @@ def get_scp(server,username=None,password=None):
     return sftp
 
 
+def create_sftp_connection(hostname, port, username, password):
+    transport = paramiko.Transport((hostname, port))
+    transport.connect(username=username, password=password)
+    sftp = paramiko.SFTPClient.from_transport(transport)
+    return transport, sftp
+
+
 def get_mainpaths(remote=False, project='any',username=None,password=None):
     computer_name = socket.gethostname()
     project_rename = {'Chavez':'21.chavez.02','AD_Decode':'AD_Decode','APOE':'APOE','AMD':'AMD','Daniel':'Daniel', 'Vitek':'Vitek', 'ADRC':'ADRC'}
@@ -88,7 +95,10 @@ def get_mainpaths(remote=False, project='any',username=None,password=None):
         atlas_folder = os.path.join(home,'atlases')
     else:
         remote_path = getremotehome('remote')
-        server = remote_path.split('.')[0]
+        if '.' in remote_path:
+            server = remote_path.split('.')[0]
+        elif ':' in remote_path:
+            server = remote_path.split(':')[0]
         home = getremotehome(server)
         inpath = home
         """

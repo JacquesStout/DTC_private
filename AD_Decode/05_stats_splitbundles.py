@@ -202,7 +202,8 @@ for subject in full_subjects_list:
 
     column_names = ['Streamline_ID']
     for ref in references:
-        column_names+=([f'point_{ID}_fa' for ID in np.arange(num_points)])
+        if ref!='ln':
+            column_names+=([f'point_{ID}_fa' for ID in np.arange(num_points)])
 
     print(f'Files will be saved at {stat_folder}')
     for side in sides:
