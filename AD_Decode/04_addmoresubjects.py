@@ -6,6 +6,7 @@ Created on Thu Apr  7 15:18:05 2022
 """
 
 import numpy as np
+import sys
 import os, fury
 from dipy.segment.clustering import QuickBundles
 from dipy.segment.featurespeed import ResampleFeature
@@ -29,23 +30,14 @@ from dipy.segment.metric import mdf
 from dipy.tracking.streamline import set_number_of_points
 from DTC.tract_manager.tract_to_roi_handler import filter_streamlines
 
-"""
-from os.path import expanduser, join
-from dipy.segment.clustering import ClusterCentroid, ClusterMapCentroid
-import warnings
-from dipy.segment.bundles import bundle_shape_similarity
-from dipy.segment.bundles import bundle_shape_similarity
-import pickle
-from dipy.tracking.streamline import set_number_of_points
-from dipy.tracking.streamline import transform_streamlines
-import pandas as pd
-import copy
-"""
 
-project_headfile_folder = '/Users/jas/bass/gitfolder/DTC_private/BuSA_headfiles'
-project_run_identifier = '202311_10template_test02_configtest'
-
-project_summary_file = os.path.join(project_headfile_folder,project_run_identifier+'.ini')
+if len(sys.argv)<2:
+    project_headfile_folder = '/Users/jas/bass/gitfolder/DTC_private/BuSA_headfiles'
+    project_run_identifier = '202311_10template_test01'
+    project_summary_file = os.path.join(project_headfile_folder, project_run_identifier + '.ini')
+else:
+    project_summary_file = sys.argv[1]
+    project_run_identifier = os.path.basename(project_summary_file).split('.')[0]
 
 if not os.path.exists(project_summary_file):
     txt = f'Could not find configuration file at {project_summary_file}'
@@ -63,6 +55,7 @@ added_subjects = params['added_subjects']
 setpoints = params['setpoints']
 figures_outpath = params['figures_outpath']
 distance = params['distance']
+removed_list = params['removed_list']
 num_points = 50
 distance = 50
 num_bundles = 6
@@ -84,11 +77,16 @@ else:
 inpath, _, _, sftp_in = get_mainpaths(remote,project = project, username=username,password=passwd)
 sftp_out = sftp_in
 
+if 'santorini' in socket.gethostname().split('.')[0]:
+    lab_folder = '/Volumes/Data/Badea/Lab'
+if 'blade' in socket.gethostname().split('.')[0]:
+    lab_folder = '/mnt/munin2/Badea/Lab'
+
 if project == 'AD_Decode':
-    SAMBA_MDT = '/Volumes/Data/Badea/Lab/mouse/VBM_21ADDecode03_IITmean_RPI_fullrun-work/dwi/SyN_0p5_3_0p5_fa/faMDT_NoNameYet_n37_i6/median_images/MDT_dwi.nii.gz'
-    MDT_mask_folder = '/Volumes/Data/Badea/Lab/mouse/VBM_21ADDecode03_IITmean_RPI_fullrun-results/atlas_to_MDT'
-    ref_MDT_folder = '/Volumes/Data/Badea/Lab/mouse/VBM_21ADDecode03_IITmean_RPI_fullrun-work/dwi/SyN_0p5_3_0p5_fa/faMDT_NoNameYet_n37_i6/reg_images/'
-    anat_path = '/Volumes/Data/Badea/Lab/mouse/VBM_21ADDecode03_IITmean_RPI_fullrun-work/dwi/SyN_0p5_3_0p5_fa/faMDT_NoNameYet_n37_i6/median_images/MDT_fa.nii.gz'
+    SAMBA_MDT = os.path.join(lab_folder,'mouse/VBM_21ADDecode03_IITmean_RPI_fullrun-work/dwi/SyN_0p5_3_0p5_fa/faMDT_NoNameYet_n37_i6/median_images/MDT_dwi.nii.gz')
+    MDT_mask_folder = os.path.join(lab_folder,'mouse/VBM_21ADDecode03_IITmean_RPI_fullrun-results/atlas_to_MDT')
+    ref_MDT_folder = os.path.join(lab_folder,'mouse/VBM_21ADDecode03_IITmean_RPI_fullrun-work/dwi/SyN_0p5_3_0p5_fa/faMDT_NoNameYet_n37_i6/reg_images')
+    anat_path = os.path.join(lab_folder,'mouse/VBM_21ADDecode03_IITmean_RPI_fullrun-work/dwi/SyN_0p5_3_0p5_fa/faMDT_NoNameYet_n37_i6/median_images/MDT_fa.nii.gz')
 
 
 if streamline_type == 'mrtrix':
@@ -143,15 +141,6 @@ for side in sides:
         #centroid_all_side_tracker[np.shape(centroids_all)[0]-1] = (side,i)
         streamline_bundle[side,i] = []
 
-
-full_subjects_list = template_subjects + added_subjects
-removed_list = ["S02745","S02230","S02490","S02523",'S02654']
-#full_subjects_list = ['S02373']
-for remove in removed_list:
-    if remove in full_subjects_list:
-        full_subjects_list.remove(remove)
-
-
 verbose = False
 overwrite=False
 
@@ -169,6 +158,15 @@ roi_mask_left = nib.load(left_mask_path)
 
 scene = None
 interactive = False
+
+if len(sys.argv) >2:
+    full_subjects_list = [sys.argv[2]]
+else:
+    full_subjects_list = template_subjects + added_subjects
+
+for remove in removed_list:
+    if remove in full_subjects_list:
+        full_subjects_list.remove(remove)
 
 for subject in full_subjects_list:
 

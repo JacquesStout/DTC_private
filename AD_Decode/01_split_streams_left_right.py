@@ -22,12 +22,13 @@ from DTC.tract_manager.tract_handler import ratio_to_str
 import configparser
 
 
-project_headfile_folder = '/Users/jas/bass/gitfolder/DTC_private/BuSA_headfiles'
-project_run_identifier = '202311_10template_test02_configtest'
-
-project_summary_file = os.path.join(project_headfile_folder,project_run_identifier+'.ini')
-
-labroot = '/Volumes/Data/Badea/Lab/'
+if len(sys.argv)<2:
+    project_headfile_folder = '/Users/jas/bass/gitfolder/DTC_private/BuSA_headfiles'
+    project_run_identifier = '202311_10template_test01'
+    project_summary_file = os.path.join(project_headfile_folder, project_run_identifier + '.ini')
+else:
+    project_summary_file = sys.argv[1]
+    project_run_identifier = os.path.basename(project_summary_file).split('.')[0]
 
 if not os.path.exists(project_summary_file):
     txt = f'Could not find configuration file at {project_summary_file}'
@@ -35,8 +36,6 @@ if not os.path.exists(project_summary_file):
 else:
     params = read_parameters_from_ini(project_summary_file)
 
-#locals().update(params) #This line will add to the code the variables specified above from the config file, namely
-#project, streamline_type, text_folder, test, MDT_mask_folder, ratio, stepsize
 
 project = params['project']
 streamline_type = params['streamline_type']
@@ -48,11 +47,16 @@ template_subjects = params['template_subjects']
 overwrite = True
 verbose = False
 
+if 'santorini' in socket.gethostname().split('.')[0]:
+    lab_folder = '/Volumes/Data/Badea/Lab'
+if 'blade' in socket.gethostname().split('.')[0]:
+    lab_folder = '/mnt/munin2/Badea/Lab'
+
 if project == 'AD_Decode':
-    SAMBA_MDT = '/Volumes/Data/Badea/Lab/mouse/VBM_21ADDecode03_IITmean_RPI_fullrun-work/dwi/SyN_0p5_3_0p5_fa/faMDT_NoNameYet_n37_i6/median_images/MDT_dwi.nii.gz'
-    MDT_mask_folder = '/Volumes/Data/Badea/Lab/mouse/VBM_21ADDecode03_IITmean_RPI_fullrun-results/atlas_to_MDT'
-    ref_MDT_folder = '/Volumes/Data/Badea/Lab/mouse/VBM_21ADDecode03_IITmean_RPI_fullrun-work/dwi/SyN_0p5_3_0p5_fa/faMDT_NoNameYet_n37_i6/reg_images/'
-    anat_path = '/Volumes/Data/Badea/Lab/mouse/VBM_21ADDecode03_IITmean_RPI_fullrun-work/dwi/SyN_0p5_3_0p5_fa/faMDT_NoNameYet_n37_i6/median_images/MDT_fa.nii.gz'
+    SAMBA_MDT = os.path.join(lab_folder,'mouse/VBM_21ADDecode03_IITmean_RPI_fullrun-work/dwi/SyN_0p5_3_0p5_fa/faMDT_NoNameYet_n37_i6/median_images/MDT_dwi.nii.gz')
+    MDT_mask_folder = os.path.join(lab_folder,'mouse/VBM_21ADDecode03_IITmean_RPI_fullrun-results/atlas_to_MDT')
+    ref_MDT_folder = os.path.join(lab_folder,'mouse/VBM_21ADDecode03_IITmean_RPI_fullrun-work/dwi/SyN_0p5_3_0p5_fa/faMDT_NoNameYet_n37_i6/reg_images')
+    anat_path = os.path.join(lab_folder,'mouse/VBM_21ADDecode03_IITmean_RPI_fullrun-work/dwi/SyN_0p5_3_0p5_fa/faMDT_NoNameYet_n37_i6/median_images/MDT_fa.nii.gz')
 
 
 if streamline_type == 'mrtrix':
@@ -95,6 +99,10 @@ outpath_trk = os.path.join(proj_path, 'trk_roi'+ratio_str)
 mkcdir([outpath_all, proj_path, pickle_folder, outpath_trk], sftp)
 
 method = 'dwi_roi_to_trk'
+
+if len(sys.argv) >2:
+    template_subjects = [sys.argv[2]]
+
 
 if method=='dwi_roi_to_trk':
 

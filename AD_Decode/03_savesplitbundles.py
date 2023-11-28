@@ -6,7 +6,7 @@ Created on Thu Apr  7 15:18:05 2022
 """
 
 import numpy as np
-import os, fury
+import os, fury, sys
 from dipy.segment.clustering import QuickBundles
 from dipy.segment.featurespeed import ResampleFeature
 from dipy.segment.metric import AveragePointwiseEuclideanMetric
@@ -39,10 +39,13 @@ import copy
 """
 
 
-project_headfile_folder = '/Users/jas/bass/gitfolder/DTC_private/BuSA_headfiles'
-project_run_identifier = '202311_10template_test02_configtest'
-
-project_summary_file = os.path.join(project_headfile_folder,project_run_identifier+'.ini')
+if len(sys.argv)<2:
+    project_headfile_folder = '/Users/jas/bass/gitfolder/DTC_private/BuSA_headfiles'
+    project_run_identifier = '202311_10template_test01'
+    project_summary_file = os.path.join(project_headfile_folder, project_run_identifier + '.ini')
+else:
+    project_summary_file = sys.argv[1]
+    project_run_identifier = os.path.basename(project_summary_file).split('.')[0]
 
 if not os.path.exists(project_summary_file):
     txt = f'Could not find configuration file at {project_summary_file}'
@@ -66,11 +69,16 @@ overwrite=False
 verbose = False
 saveflip = False
 
+if 'santorini' in socket.gethostname().split('.')[0]:
+    lab_folder = '/Volumes/Data/Badea/Lab'
+if 'blade' in socket.gethostname().split('.')[0]:
+    lab_folder = '/mnt/munin2/Badea/Lab'
+
 if project == 'AD_Decode':
-    SAMBA_MDT = '/Volumes/Data/Badea/Lab/mouse/VBM_21ADDecode03_IITmean_RPI_fullrun-work/dwi/SyN_0p5_3_0p5_fa/faMDT_NoNameYet_n37_i6/median_images/MDT_dwi.nii.gz'
-    MDT_mask_folder = '/Volumes/Data/Badea/Lab/mouse/VBM_21ADDecode03_IITmean_RPI_fullrun-results/atlas_to_MDT'
-    ref_MDT_folder = '/Volumes/Data/Badea/Lab/mouse/VBM_21ADDecode03_IITmean_RPI_fullrun-work/dwi/SyN_0p5_3_0p5_fa/faMDT_NoNameYet_n37_i6/reg_images/'
-    anat_path = '/Volumes/Data/Badea/Lab/mouse/VBM_21ADDecode03_IITmean_RPI_fullrun-work/dwi/SyN_0p5_3_0p5_fa/faMDT_NoNameYet_n37_i6/median_images/MDT_fa.nii.gz'
+    SAMBA_MDT = os.path.join(lab_folder,'mouse/VBM_21ADDecode03_IITmean_RPI_fullrun-work/dwi/SyN_0p5_3_0p5_fa/faMDT_NoNameYet_n37_i6/median_images/MDT_dwi.nii.gz')
+    MDT_mask_folder = os.path.join(lab_folder,'mouse/VBM_21ADDecode03_IITmean_RPI_fullrun-results/atlas_to_MDT')
+    ref_MDT_folder = os.path.join(lab_folder,'mouse/VBM_21ADDecode03_IITmean_RPI_fullrun-work/dwi/SyN_0p5_3_0p5_fa/faMDT_NoNameYet_n37_i6/reg_images')
+    anat_path = os.path.join(lab_folder,'mouse/VBM_21ADDecode03_IITmean_RPI_fullrun-work/dwi/SyN_0p5_3_0p5_fa/faMDT_NoNameYet_n37_i6/median_images/MDT_fa.nii.gz')
 
 if 'samos' in socket.gethostname():
     remote=False

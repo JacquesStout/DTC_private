@@ -6,7 +6,7 @@ Created on Thu Apr  7 15:18:05 2022
 """
 
 import numpy as np
-import os, fury
+import os, sys
 import nibabel as nib
 from dipy.segment.clustering import QuickBundles
 from dipy.segment.featurespeed import ResampleFeature
@@ -21,42 +21,21 @@ from time import sleep
 import socket
 from DTC.tract_manager.tract_handler import ratio_to_str
 import pandas as pd
-from dipy.viz import window, actor
 
-from DTC.tract_manager.tract_handler import gettrkpath
-from DTC.nifti_handlers.nifti_handler import get_diff_ref
-from DTC.diff_handlers.connectome_handlers.connectome_handler import retweak_points
-import xlsxwriter
-from dipy.tracking._utils import (_mapping_to_voxel, _to_voxel_coordinates)
-from collections import defaultdict, OrderedDict
-from itertools import combinations, groupby
-from dipy.tracking.streamline import transform_streamlines
-from dipy.tracking.utils import length as tract_length
-from DTC.visualization_tools.tract_visualize import show_bundles, setup_view, view_test, setup_view_colortest
-"""
-from os.path import expanduser, join
-from dipy.segment.clustering import ClusterCentroid, ClusterMapCentroid
-import warnings
-from dipy.segment.bundles import bundle_shape_similarity
-from dipy.segment.bundles import bundle_shape_similarity
-import pickle
-from dipy.tracking.streamline import set_number_of_points
-from dipy.tracking.streamline import transform_streamlines
-import pandas as pd
-import copy
-"""
-
-
-project_headfile_folder = '/Users/jas/bass/gitfolder/DTC_private/Bundle_project_heafile'
-project_run_identifier = '202311_10template_test02_configtest'
-
-project_summary_file = os.path.join(project_headfile_folder,project_run_identifier+'.ini')
+if len(sys.argv)<2:
+    project_headfile_folder = '/Users/jas/bass/gitfolder/DTC_private/BuSA_headfiles'
+    project_run_identifier = '202311_10template_test01'
+    project_summary_file = os.path.join(project_headfile_folder, project_run_identifier + '.ini')
+else:
+    project_summary_file = sys.argv[1]
+    project_run_identifier = os.path.basename(project_summary_file).split('.')[0]
 
 if not os.path.exists(project_summary_file):
     txt = f'Could not find configuration file at {project_summary_file}'
     raise Exception(txt)
 else:
     params = read_parameters_from_ini(project_summary_file)
+
 
 project = params['project']
 streamline_type = params['streamline_type']
