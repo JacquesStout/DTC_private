@@ -44,7 +44,7 @@ ratio = params['ratio']
 stepsize = params['stepsize']
 template_subjects = params['template_subjects']
 
-overwrite = True
+overwrite = False
 verbose = False
 
 if 'santorini' in socket.gethostname().split('.')[0]:
@@ -68,9 +68,9 @@ else:
 
 str_identifier = get_str_identifier(stepsize, ratio, trkroi, type='mrtrix')
 
-subject_processes, function_processes, firstsubj, lastsubj = parse_arguments(sys.argv,template_subjects)
-template_subjects = template_subjects[firstsubj:lastsubj]
-print(template_subjects)
+#subject_processes, function_processes, firstsubj, lastsubj = parse_arguments(sys.argv,template_subjects)
+#template_subjects = template_subjects[firstsubj:lastsubj]
+#print(template_subjects)
 
 #method = ['trk_roiseeded', 'trk_roisplit']
 computer_name = socket.gethostname()

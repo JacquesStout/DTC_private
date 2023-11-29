@@ -132,7 +132,7 @@ centroids = {}
 
 for side in sides:
     pickled_centroids = os.path.join(pickle_folder, f'bundles_centroids_{side}.py')
-    centroids_side = remote_pickle(pickled_centroids,sftp_out)
+    centroids_side = remote_pickle(pickled_centroids,sftp_out,erase_temp=False)
     bundles_num = np.shape(centroids_side)[0]
     centroids[side] = centroids_side
     for i in np.arange(bundles_num):
@@ -141,12 +141,10 @@ for side in sides:
         #centroid_all_side_tracker[np.shape(centroids_all)[0]-1] = (side,i)
         streamline_bundle[side,i] = []
 
-verbose = False
+verbose = True
 overwrite=False
 
-save_img = True
-
-anat_path = '/Volumes/Data/Badea/Lab/mouse/VBM_21ADDecode03_IITmean_RPI_fullrun-work/dwi/SyN_0p5_3_0p5_fa/faMDT_NoNameYet_n37_i6/median_images/MDT_fa.nii.gz'
+save_img = False
 
 qb_test = QuickBundles(threshold=distance, metric=metric2, max_nb_clusters=1)
 
@@ -177,11 +175,15 @@ for subject in full_subjects_list:
     #filepath_bundle = os.path.join(trk_proj_path, f'{subject}_{side}_bundle_{bundle_id}.trk')
     if check_all and not overwrite:
         print(f'Already ran succesfully for subject {subject}')
+        if verbose:
+            print(f'Example of file found {files_subj[0]}')
         continue
     else:
         print(f'Starting run for subject {subject}')
     subj_trk, trkexists = gettrkpath(path_TRK, subject, str_identifier, pruned=prune, verbose=False, sftp=sftp_in)
     streamlines_data = load_trk_remote(subj_trk, 'same', sftp_in)
+    if verbose:
+        print(f'Finished loading of {subj_trk}')
     header = streamlines_data.space_attributes
     streamlines = streamlines_data.streamlines
     streamlines_side = {}
@@ -201,13 +203,15 @@ for subject in full_subjects_list:
                     bundle_id = i
                     dist_min = dist
             streamline_bundle[side,bundle_id].append(streamline)
-
+    if verbose:
+        print(f'Finished streamline prep')
     for side,bundle_id in streamline_bundle.keys():
         sg = lambda: (s for i, s in enumerate(streamline_bundle[side,bundle_id]))
         filepath_bundle = os.path.join(trk_proj_path, f'{subject}_{side}_bundle_{bundle_id}.trk')
         save_trk_header(filepath=filepath_bundle, streamlines=sg, header=header,
                     affine=np.eye(4), verbose=verbose, sftp=sftp_out)
-
+    if verbose:
+        print(f'Finished saving trk files')
     if save_img:
         lut_cmap = None
         coloring_vals = fury.colormap.distinguishable_colormap(nb_colors=num_bundles)

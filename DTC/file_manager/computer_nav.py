@@ -274,7 +274,7 @@ def read_bvals_bvecs_remote(fbvals, fbvecs, sftp):
     return bvals, bvecs
 
 
-def remote_pickle(picklepath, sftp=None):
+def remote_pickle(picklepath, sftp=None,erase_temp=True):
     if sftp is not None:
         picklepath_tconnectome = make_temppath(picklepath)
         sftp.get(picklepath, picklepath_tconnectome)
@@ -282,7 +282,7 @@ def remote_pickle(picklepath, sftp=None):
         picklepath_tconnectome = picklepath
     with open(picklepath_tconnectome, 'rb') as f:
         M = pickle.load(f)
-    if sftp is not None:
+    if sftp is not None and erase_temp:
         os.remove(picklepath_tconnectome)
     return M
 

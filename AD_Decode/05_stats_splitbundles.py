@@ -173,14 +173,20 @@ roi_mask_left = nib.load(left_mask_path)
 
 #full_subjects_list = ['S02390']
 
-if len(sys.argv) >2:
+if len(sys.argv)>2:
     full_subjects_list = [sys.argv[2]]
-    sides = [sys.argv[3]]
-    bundle_ids = [sys.argv[4]]
 else:
     full_subjects_list = template_subjects + added_subjects
+    
+if len(sys.argv)>3:
+    sides = [sys.argv[3]]
+else:
     sides = ['left', 'right']
+if len(sys.argv)>4:
+    bundle_ids = [sys.argv[4]]
+else:
     bundle_ids = np.arange(num_bundles)
+
 
 for remove in removed_list:
     if remove in full_subjects_list:

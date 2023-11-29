@@ -47,6 +47,7 @@ ratio = params['ratio']
 stepsize = params['stepsize']
 template_subjects = params['template_subjects']
 setpoints = params['setpoints']
+num_points = int(params['num_points'])
 
 overwrite=False
 verbose = False
