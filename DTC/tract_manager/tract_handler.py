@@ -951,7 +951,8 @@ def save_roisubset(streamlines, roislist, roisexcel, labelmask, stringstep, rati
                     trkstreamlines = trkdata.streamlines
 
 
-def reducetractnumber(oldtrkfile, newtrkfilepath, getdata=False, ratio=10, return_affine= False, verbose=False):
+def reducetractnumber(oldtrkfile, newtrkfilepath, getdata=False, ratio=10, return_affine= False, verbose=False, method='decimate'):
+    from dipy.tracking.utils import length as tract_length
 
     if verbose:
         print("Beginning to read " + oldtrkfile)
@@ -967,10 +968,24 @@ def reducetractnumber(oldtrkfile, newtrkfilepath, getdata=False, ratio=10, retur
     trkstreamlines = trkdata.streamlines
 
     ministream=[]
-    for idx, stream in enumerate(trkstreamlines):
-        if (idx % ratio) == 0:
-            ministream.append(stream)
-    del trkstreamlines
+    if method=='decimate':
+        for idx, stream in enumerate(trkstreamlines):
+            if (idx % ratio) == 0:
+                ministream.append(stream)
+        del trkstreamlines
+    if method=='top_len':
+        tract_lengths = tract_length(trkstreamlines)
+        cutoff = np.quantile(tract_lengths, 1-1/ratio)
+
+        indices = [index for index, value in enumerate(tract_lengths) if value > cutoff]
+        ministream=stream[indices]
+    if method=='bot_len':
+        tract_lengths = tract_length(trkstreamlines)
+        cutoff = np.quantile(tract_lengths, 1/ratio)
+
+        indices = [index for index, value in enumerate(tract_lengths) if value < cutoff]
+        ministream=stream[indices]
+
     myheader = create_tractogram_header(newtrkfilepath, *header)
     ratioed_sl = lambda: (s for s in ministream)
     save_trk_heavy_duty(newtrkfilepath, streamlines=ratioed_sl,
