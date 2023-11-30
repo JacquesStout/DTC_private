@@ -27,16 +27,30 @@ def outlier_removal(values, qsep=3):
 
 
 if 'santorini' in socket.gethostname().split('.')[0]:
-    root = '/Users/jas/Downloads/Busa_analysis/AD_decode_bundles/'
+    root = '/Users/jas/Downloads/Busa_analysis/AD_decode_bundles_100/'
     master = '/Users/jas/jacques/AD_Decode_excels/AD_DECODE_data_stripped.csv'
 else:
     root = '/Users/ali/Desktop/Nov23/ad_decode_bundle_analysis/AD_decode_bundles/'
     master = '/Users/ali/Desktop/Nov23/ad_decode_bundle_analysis/AD_DECODE_data_stripped.csv'
 
+remote=True
+if remote:
+    from DTC.file_manager.file_tools import mkcdir, check_files, getfromfile
+    from DTC.file_manager.computer_nav import checkfile_exists_remote, get_mainpaths
+    from DTC.file_manager.computer_nav import glob_remote, load_df_remote
+
+    username, passwd = getfromfile(os.path.join(os.environ['HOME'],'remote_connect.rtf'))
+    root = '/mnt/paros_WORK/jacques/AD_Decode/TRK_bundle_splitter/202311_10template_test01/stats'
+    inpath, _, _, sftp = get_mainpaths(remote,project = 'AD_Decode', username=username,password=passwd)
+else:
+    sftp = None
 
 master_df = pd.read_csv(master)
 
-all_subj_bundles = os.listdir(root)
+if remote:
+    all_subj_bundles = glob_remote(root, sftp)
+else:
+    all_subj_bundles = os.listdir(root)
 
 ref_subj = 'S02224' 
 bundles = [i for i in all_subj_bundles if ref_subj in i]
@@ -63,7 +77,12 @@ for bundle_num,bundle in enumerate(bundles):
     
     #bundle_df = pd.DataFrame()
     for subj in this_bundle_subjs:
-        temp =  pd.read_excel(root + subj)
+
+        if remote:
+            load_df_remote(root + subj, sftp)
+        else:
+            temp =  pd.read_excel(root + subj)
+
         #temp = pd.DataFrame()
         temp['Subject']=subj[2:6]
         index = master_df["MRI_Exam"] == int(subj[2:6])
