@@ -8,6 +8,8 @@ import nibabel as nib
 import shutil, re
 import pandas as pd
 import configparser
+from DTC.tract_manager.tract_save import save_trk_heavy_duty
+from dipy.io.utils import create_tractogram_header
 
 
 def write_parameters_to_ini(file_path, parameters):
@@ -304,6 +306,24 @@ def load_trk_remote(trkpath,reference,sftp=None):
     else:
         trkdata = load_trk_spe(trkpath, reference)
     return trkdata
+
+
+def save_trk_remote(trkpath,streamlines,header, affine=np.eye(4),sftp=None):
+    from DTC.tract_manager.tract_save import save_trk_heavy_duty
+    if sftp is not None:
+        temp_path =make_temppath(trkpath)
+        myheader = create_tractogram_header(temp_path, *header)
+        lambda_streamlines = lambda: (s for s in streamlines)
+        save_trk_heavy_duty(temp_path, streamlines=lambda_streamlines,
+                            affine=affine, header=myheader)
+        sftp.put(temp_path,trkpath)
+        os.remove(temp_path)
+    else:
+        myheader = create_tractogram_header(trkpath, *header)
+        lambda_streamlines = lambda: (s for s in streamlines)
+        save_trk_heavy_duty(trkpath, streamlines=lambda_streamlines,
+                            affine=affine, header=myheader)
+    return
 
 
 def loadmat_remote(matpath, sftp=None):

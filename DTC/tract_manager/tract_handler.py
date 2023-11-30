@@ -32,7 +32,7 @@ import os, shutil
 from DTC.tract_manager.tract_save import save_trk_header
 from DTC.tract_manager.streamline_nocheck import load_trk as load_trk_spe
 import nibabel as nib
-from DTC.file_manager.computer_nav import glob_remote, load_trk_remote
+from DTC.file_manager.computer_nav import glob_remote, load_trk_remote, save_trk_remote
 from dipy.tracking.streamline import transform_streamlines
 from dipy.io.utils import get_reference_info
 from nibabel.streamlines.array_sequence import ArraySequence
@@ -951,12 +951,13 @@ def save_roisubset(streamlines, roislist, roisexcel, labelmask, stringstep, rati
                     trkstreamlines = trkdata.streamlines
 
 
-def reducetractnumber(oldtrkfile, newtrkfilepath, getdata=False, ratio=10, return_affine= False, verbose=False, method='decimate'):
+def reducetractnumber(oldtrkfile, newtrkfilepath, getdata=False, ratio=10, return_affine= False, verbose=False,
+                      method='decimate', sftp=None):
     from dipy.tracking.utils import length as tract_length
-
     if verbose:
         print("Beginning to read " + oldtrkfile)
-    trkdata = load_trk(oldtrkfile, "same", bbox_valid_check = False)
+    #trkdata = load_trk(oldtrkfile, "same", bbox_valid_check = False)
+    trkdata = load_trk_remote(oldtrkfile, 'same', sftp=sftp)
     if verbose:
         print("loaded the file " + oldtrkfile)
     trkdata.to_vox()
@@ -986,10 +987,14 @@ def reducetractnumber(oldtrkfile, newtrkfilepath, getdata=False, ratio=10, retur
         indices = [index for index, value in enumerate(tract_lengths) if value < cutoff]
         ministream=stream[indices]
 
+    """
     myheader = create_tractogram_header(newtrkfilepath, *header)
     ratioed_sl = lambda: (s for s in ministream)
     save_trk_heavy_duty(newtrkfilepath, streamlines=ratioed_sl,
                                    affine=affine, header=myheader)
+    """
+    save_trk_remote(newtrkfilepath,ministream,header, affine=affine,sftp=sftp)
+
     if verbose:
         print("The file " + oldtrkfile + " was reduced to one "+str(ratio)+"th of its size and saved to "+newtrkfilepath)
 
