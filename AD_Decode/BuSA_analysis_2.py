@@ -24,6 +24,31 @@ from skfda.exploratory import stats
 import skfda
 
 
+def mkcdir(folderpaths, sftp=None):
+    #creates new folder only if it doesnt already exists
+
+    if sftp is None:
+        if np.size(folderpaths) == 1:
+            if not os.path.exists(folderpaths):
+                os.mkdir(folderpaths)
+        else:
+            for folderpath in folderpaths:
+                if not os.path.exists(folderpath):
+                    os.mkdir(folderpath)
+    else:
+        if np.size(folderpaths) == 1:
+            try:
+                sftp.chdir(folderpaths[0])
+            except:
+                sftp.mkdir(folderpaths[0])
+        else:
+            for folderpath in folderpaths:
+                try:
+                    sftp.chdir(folderpath)
+                except:
+                    sftp.mkdir(folderpath)
+
+
 def outlier_removal(values, qsep=3):
 
     iqr = abs(np.quantile(values,0.25) - np.quantile(values,0.75))
@@ -35,10 +60,13 @@ def outlier_removal(values, qsep=3):
 if 'santorini' in socket.gethostname().split('.')[0]:
     root = '/Users/jas/Downloads/Busa_analysis/AD_decode_bundles/'
     master = '/Users/jas/jacques/AD_Decode_excels/AD_DECODE_data_stripped.csv'
+    figures_path = '/Users/jas/jacques/AD_Decode/BuSA_analysis/Figures'
+    excel_path = '/Users/jas/jacques/AD_Decode/BuSA_analysis/Excels'
 else:
     root = '/Users/ali/Desktop/Dec23/BuSA/AD_decode_bundles/'
     master = '/Users/ali/Desktop/Dec23/BuSA/AD_DECODE_data_stripped.csv'
 
+mkcdir(excel_path)
 
 master_df = pd.read_csv(master)
 
@@ -59,13 +87,13 @@ tr_list = [0] + [np.quantile(master_df['age'],(i+1)*(1/num_groups)) for i in np.
 #bundle = bundles[0] #
 #sds = np.zeros([num_groups,12])
 #means = np.zeros([num_groups,12])
-pickle_path = '/Users/ali/Desktop/Dec23/BuSA/variances/'
-figures_path = '/Users/jas/jacques/AD_Decode/BuSA_analysis/'
+#pickle_path = '/Users/ali/Desktop/Dec23/BuSA/variances/'
 
-var_coefs = {}
+allvars = {}
 verbose=True
+save_fig = True
 
-bundles = [f'_left_bundle_0.xlsx',f'_right_bundle_0.xlsx']
+#bundles = [f'_left_bundle_0.xlsx',f'_right_bundle_0.xlsx']
 
 basis = skfda.representation.basis.MonomialBasis(n_basis=10)
 
@@ -112,7 +140,7 @@ for bundle in bundles:
         Y_basis = Y.to_basis(basis)
         var = skfda.exploratory.stats.var(Y_basis)
         #var_coefs[subj[2:6], bundle_num] = var.coefficients
-        var_coefs[subj[2:6], side, bundle_num] = var
+        allvars[subj[2:6], side, bundle_num] = var
 
     if verbose:
         print(f'Finished bundle {bundle_num} side {side}')
@@ -127,12 +155,18 @@ distance_var_FAbundle_dic = {}
 
 for i,subj in enumerate(this_bundle_subjs):
     for bundle_id in np.arange(total_num_bundles):
-        left_side_coefs = var_coefs[subj[2:6],'left',str(int(bundle_id))]
-        right_side_coefs = var_coefs[subj[2:6],'right',str(int(bundle_id))]
+        left_side_coefs = allvars[subj[2:6],'left',str(int(bundle_id))]
+        right_side_coefs = allvars[subj[2:6],'right',str(int(bundle_id))]
         norm = skfda.misc.metrics.LpNorm(2)
         distance_var_FAbundle_dic[f'{subj[2:6]}',f'bundle_{int(bundle_id)}'] = norm(right_side_coefs - left_side_coefs)[0]
         #distance_var_FAbundle_array[i, int(bundle_id)] = norm(right_side_coefs - left_side_coefs)[0]
-
+        if save_fig:
+            for side in ['left','right']:
+                figs_plotvar_path = os.path.join(figures_path, f'grid_var_FA_{subj[2:6]}_{side}_bundle_{int(bundle_id)}')
+                var = allvars[subj[2:6], side, str(int(bundle_id))]
+                var.plot()
+                plt.savefig(figs_plotvar_path)
+                plt.close()
 
 subs = set(key[0] for key in distance_var_FAbundle_dic.keys())
 columns = set(key[1] for key in distance_var_FAbundle_dic.keys())
@@ -149,28 +183,14 @@ for key, value in distance_var_FAbundle_dic.items():
 
 distances_var_FAbundle_df = distances_var_FAbundle_df.reset_index(drop=True)
 
-metadf['MRI_Exam'] = metadf['MRI_Exam'].astype(str)
-distances_var_FAbundle_df['MRI_Exam'] = distances_var_FAbundle_df['MRI_Exam'].astype(str)
-merged_df = pd.merge(metadf, distances_var_FAbundle_df, on='MRI_Exam', how='outer')
+column_indices = [bundle_df.columns.get_loc(column_names[i]) for i in np.arange(np.size(column_names))]
+#metadf['MRI_Exam'] = metadf['MRI_Exam'].astype(str)
 
+#Converts the columns to str to avoid warning
+metadf.iloc[:,metadf.columns.get_loc('MRI_Exam')] = metadf.iloc[:,metadf.columns.get_loc('MRI_Exam')].astype(str)
+distances_var_FAbundle_df.iloc[:,distances_var_FAbundle_df.columns.get_loc('MRI_Exam')] = distances_var_FAbundle_df.iloc[:,distances_var_FAbundle_df.columns.get_loc('MRI_Exam')].astype(str)
+#distances_var_FAbundle_df['MRI_Exam'] = distances_var_FAbundle_df['MRI_Exam'].astype(str)
+merged_df = pd.merge(metadf, distances_var_FAbundle_df, on='MRI_Exam', how='inner')
 
-"""
-for subj in this_bundle_subjs:
-    test_array
-    test_array = np.array(list(var_coefs[list(var_coefs.keys())[0]])[0])  
-    test_array = np.array(list(var_coefs[list(var_coefs.keys())[0]])[0])     
-    skfda.misc.metrics.LpNorm( test_array,1 )       
-"""
-
-
-"""
-fd_basis = skfda.FDataBasis(
-    basis=basis,
-    coefficients= ,
-)
-
-fd_basis.plot()
-plt.show()        
-
-"""
+merged_df.to_excel(os.path.join(excel_path,'distances_var_FAbundle.xlsx'))
 
