@@ -16,6 +16,7 @@ import matplotlib
 import matplotlib.pyplot as plt  
 import seaborn as sns
 import socket
+from DTC.file_manager.file_tools import mkcdir, check_files
 
 
 def outlier_removal(values, qsep=3):
@@ -33,7 +34,7 @@ else:
     root = '/Users/ali/Desktop/Nov23/ad_decode_bundle_analysis/AD_decode_bundles/'
     master = '/Users/ali/Desktop/Nov23/ad_decode_bundle_analysis/AD_DECODE_data_stripped.csv'
 
-remote=True
+remote=False
 if remote:
     from DTC.file_manager.file_tools import mkcdir, check_files, getfromfile
     from DTC.file_manager.computer_nav import checkfile_exists_remote, get_mainpaths
@@ -69,6 +70,9 @@ sds = np.zeros([num_groups,12])
 means = np.zeros([num_groups,12])
 
 figures_path = '/Users/jas/jacques/AD_Decode/BuSA_analysis'
+mkcdir(figures_path)
+figures_path = os.path.join(figures_path,'boxsquares_age_FA')
+mkcdir(figures_path)
 
 for bundle_num,bundle in enumerate(bundles):
     
@@ -178,6 +182,23 @@ for i in range(datameans.shape[0]):
     plt.savefig(fig_plot_path)
     plt.close()
 
+
+datameans = pd.DataFrame(index= np.arange(12),columns=x_labels)
+datameans.iloc[:,:] = means.transpose()
+
+bundle_labels = [f'Bundle {str(num+1)}' for num in np.arange(np.shape(sds)[1])]
+
+# Create 12 different plots with different colors
+for i in range(datameans.shape[0]):
+    fig_plot_path = os.path.join(figures_path,f'bundle_{i}_AgeGrouping_MeanFA.png')
+    plt.figure()
+    plt.plot(x_labels, sds[:, i], marker='o', color=plt.cm.viridis(i / sds.shape[0]), label=bundle_labels[i])
+    plt.title(f'Change in values for {bundle_labels[i]}')
+    plt.xlabel('X-axis Groups')
+    plt.ylabel('Change in Values')
+    plt.legend()
+    plt.savefig(fig_plot_path)
+    plt.close()
 
 '''
 

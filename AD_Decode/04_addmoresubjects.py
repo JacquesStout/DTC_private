@@ -59,7 +59,7 @@ removed_list = params['removed_list']
 num_points = 50
 distance = 50
 num_bundles = 6
-
+fury.colormap.distinguishable_colormap(nb_colors=num_bundles)
 overwrite=False
 verbose = False
 
