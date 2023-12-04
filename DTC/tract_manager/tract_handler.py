@@ -971,7 +971,7 @@ def reducetractnumber(oldtrkfile, newtrkfilepath, getdata=False, ratio=10, retur
     ministream=[]
     if method=='decimate':
         for idx, stream in enumerate(trkstreamlines):
-            if (idx % ratio) == 0:
+            if (idx % int(ratio)) == 0:
                 ministream.append(stream)
         del trkstreamlines
     if method=='top_len':

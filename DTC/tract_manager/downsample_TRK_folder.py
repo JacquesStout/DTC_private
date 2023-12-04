@@ -15,7 +15,7 @@ from DTC.file_manager.file_tools import mkcdir, check_files, getfromfile
 #new_trk_folder = '/Volumes/dusom_mousebrains/All_Staff/Data/AMD/TRK_rigidaff_100'
 
 trk_folder = '/mnt/paros_DB/Projects/AD_Decode/Analysis/TRK_MDT'
-new_trk_folder = '/mnt/paros_WORK/jacques/AD_Decode/TRK_MDT_10'
+new_trk_folder = '/mnt/paros_WORK/jacques/AD_Decode/TRK_MDT_ratio_10'
 
 remote = True
 
@@ -28,39 +28,26 @@ else:
 
 inpath, _, _, sftp = get_mainpaths(remote,project = 'AD_Decode', username=username,password=passwd)
 
-mkcdir(new_trk_folder)
+print(new_trk_folder)
+mkcdir([new_trk_folder], sftp)
 
 orig_ratio =1
 ratio = 10
 stepsize = 2
 method= 'decimate'
+streamline_type = 'mrtrix'
 """
 filelist = os.listdir(trk_folder)
 filelist = sorted(filelist)
 random.shuffle(filelist)
 """
+
 filelist = glob_remote(os.path.join(trk_folder,'*trk'),sftp)
-#filelist.reverse()
 
 test=False
 overwrite=False
-orig_identifier = get_str_identifier(stepsize, orig_ratio, '', type='mrtrix')
-new_identifier = get_str_identifier(stepsize, ratio, '', type='mrtrix')
-
-"""
-for filepath in filelist:
-    filename, f_ext = os.path.splitext(filepath)
-    if f_ext == '.trk' and f'ratio_{str(ratio)}' not in filename:
-        newfilename = filename.replace(orig_identifier,new_identifier)
-        newfilepath = os.path.join(new_trk_folder, newfilename +f_ext)
-        if not os.path.exists(newfilepath):
-            print(f'Downsampling from {os.path.join(trk_folder,filepath)} to {newfilepath} with ratio {str(ratio)}')
-            reducetractnumber(os.path.join(trk_folder,filepath), newfilepath, getdata=False, ratio=ratio,
-                              return_affine=False, verbose=False, sftp=sftp)
-            print(f'succesfully created {newfilepath}')
-        else:
-            print(f'already created {newfilepath}')
-"""
+orig_identifier = get_str_identifier(stepsize, orig_ratio, '', type=streamline_type)
+new_identifier = get_str_identifier(stepsize, ratio, '', type=streamline_type)
 
 try:
     BD = os.environ['BIGGUS_DISKUS']
@@ -80,14 +67,28 @@ job_descrp = "BuSA"
 sbatch_folder_path = os.path.join(BD, job_descrp + '_sbatch/')
 mkcdir(sbatch_folder_path)
 
+filelist = [filelist[0]]
+print(filelist)
+test = True
+
+verbose = True
+
 for filepath in filelist:
-    filename, f_ext = os.path.splitext(filepath)
+    _, f_ext = os.path.splitext(filepath)
+    filename = os.path.basename(filepath)
     subj = filename.split('_')[0]
+
+    print(f'filename is {filename}, f_ext is {f_ext}')
     if f_ext == '.trk' and f'ratio_{str(ratio)}' not in filename:
         newfilename = filename.replace(orig_identifier,new_identifier)
-        newfilepath = os.path.join(new_trk_folder, newfilename +f_ext)
 
-        python_command = f"python /home/jas297/linux/DTC_private/AD_Decode/05_stats_splitbundles.py {filepath} {newfilepath}"
+        newfilepath = os.path.join(new_trk_folder, newfilename)
+
+        python_command = f"python /home/jas297/linux/DTC_private/DTC/tract_manager/downsample_TRK_file.py {filepath} {newfilepath} {ratio} {method} {verbose}"
         job_name = job_descrp + "_" + subj
         command = os.path.join(GD,
                                "submit_sge_cluster_job.bash") + " " + sbatch_folder_path + " " + job_name + " 0 0 '" + python_command + "'"
+        if test:
+            print(python_command)
+        else:
+            os.system(command)
