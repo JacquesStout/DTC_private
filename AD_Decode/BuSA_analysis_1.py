@@ -27,14 +27,25 @@ def outlier_removal(values, qsep=3):
     return new_values
 
 
-if 'santorini' in socket.gethostname().split('.')[0]:
-    root = '/Users/jas/Downloads/Busa_analysis/AD_decode_bundles_100/'
-    master = '/Users/jas/jacques/AD_Decode_excels/AD_DECODE_data_stripped.csv'
-else:
-    root = '/Users/ali/Desktop/Nov23/ad_decode_bundle_analysis/AD_decode_bundles/'
-    master = '/Users/ali/Desktop/Nov23/ad_decode_bundle_analysis/AD_DECODE_data_stripped.csv'
 
 remote=False
+project = '202311_10template_test01'
+kos=True
+
+
+
+if 'santorini' in socket.gethostname().split('.')[0]:
+    root = f'/Users/jas/jacques/AD_Decode/BuSA_analysis/{project}'
+    master = '/Users/jas/jacques/AD_Decode_excels/AD_DECODE_data_stripped.csv'
+else:
+    root = '/Users/ali/Desktop/Dec23/BuSA/AD_decode_bundles/'
+    master = '/Users/ali/Desktop/Dec23/BuSA/AD_DECODE_data_stripped.csv'
+
+stats_path = os.path.join(root,'stats')
+
+if kos:
+    root = f'/Volumes/Shared Folder/newJetStor/paros/paros_WORK/jacques/AD_Decode/TRK_bundle_splitter/{project}'
+
 if remote:
     from DTC.file_manager.file_tools import mkcdir, check_files, getfromfile
     from DTC.file_manager.computer_nav import checkfile_exists_remote, get_mainpaths
@@ -48,10 +59,15 @@ else:
 
 master_df = pd.read_csv(master)
 
+stats_path = os.path.join(root,'stats')
+figures_path = os.path.join(root,'Figures')
+excel_path = os.path.join(root,'Excels')
+mkcdir([stats_path,figures_path, excel_path])
+
 if remote:
-    all_subj_bundles = glob_remote(root, sftp)
+    all_subj_bundles = glob_remote(stats_path, sftp)
 else:
-    all_subj_bundles = os.listdir(root)
+    all_subj_bundles = os.listdir(stats_path)
 
 ref_subj = 'S02224' 
 bundles = [i for i in all_subj_bundles if ref_subj in i]
@@ -60,32 +76,33 @@ bundles = [ i[6:] for i in bundles]
 num_groups = 6
 
 tr_list = [0] + [np.quantile(master_df['age'],(i+1)*(1/num_groups)) for i in np.arange(num_groups)] + [1+ np.max(master_df['age'])]
-#tr1 = np.quantile(master_df['age'], 0.3)
-#tr2 = np.quantile(master_df['age'], 0.66)
-#tr3 = np.quantile(master_df['age'], 1)
 
-
-#bundle = bundles[0] #
 sds = np.zeros([num_groups,12])
 means = np.zeros([num_groups,12])
 
-figures_path = '/Users/jas/jacques/AD_Decode/BuSA_analysis'
-mkcdir(figures_path)
-figures_path = os.path.join(figures_path,'boxsquares_age_FA')
-mkcdir(figures_path)
+figures_box_path = os.path.join(figures_path,'boxsquares_age_FA')
+mkcdir(figures_box_path)
 
-for bundle_num,bundle in enumerate(bundles):
+verbose =True
+
+for bundle in bundles:
+
+    if 'left' in bundle:
+        side = 'left'
+    if 'right' in bundle:
+        side = 'right'
+    bundle_num = bundle.split('bundle_')[1].split('.')[0]
     
-    fig_bundle_path = os.path.join(figures_path,f'bundle_{bundle_num}_boxsquaremodel.png')
+    fig_bundle_path = os.path.join(figures_box_path,f'bundle_{side}_{bundle_num}_boxsquaremodel.png')
     this_bundle_subjs = [i for i in all_subj_bundles if bundle in i]
     
     #bundle_df = pd.DataFrame()
     for subj in this_bundle_subjs:
 
         if remote:
-            load_df_remote(root + subj, sftp)
+            load_df_remote(os.path.join(stats_path, subj), sftp)
         else:
-            temp =  pd.read_excel(root + subj)
+            temp = pd.read_excel(os.path.join(stats_path, subj))
 
         #temp = pd.DataFrame()
         temp['Subject']=subj[2:6]
@@ -134,6 +151,9 @@ for bundle_num,bundle in enumerate(bundles):
 
     plt.close()
 
+    if verbose:
+        print(f'Finished bundle {bundle_num} side {side}')
+
     #bundle_df['agecat'] = bundle_df['age'] > np.median(bundle_df['age'])
     #bundle_df['agecat'] = np.multiply(bundle_df['agecat'], 1) 
     #model = LinearRegression()
@@ -152,7 +172,7 @@ bundle_labels = [f'Bundle {str(num+1)}' for num in np.arange(np.shape(means)[1])
 
 # Create 12 different plots with different colors
 for i in range(datameans.shape[0]):
-    fig_plot_path = os.path.join(figures_path,f'bundle_{i}_AgeGrouping_MeanFA.png')
+    fig_plot_path = os.path.join(figures_box_path,f'bundle_{i}_AgeGrouping_MeanFA.png')
     plt.figure()
     plt.plot(x_labels, means[:, i], marker='o', color=plt.cm.viridis(i / means.shape[0]), label=bundle_labels[i])
     plt.title(f'Change in values for {bundle_labels[i]}')
@@ -172,7 +192,7 @@ bundle_labels = [f'Bundle {str(num+1)}' for num in np.arange(np.shape(sds)[1])]
 
 # Create 12 different plots with different colors
 for i in range(datameans.shape[0]):
-    fig_plot_path = os.path.join(figures_path,f'bundle_{i}_AgeGrouping_SdFA.png')
+    fig_plot_path = os.path.join(figures_box_path,f'bundle_{i}_AgeGrouping_SdFA.png')
     plt.figure()
     plt.plot(x_labels, sds[:, i], marker='o', color=plt.cm.viridis(i / sds.shape[0]), label=bundle_labels[i])
     plt.title(f'Change in values for {bundle_labels[i]}')
@@ -190,7 +210,7 @@ bundle_labels = [f'Bundle {str(num+1)}' for num in np.arange(np.shape(sds)[1])]
 
 # Create 12 different plots with different colors
 for i in range(datameans.shape[0]):
-    fig_plot_path = os.path.join(figures_path,f'bundle_{i}_AgeGrouping_MeanFA.png')
+    fig_plot_path = os.path.join(figures_box_path,f'bundle_{i}_AgeGrouping_MeanFA.png')
     plt.figure()
     plt.plot(x_labels, sds[:, i], marker='o', color=plt.cm.viridis(i / sds.shape[0]), label=bundle_labels[i])
     plt.title(f'Change in values for {bundle_labels[i]}')
