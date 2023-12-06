@@ -41,7 +41,8 @@ import copy
 
 if len(sys.argv)<2:
     project_headfile_folder = '/Users/jas/bass/gitfolder/DTC_private/BuSA_headfiles'
-    project_run_identifier = '202311_10template_test01'
+    #project_run_identifier = '202311_10template_test01'
+    project_run_identifier = '202311_10template_1000_newcentroids'
     project_summary_file = os.path.join(project_headfile_folder, project_run_identifier + '.ini')
 else:
     project_summary_file = sys.argv[1]
@@ -63,9 +64,8 @@ ratio = params['ratio']
 stepsize = params['stepsize']
 template_subjects = params['template_subjects']
 setpoints = params['setpoints']
-figures_outpath = params['figures_outpath']
 
-overwrite=False
+overwrite=True
 verbose = False
 saveflip = False
 
@@ -111,8 +111,8 @@ ratiostr = ratio_to_str(ratio,spec_all=False)
 path_TRK = os.path.join(inpath, 'TRK_MDT'+ratiostr)
 outpath_all = os.path.join(inpath, 'TRK_bundle_splitter')
 proj_path = os.path.join(outpath_all,project_run_identifier)
-figures_proj_path = os.path.join(figures_outpath, project_run_identifier)
-mkcdir([figures_outpath,figures_proj_path])
+figures_proj_path = os.path.join(proj_path, 'Figures')
+mkcdir([figures_proj_path],sftp_out)
 
 pickle_folder = os.path.join(proj_path, 'pickle_roi'+ratiostr)
 trk_proj_path = os.path.join(proj_path, 'trk_roi'+ratiostr)
@@ -156,7 +156,7 @@ timings.append(time.perf_counter())
 bundle_lr_combined = True
 
 if bundle_lr_combined:
-    sides = ['combined','left', 'right_f','right']
+    sides = ['combined','left','right']
 else:
     sides = ['right_f', 'left', 'right', 'left_f']
 
@@ -197,54 +197,57 @@ if bundle_lr_combined:
 else:
     side_type = 'bundle_ind'
 
-for side in sides:
-    bundles = qb.cluster(streamlines_template[side])
+centroids_perside = {}
+if bundle_lr_combined:
+    bundles = qb.cluster(streamlines_template['combined'])
     num_streamlines[side] = bundles.clusters_sizes()
     print(f'side {side} has {num_streamlines[side]}')
 
-    #Side should be combined first preferably
-    if bundle_lr_combined:
-        if 'top_bundles' not in locals():
-            top_bundles = sorted(range(len(num_streamlines[side])), key=lambda i: num_streamlines[side][i], reverse=True)[:]
-            for bundle in top_bundles[:num_bundles]:
-                selected_bundles[side].append(bundles.clusters[bundle])
-        else:
-            bundle_centroids = bundles.centroids
-            top_bundles_new = []
-            if side == 'right' or side == 'left_f':
-                affine_flip = np.eye(4)
-                affine_flip[0, 0] = -1
-                affine_flip[0, 3] = 0
-                bundle_centroids_flipped = []
-                for bundle_toflip in bundle_centroids:
-                    bundle_centroids_flipped.append(np.array(transform_streamlines(bundle_toflip, affine_flip, in_place=False)))
-                bundle_centroids = bundle_centroids_flipped
-            for comb_bundle in selected_bundles['combined']:
-                dist_min = 100000
-                bundle_id = -1
-                combcentroid = comb_bundle.centroid
-                for i,centroid in enumerate(bundle_centroids):
-                    dist = (mdf(combcentroid, centroid))
-                    if dist < dist_min:
-                        bundle_id = i
-                        dist_min = dist
-                #top_bundles_new.append(bundle_id)
-                selected_bundles[side].append(bundles.clusters[bundle_id])
-    else:
-        raise Exception('No longer functional for other versions, need to make sure that the sides compared to each other are equivalent '
-                        'for example left to right_f, right to left_f, etc')
+    top_bundles = sorted(range(len(num_streamlines[side])), key=lambda i: num_streamlines[side][i], reverse=True)[:]
+    for bundle in top_bundles[:num_bundles]:
+        selected_bundles['combined'].append(bundles.clusters[bundle])
 
-    timings.append(time.perf_counter())
-    print(f'Organized top {num_bundles} bundles of {side} side, took {timings[-1] - timings[-2]} seconds')
-
-    pickled_centroids = os.path.join(pickle_folder,f'bundles_centroids_{side}.py')
-    ordered_centroids = []
+    centroids_perside['combined'] = []
     for i in np.arange(num_bundles):
-        ordered_centroids.append(selected_bundles[side][i].centroid)
-    if not checkfile_exists_remote(pickled_centroids,sftp_out) or overwrite:
-        #pickledump_remote(bundles.centroids,pickled_centroids,sftp_out)
-        pickledump_remote(ordered_centroids, pickled_centroids, sftp_out)
+        centroids_perside['combined'].append(selected_bundles['combined'][i].centroid)
+
+    centroids_perside['left'] = centroids_perside['combined']
+
+    centroids_perside['right'] = []
+
+    affine_flip = np.eye(4)
+    affine_flip[0, 0] = -1
+    affine_flip[0, 3] = 0
+    for bundle_toflip in centroids_perside['left']:
+        centroids_perside['right'].append(np.array(transform_streamlines(bundle_toflip, affine_flip, in_place=False)))
+
+    """
+    bundle_centroids = bundle_centroids_flipped
+    for comb_bundle in selected_bundles['combined']:
+        dist_min = 100000
+        bundle_id = -1
+        combcentroid = comb_bundle.centroid
+        for i, centroid in enumerate(bundle_centroids):
+            dist = (mdf(combcentroid, centroid))
+            if dist < dist_min:
+                bundle_id = i
+                dist_min = dist
+    """
+
     timings.append(time.perf_counter())
-    print(f'Saved centroids at {pickled_centroids}, took {timings[-1] - timings[-2]} seconds')
+    print(f'Organized top {num_bundles} bundles for left and right side, took {timings[-1] - timings[-2]} seconds')
+
+    for side in sides:
+        pickled_centroids = os.path.join(pickle_folder, f'bundles_centroids_{side}.py')
+        if not checkfile_exists_remote(pickled_centroids, sftp_out) or overwrite:
+            # pickledump_remote(bundles.centroids,pickled_centroids,sftp_out)
+            pickledump_remote(centroids_perside[side], pickled_centroids, sftp_out)
+        timings.append(time.perf_counter())
+        print(f'Saved centroids at {pickled_centroids}, took {timings[-1] - timings[-2]} seconds')
 
     del bundles
+else:
+    raise Exception('No longer functional for other versions, need to make sure that the sides compared to each other are equivalent '
+                    'for example left to right_f, right to left_f, etc')
+
+

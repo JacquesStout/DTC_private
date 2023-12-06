@@ -33,7 +33,7 @@ from DTC.tract_manager.tract_to_roi_handler import filter_streamlines
 
 if len(sys.argv)<2:
     project_headfile_folder = '/Users/jas/bass/gitfolder/DTC_private/BuSA_headfiles'
-    project_run_identifier = '202311_10template_test01'
+    project_run_identifier = '202311_10template_1000_newcentroids'
     project_summary_file = os.path.join(project_headfile_folder, project_run_identifier + '.ini')
 else:
     project_summary_file = sys.argv[1]
@@ -56,11 +56,12 @@ setpoints = params['setpoints']
 figures_outpath = params['figures_outpath']
 distance = params['distance']
 removed_list = params['removed_list']
-num_points = 50
-distance = 50
-num_bundles = 6
-fury.colormap.distinguishable_colormap(nb_colors=num_bundles)
-overwrite=False
+num_bundles = int(params['num_bundles'])
+num_points = int(params['num_points'])
+distance = int(params['distance'])
+
+fury.colormap.distinguishable_colormap(nb_colors=int(num_bundles))
+overwrite=True
 verbose = False
 
 if 'samos' in socket.gethostname():
@@ -103,8 +104,9 @@ ratiostr = ratio_to_str(ratio,spec_all=False)
 path_TRK = os.path.join(inpath, 'TRK_MDT'+ratiostr)
 outpath_all = os.path.join(inpath, 'TRK_bundle_splitter')
 proj_path = os.path.join(outpath_all,project_run_identifier)
-figures_proj_path = os.path.join(figures_outpath, project_run_identifier)
-mkcdir([figures_outpath,figures_proj_path])
+figures_proj_path = os.path.join(proj_path, 'Figures')
+#mkcdir([figures_proj_path],sftp_out)
+mkcdir([figures_proj_path],sftp_out)
 
 pickle_folder = os.path.join(proj_path, 'pickle_roi'+ratiostr)
 trk_proj_path = os.path.join(proj_path, 'trk_roi'+ratiostr)
@@ -140,6 +142,26 @@ for side in sides:
         #centroids_all.append(centroids_side[i])
         #centroid_all_side_tracker[np.shape(centroids_all)[0]-1] = (side,i)
         streamline_bundle[side,i] = []
+
+if test:
+    for side in sides:
+        subj_trk, trkexists = gettrkpath(path_TRK, template_subjects[0], str_identifier, pruned=prune, verbose=False,
+                                         sftp=sftp_in)
+        streamlines_data = load_trk_remote(subj_trk, 'same', sftp_in)
+        header = streamlines_data.space_attributes
+
+        for bundle_id in np.arange(num_bundles):
+            sg = lambda: (s for i, s in enumerate(centroids[side][bundle_id:bundle_id+1]))
+            filepath_bundle = os.path.join(figures_proj_path, f'centroid_{side}_bundle_{bundle_id+1}.trk')
+            save_trk_header(filepath=filepath_bundle, streamlines=sg, header=header,
+                        affine=np.eye(4), verbose=verbose, sftp=sftp_out)
+        """
+        centroid_streamlines = centroids[side][:]
+        filepath_bundle = os.path.join(figures_proj_path, f'centroid_{side}.trk')
+        save_trk_header(filepath=filepath_bundle, streamlines=centroid_streamlines, header=header,
+                        affine=np.eye(4), verbose=verbose)
+        """
+
 
 verbose = True
 overwrite=False
