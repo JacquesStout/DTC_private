@@ -326,6 +326,17 @@ def save_trk_remote(trkpath,streamlines,header, affine=np.eye(4),sftp=None):
     return
 
 
+def save_fig_remote(figpath, sftp=None):
+    import matplotlib.pyplot as plt
+    if sftp is not None:
+        temp_path =make_temppath(figpath)
+        plt.savefig(temp_path)
+        sftp.put(temp_path,figpath)
+        os.remove(temp_path)
+    else:
+        plt.savefig(figpath)
+
+
 def loadmat_remote(matpath, sftp=None):
     from scipy.io import loadmat
     if sftp is not None:

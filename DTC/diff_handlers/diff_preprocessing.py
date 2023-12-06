@@ -545,7 +545,6 @@ def launch_preprocessing(subj, raw_nii, outpath, cleanup=False, nominal_bval=400
 
     #give new header to the non-dti files using md as reference
 
-    overwrite=True
     for contrast in ['dwi', 'b0', 'mask']:
         tmp_file=os.path.join(work_dir,f'{subj}_tmp_{contrast}{ext}')
         tmp2_file=os.path.join(work_dir,f'{subj}_tmp2_{contrast}{ext}')
@@ -557,7 +556,6 @@ def launch_preprocessing(subj, raw_nii, outpath, cleanup=False, nominal_bval=400
             else:
                 header_superpose(reference, tmp_file, outpath=tmp2_file)
 
-    overwrite=False
     create_subj_space_files = True
     if create_subj_space_files:
         for contrast in ['dwi', 'b0', 'mask']:
@@ -585,8 +583,6 @@ def launch_preprocessing(subj, raw_nii, outpath, cleanup=False, nominal_bval=400
             f.write(orient_relative)
     else:
         orient_relative = open(orient_string, mode='r').read()
-
-    overwrite=True
 
     if SAMBA_inputs_folder is not None:
         subj_orient_string = os.path.join(SAMBA_inputs_folder, f'{subj}_relative_orientation.txt')
