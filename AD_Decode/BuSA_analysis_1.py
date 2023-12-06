@@ -59,7 +59,6 @@ else:
 
 master_df = pd.read_csv(master)
 
-stats_path = os.path.join(root,'stats')
 figures_path = os.path.join(root,'Figures')
 excel_path = os.path.join(root,'Excels')
 mkcdir([stats_path,figures_path, excel_path])
@@ -72,18 +71,35 @@ else:
 ref_subj = 'S02224' 
 bundles = [i for i in all_subj_bundles if ref_subj in i]
 bundles = [ i[6:] for i in bundles]
+bundles = sorted(bundles)
 
-num_groups = 6
+num_groups = 5
+num_bundles = 6
 
 tr_list = [0] + [np.quantile(master_df['age'],(i+1)*(1/num_groups)) for i in np.arange(num_groups)] + [1+ np.max(master_df['age'])]
 
-sds = np.zeros([num_groups,12])
-means = np.zeros([num_groups,12])
+#sds = np.zeros([num_groups,num_bundles*2])
+#means = np.zeros([num_groups,num_bundles*2])
+
+test=False
+
+if test:
+    bundles = [f'_left_bundle_0.xlsx']
+
+
+columns_list = [f'Side_{bundle.split("_")[1]}_ID_{bundle.split("_")[3].split(".")[0]}' for bundle in bundles]
+datameans = pd.DataFrame(columns=(['Age Group'] + columns_list))
+datasds = pd.DataFrame(columns=(['Age Group'] + columns_list))
 
 figures_box_path = os.path.join(figures_path,'boxsquares_age_FA')
-mkcdir(figures_box_path)
+figures_agegrouping_path = os.path.join(figures_path,'agegrouping_mean_FA')
+
+mkcdir([figures_box_path,figures_agegrouping_path])
 
 verbose =True
+
+#meanbundle.split('_')[1]s = {}
+#sds = {}
 
 for bundle in bundles:
 
@@ -121,7 +137,7 @@ for bundle in bundles:
     bundle_df = bundle_df.dropna()
     
     column_names = []
-    for i in range(10,40):
+    for i in range(1,50):
         column_names.append("point_"+str(i)+"_fa")
     bundle_df['averageFA'] = np.mean(bundle_df[column_names],1)
 
@@ -131,7 +147,7 @@ for bundle in bundles:
    # bundle_df_reduced.boxplot(column='averageFA',by='age')
     #sns.boxplot(x="age", y="averageFA", data=bundle_df_reduced)
     sns.lmplot(x="age", y="averageFA", data=bundle_df_reduced, x_estimator=np.mean,  order=2)
-    plt.title(f'Boxplot for bundle {bundle_num+1}',y=0.9)
+    plt.title(f'Boxplot for bundle {int(bundle_num)+1}',y=0.9)
 
     plt.savefig(fig_bundle_path)
 
@@ -144,8 +160,12 @@ for bundle in bundles:
 
     for i,group in enumerate(list_df):
         group = outlier_removal(group,qsep=1.5)
-        means[i,bundle_num] = np.mean(group)
-        sds[i,bundle_num] = np.std(group)
+        #means[int(i),int(bundle_num)] = np.mean(group)
+        #sds[int(i),int(bundle_num)] = np.std(group)
+        datameans.loc[i, 'Age Group'] = f'Age Group {i}'
+        datameans.loc[i, f'Side_{side}_ID_{bundle_num}'] = np.mean(group)
+        datasds.loc[i, 'Age Group'] = f'Age Group {i}'
+        datasds.loc[i, f'Side_{side}_ID_{bundle_num}'] = np.std(group)
 
     del(bundle_df)
 
@@ -165,17 +185,17 @@ for bundle in bundles:
 
 x_labels = [f'Age {int(tr_list[i])}-{int(tr_list[i+1])}' for i in np.arange(num_groups)]
 
-datameans = pd.DataFrame(index= np.arange(12),columns=x_labels)
-datameans.iloc[:,:] = means.transpose()
+#datameans = pd.DataFrame(index= np.arange(12),columns=x_labels)
+#datameans.iloc[:,:] = means.transpose()
 
-bundle_labels = [f'Bundle {str(num+1)}' for num in np.arange(np.shape(means)[1])]
+bundle_labels = [f'Bundle {str(num+1)}' for num in np.arange(np.shape(datameans)[1])]
 
 # Create 12 different plots with different colors
-for i in range(datameans.shape[0]):
-    fig_plot_path = os.path.join(figures_box_path,f'bundle_{i}_AgeGrouping_MeanFA.png')
+for i,bundle_name in enumerate(columns_list):
+    fig_plot_path = os.path.join(figures_agegrouping_path,f'{bundle_name}_AgeGrouping_MeanFA.png')
     plt.figure()
-    plt.plot(x_labels, means[:, i], marker='o', color=plt.cm.viridis(i / means.shape[0]), label=bundle_labels[i])
-    plt.title(f'Change in values for {bundle_labels[i]}')
+    plt.plot(x_labels, datameans.loc[:,bundle_name], marker='o', color=plt.cm.viridis(i / datameans.shape[0]), label=bundle_name)
+    plt.title(f'Change in values for {bundle_name}')
     plt.xlabel('X-axis Groups')
     plt.ylabel('Change in Values')
     plt.legend()
@@ -183,42 +203,22 @@ for i in range(datameans.shape[0]):
     plt.close()
 
 
-x_labels = [f'Age {int(tr_list[i])}-{int(tr_list[i+1])}' for i in np.arange(num_groups)]
+#x_labels = [f'Age {int(tr_list[i])}-{int(tr_list[i+1])}' for i in np.arange(num_groups)]
 
-datameans = pd.DataFrame(index= np.arange(12),columns=x_labels)
-datameans.iloc[:,:] = sds.transpose()
-
-bundle_labels = [f'Bundle {str(num+1)}' for num in np.arange(np.shape(sds)[1])]
+#bundle_labels = [f'Bundle {str(num+1)}' for num in np.arange(np.shape(sds)[1])]
 
 # Create 12 different plots with different colors
-for i in range(datameans.shape[0]):
-    fig_plot_path = os.path.join(figures_box_path,f'bundle_{i}_AgeGrouping_SdFA.png')
+for i,bundle_name in enumerate(columns_list):
+    fig_plot_path = os.path.join(figures_agegrouping_path,f'{bundle_name}_AgeGrouping_SdFA.png')
     plt.figure()
-    plt.plot(x_labels, sds[:, i], marker='o', color=plt.cm.viridis(i / sds.shape[0]), label=bundle_labels[i])
-    plt.title(f'Change in values for {bundle_labels[i]}')
+    plt.plot(x_labels, datasds.loc[:,bundle_name], marker='o', color=plt.cm.viridis(i / datameans.shape[0]), label=bundle_name)
+    plt.title(f'Change in values for {bundle_name}')
     plt.xlabel('X-axis Groups')
     plt.ylabel('Change in Values')
     plt.legend()
     plt.savefig(fig_plot_path)
     plt.close()
 
-
-datameans = pd.DataFrame(index= np.arange(12),columns=x_labels)
-datameans.iloc[:,:] = means.transpose()
-
-bundle_labels = [f'Bundle {str(num+1)}' for num in np.arange(np.shape(sds)[1])]
-
-# Create 12 different plots with different colors
-for i in range(datameans.shape[0]):
-    fig_plot_path = os.path.join(figures_box_path,f'bundle_{i}_AgeGrouping_MeanFA.png')
-    plt.figure()
-    plt.plot(x_labels, sds[:, i], marker='o', color=plt.cm.viridis(i / sds.shape[0]), label=bundle_labels[i])
-    plt.title(f'Change in values for {bundle_labels[i]}')
-    plt.xlabel('X-axis Groups')
-    plt.ylabel('Change in Values')
-    plt.legend()
-    plt.savefig(fig_plot_path)
-    plt.close()
 
 '''
 

@@ -66,7 +66,6 @@ remote=False
 if remote is False:
     sftp=None
 
-stats_path = os.path.join(root,'stats')
 figures_path = os.path.join(root,'Figures')
 excel_path = os.path.join(root,'Excels')
 mkcdir([excel_path,figures_path],sftp=sftp)

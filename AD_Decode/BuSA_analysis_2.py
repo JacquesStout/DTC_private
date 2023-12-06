@@ -100,15 +100,6 @@ bundles = [ i[6:] for i in bundles]
 num_groups = 6
 
 tr_list = [0] + [np.quantile(master_df['age'],(i+1)*(1/num_groups)) for i in np.arange(num_groups)] + [1+ np.max(master_df['age'])]
-#tr1 = np.quantile(master_df['age'], 0.3)
-#tr2 = np.quantile(master_df['age'], 0.66)
-#tr3 = np.quantile(master_df['age'], 1)
-
-
-#bundle = bundles[0] #
-#sds = np.zeros([num_groups,12])
-#means = np.zeros([num_groups,12])
-#pickle_path = '/Users/ali/Desktop/Dec23/BuSA/variances/'
 
 allvars_fdata = {}
 allmeans_fdata = {}
