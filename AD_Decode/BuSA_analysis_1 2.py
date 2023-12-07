@@ -16,6 +16,10 @@ import matplotlib
 import matplotlib.pyplot as plt  
 import seaborn as sns
 import socket
+
+sys.path.append('/Users/ali/jacques_code')
+sys.path.append('/Users/ali/jacques_code/DTC')
+
 from DTC.file_manager.file_tools import mkcdir, check_files
 
 
@@ -123,7 +127,8 @@ for bundle in bundles:
         index = master_df["MRI_Exam"] == int(subj[2:6])
         try:
             temp['age'] = master_df[index]['age'].iloc[0]
-            #temp['sex'] = master_df[index]['sex']
+            temp['genotype'] = master_df[index]['genotype'].iloc[0]
+            #temp['sex'] = master_df[index]['sex'].iloc[0]
         except:
             print(f'Subject {subj} is missing')
         #temp = temp.to_numpy()
@@ -139,13 +144,16 @@ for bundle in bundles:
         column_names.append("point_"+str(i)+"_fa")
     bundle_df['averageFA'] = np.mean(bundle_df[column_names],1)
 
-    bundle_df_reduced = bundle_df[["averageFA" , "age"]]
-#    bundle_df_reduced = bundle_df_reduced.iloc[ 0:2000]
+    bundle_df_reduced = bundle_df[["averageFA" , "age", 'genotype']]
+    bundle_df_reduced = bundle_df_reduced.replace({'APOE34': 'APOE4', 'APOE44': 'APOE4', 'APOE33': 'APOE3', 'APOE23': 'APOE3'}, regex=True)#    bundle_df_reduced = bundle_df_reduced.iloc[ 0:2000]
     
    # bundle_df_reduced.boxplot(column='averageFA',by='age')
     #sns.boxplot(x="age", y="averageFA", data=bundle_df_reduced)
-    sns.lmplot(x="age", y="averageFA", data=bundle_df_reduced, x_estimator=np.mean,  order=2)
-    plt.title(f'Boxplot for bundle {int(bundle_num)+1}',y=0.9)
+    
+    #sns.lmplot(x="age", y="averageFA", data=bundle_df_reduced, x_estimator=np.mean, order=2)
+    sns.lmplot(x="age", y="averageFA", data=bundle_df_reduced, x_estimator=np.mean, hue='genotype', order=2)
+
+    plt.title(f'Boxplot for bundle {side} {bundle_num}',y=0.9)
 
     plt.savefig(fig_bundle_path)
 
