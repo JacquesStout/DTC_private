@@ -36,44 +36,28 @@ def length_hist(length_list, color, filepath = None, title = None):
 
 
 def outlier_removal(values, qsep=3):
-
     iqr = abs(np.quantile(values,0.25) - np.quantile(values,0.75))
     median = np.quantile(values,0.5)
     new_values = values[(values > median - qsep * iqr) & (values < median + qsep * iqr)]
     return new_values
 
 
-
-
-remote=False
-project = '202311_10template_test01'
-kos=True
-
-
 if 'santorini' in socket.gethostname().split('.')[0]:
-    root = f'/Users/jas/jacques/AD_Decode/BuSA_analysis/{project}'
+    root = '/Users/jas/Downloads/Busa_analysis/AD_decode_bundles/'
     master = '/Users/jas/jacques/AD_Decode_excels/AD_DECODE_data_stripped.csv'
+    figures_path = '/Users/jas/jacques/AD_Decode/BuSA_analysis/Figures'
+    excel_path = '/Users/jas/jacques/AD_Decode/BuSA_analysis/Excels'
 else:
     root = '/Users/ali/Desktop/Dec23/BuSA/AD_decode_bundles/'
     master = '/Users/ali/Desktop/Dec23/BuSA/AD_DECODE_data_stripped.csv'
-
-stats_path = os.path.join(root,'stats')
-
-if kos:
-    root = f'/Volumes/Shared Folder/newJetStor/paros/paros_WORK/jacques/AD_Decode/TRK_bundle_splitter/{project}'
-
-remote=False
-if remote is False:
-    sftp=None
-
-figures_path = os.path.join(root,'Figures')
-excel_path = os.path.join(root,'Excels')
-mkcdir([excel_path,figures_path],sftp=sftp)
+    figures_path = '/Users/ali/Desktop/Dec23/BuSA/AD_decode_bundles/Figures'
+    excel_path = '/Users/ali/Desktop/Dec23/BuSA/AD_decode_bundles/Excels'
 
 mkcdir(excel_path)
 
 master_df = pd.read_csv(master)
 
+stats_path = os.path.join(root,'stats')
 all_subj_bundles = os.listdir(stats_path)
 
 ref_subj = 'S02224'
@@ -111,7 +95,7 @@ total_num_bundles = np.size(bundles)/2
 
 figures_hist_path = os.path.join(figures_path,'histograms_lengths')
 mkcdir(figures_hist_path)
-
+verbose=True
 for bundle in bundles:
 
     if 'left' in bundle:
@@ -127,7 +111,7 @@ for bundle in bundles:
         this_bundle_subjs = [this_bundle_subjs[0]]
 
     for subj in this_bundle_subjs:
-        temp = pd.read_excel(os.path.join(stats_path,subj))
+        temp =  pd.read_excel(os.path.join(stats_path, subj))
         #temp = pd.DataFrame()
         temp['Subject']=subj[2:6]
         index = master_df["MRI_Exam"] == int(subj[2:6])
@@ -140,6 +124,5 @@ for bundle in bundles:
         bundle_df = temp
         histfig_path = os.path.join(figures_hist_path,f'{subj[2:6]}_side_{side}_bundle_{bundle_num}.png')
         length_hist(bundle_df.Length.to_list(),(.44, .75, .8),filepath=histfig_path, title = f'{subj[2:6]}_side_{side}_bundle_{bundle_num}')
-
-    if verbose:
-        print(f'Finished bundle {bundle_num} side {side}')
+        if verbose:
+            print(f'File saved to {histfig_path}')
