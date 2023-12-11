@@ -1,13 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-Created on Tue Jan 17 13:30:59 2023
 
-@author: ali
-"""
 
-import os, glob, shutil
-import sys, subprocess, copy
+import os, copy
 
 # import nibabel as nib
 
