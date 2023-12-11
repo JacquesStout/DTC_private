@@ -122,6 +122,20 @@ def cut_invalid_streamlines(sft):
 
     return new_sft, cutting_counter
 
+
+def convert_tck_to_trk(input_file, output_file, ref):
+    header = {}
+
+    nii = nib.load(ref)
+    header[Field.VOXEL_TO_RASMM] = nii.affine.copy()
+    header[Field.VOXEL_SIZES] = nii.header.get_zooms()[:3]
+    header[Field.DIMENSIONS] = nii.shape[:3]
+    header[Field.VOXEL_ORDER] = "".join(aff2axcodes(nii.affine))
+
+    tck = nib.streamlines.load(input_file)
+    nib.streamlines.save(tck.tractogram, output_file, header=header)
+
+
 def transform_warp_sft(sft, linear_transfo, target, inverse=False,
                        reverse_op=False, deformation_data=None,
                        remove_invalid=True, cut_invalid=False):
