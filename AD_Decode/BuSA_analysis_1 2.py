@@ -124,6 +124,7 @@ for bundle in bundles:
 
         #temp = pd.DataFrame()
         temp['Subject']=subj[2:6]
+        #temp = temp.loc[temp['Length'] >50]
         index = master_df["MRI_Exam"] == int(subj[2:6])
         try:
             temp['age'] = master_df[index]['age'].iloc[0]
@@ -143,6 +144,7 @@ for bundle in bundles:
     for i in range(1,50):
         column_names.append("point_"+str(i)+"_fa")
     bundle_df['averageFA'] = np.mean(bundle_df[column_names],1)
+    #bundle_df['averageFA'] = np.var(bundle_df[column_names],1)
 
     bundle_df_reduced = bundle_df[["averageFA" , "age", 'genotype']]
     bundle_df_reduced = bundle_df_reduced.replace({'APOE34': 'APOE4', 'APOE44': 'APOE4', 'APOE33': 'APOE3', 'APOE23': 'APOE3'}, regex=True)#    bundle_df_reduced = bundle_df_reduced.iloc[ 0:2000]

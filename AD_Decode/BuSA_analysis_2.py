@@ -50,7 +50,6 @@ def mkcdir(folderpaths, sftp=None):
 
 
 def outlier_removal(values, qsep=3):
-
     iqr = abs(np.quantile(values,0.25) - np.quantile(values,0.75))
     median = np.quantile(values,0.5)
     new_values = values[(values > median - qsep * iqr) & (values < median + qsep * iqr)]
@@ -63,8 +62,10 @@ if 'santorini' in socket.gethostname().split('.')[0]:
     figures_path = '/Users/jas/jacques/AD_Decode/BuSA_analysis/Figures'
     excel_path = '/Users/jas/jacques/AD_Decode/BuSA_analysis/Excels'
 else:
-    root = '/Users/ali/Desktop/Dec23/BuSA/AD_decode_bundles/'
+    root = '/Users/ali/Desktop/Dec23/BuSA/AD_decode_bundles/stats/'
     master = '/Users/ali/Desktop/Dec23/BuSA/AD_DECODE_data_stripped.csv'
+    excel_path = '/Users/ali/Desktop/Dec23/BuSA/AD_decode_bundles/Excels'
+    figures_path = '/Users/ali/Desktop/Dec23/BuSA/AD_decode_bundles/Figures'
 
 mkcdir(excel_path)
 
@@ -232,4 +233,3 @@ distances_var_FAbundle_df.iloc[:,distances_var_FAbundle_df.columns.get_loc('MRI_
 merged_df = pd.merge(metadf, distances_var_FAbundle_df, on='MRI_Exam', how='inner')
 
 merged_df.to_excel(os.path.join(excel_path,'distances_var_FAbundle.xlsx'))
-
