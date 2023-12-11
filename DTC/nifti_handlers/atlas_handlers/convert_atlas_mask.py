@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 from dipy.io.image import load_nifti, save_nifti
 from DTC.file_manager.computer_nav import load_nifti_remote, make_temppath, checkfile_exists_remote
-
+import warnings
 
 def atlas_converter(ROI_excel,sftp=None):
 
@@ -133,11 +133,18 @@ def make_act_classifier(fullmask, whitemask, csfmask, affine, act_outpath):
     act_mask = np.array(act_mask, dtype='int')
     return act_mask, act_outpath
 
-def create_label_mask(atlas, label, mask_outpath, conserve_val = False, exclude = False):
+def create_label_mask(atlas, label_list, mask_outpath, conserve_val = False, exclude = False,verbose=False):
 
-    if os.path.exists(mask_outpath):
-        print(f'already wrote {mask_outpath}, exiting')
-        return
+    #this code will create a single mask from all the specified labels in label_list, or if specifyign exclude, will
+    # create a mask from all labels except the specified label
+
+    unique_masks=0
+    if isinstance(mask_outpath,list) and isinstance(label_list,list):
+        if np.size(mask_outpath)!=np.size(label_list):
+            warnings.warn(f'Inconsistent list number and outpath number, cannot run create_label_mask')
+            return
+        else:
+            unique_masks=1
 
     if isinstance(atlas, str):
         labels, affine_labels, _, _, _ = load_nifti_remote(atlas, None)
@@ -147,28 +154,92 @@ def create_label_mask(atlas, label, mask_outpath, conserve_val = False, exclude 
 
     labels = np.round(labels,2)
 
-    mask = np.zeros(np.shape(labels))
+    if not unique_masks:
+        mask = np.zeros(np.shape(labels))
 
-    if not exclude:
-        for i in range(np.shape(labels)[0]):
-            for j in range(np.shape(labels)[1]):
-                for k in range(np.shape(labels)[2]):
-                    if labels[i,j,k]>0 and labels[i,j,k] in label:
-                        if conserve_val:
-                            mask[i,j,k] = labels[i,j,k]
-                        else:
-                            mask[i,j,k] = 1
-    elif exclude:
-        for i in range(np.shape(labels)[0]):
-            for j in range(np.shape(labels)[1]):
-                for k in range(np.shape(labels)[2]):
-                    if labels[i, j, k] > 0 and labels[i, j, k] not in label:
-                        if conserve_val:
-                            mask[i, j, k] = labels[i, j, k]
-                        else:
-                            mask[i, j, k] = 1
+        if not exclude:
+            for i in range(np.shape(labels)[0]):
+                for j in range(np.shape(labels)[1]):
+                    for k in range(np.shape(labels)[2]):
+                        if labels[i,j,k]>0 and labels[i,j,k] in label_list:
+                            if conserve_val:
+                                mask[i,j,k] = labels[i,j,k]
+                            else:
+                                mask[i,j,k] = 1
+        elif exclude:
+            for i in range(np.shape(labels)[0]):
+                for j in range(np.shape(labels)[1]):
+                    for k in range(np.shape(labels)[2]):
+                        if labels[i, j, k] > 0 and labels[i, j, k] not in label_list:
+                            if conserve_val:
+                                mask[i, j, k] = labels[i, j, k]
+                            else:
+                                mask[i, j, k] = 1
 
-    save_nifti(mask_outpath, mask, affine_labels)
+        save_nifti(mask_outpath, mask, affine_labels)
+        print(f'Saved {mask_outpath}')
+
+    else:
+        for label, mask_path in zip(label_list, mask_outpath):
+            mask = np.zeros(np.shape(labels))
+            if not exclude:
+                for i in range(np.shape(labels)[0]):
+                    for j in range(np.shape(labels)[1]):
+                        for k in range(np.shape(labels)[2]):
+                            if labels[i, j, k] > 0 and labels[i, j, k] == label:
+                                if conserve_val:
+                                    mask[i, j, k] = labels[i, j, k]
+                                else:
+                                    mask[i, j, k] = 1
+            elif exclude:
+                for i in range(np.shape(labels)[0]):
+                    for j in range(np.shape(labels)[1]):
+                        for k in range(np.shape(labels)[2]):
+                            if labels[i, j, k] > 0 and labels[i, j, k] == label:
+                                if conserve_val:
+                                    mask[i, j, k] = labels[i, j, k]
+                                else:
+                                    mask[i, j, k] = 1
+            save_nifti(mask_path, mask, affine_labels)
+            if verbose:
+                print(f'Saved label {label} at {mask_path}')
+
+
+def create_labels_frommasks(mask_list, label_list, label_outpath, verbose=False):
+
+    #this code will create a single label file from all the specified masks in mask_list
+
+    unique_masks=0
+
+    if isinstance(mask_list,list) and isinstance(label_list,list):
+        if np.size(mask_list)!=np.size(label_list):
+            warnings.warn(f'Inconsistent list number and outpath number, cannot run create_label_mask')
+            return
+        else:
+            unique_masks=1
+
+    mask_list_data = []
+    for mask_path in mask_list:
+        mask_data, affine_labels, _, _, _ = load_nifti_remote(mask_path, None)
+        mask_list_data.append(mask_data)
+    mask_list_data = np.array(mask_list_data)
+    #label_data = np.zeros(np.shape(mask_1))
+
+    label_data = np.zeros(np.shape(mask_data))
+
+    for i in range(np.shape(label_data)[0]):
+        for j in range(np.shape(label_data)[1]):
+            for k in range(np.shape(label_data)[2]):
+                indices = np.where(mask_list_data[:, i, j, k] == 1)[0]
+                if np.size(np.where(mask_list_data[:, i, j, k] == 1))>0:
+                    label_data[i,j,k] = label_list[indices[0]]
+                #if labels[i,j,k]>0 and labels[i,j,k] in label_list:
+                #    if conserve_val:
+                #        mask[i,j,k] = labels[i,j,k]
+                #    else:
+                #        mask[i,j,k] = 1
+    save_nifti(label_outpath, label_data, affine_labels)
+    print(f'Saved {label_outpath}')
 
 
 def run_onall():
