@@ -43,6 +43,7 @@ test = params['test']
 ratio = params['ratio']
 stepsize = params['stepsize']
 template_subjects = params['template_subjects']
+streamline_lr_inclusion  = params['streamline_lr_inclusion']
 
 overwrite = False
 verbose = False
@@ -144,10 +145,10 @@ if method=='dwi_roi_to_trk':
         print(f'Loaded the streamlines in {subj_trk}, took {ttrk - t1:0.2f} seconds')
         #roi_rstream, roi_rreal = filter_streamlines(roi_mask_right, streamlines, world_coords = True, include='all')
 
-        roi_rstream = filter_streamlines(roi_mask_right, streamlines, world_coords = True, include='only_mask')
+        roi_rstream = filter_streamlines(roi_mask_right, streamlines, world_coords = True, include=streamline_lr_inclusion)
         print('Right side done!')
 
-        roi_lstream = filter_streamlines(roi_mask_left, streamlines, world_coords = True, include='only_mask')
+        roi_lstream = filter_streamlines(roi_mask_left, streamlines, world_coords = True, include=streamline_lr_inclusion)
         print('Left side done!')
 
         import pickle

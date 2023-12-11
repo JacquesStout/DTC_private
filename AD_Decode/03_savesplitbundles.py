@@ -24,6 +24,7 @@ from DTC.visualization_tools.tract_visualize import show_bundles, setup_view, vi
 from dipy.tracking.streamline import transform_streamlines
 from DTC.tract_manager.tract_handler import ratio_to_str
 from dipy.segment.metric import mdf
+from DTC.tract_manager.tract_handler import gettrkpath
 
 """
 from os.path import expanduser, join
@@ -55,7 +56,6 @@ else:
     params = read_parameters_from_ini(project_summary_file)
 
 #locals().update(params) #This line will add to the code the variables specified above from the config file, namely
-#project, streamline_type, text_folder, test, MDT_mask_folder, ratio, stepsize
 
 project = params['project']
 streamline_type = params['streamline_type']
@@ -64,6 +64,9 @@ ratio = params['ratio']
 stepsize = params['stepsize']
 template_subjects = params['template_subjects']
 setpoints = params['setpoints']
+distance = int(params['distance'])
+bundle_points = int(params['bundle_points'])
+num_bundles = int(params['num_bundles'])
 
 overwrite=True
 verbose = False
@@ -126,12 +129,6 @@ dict_revtracker = {'right_f': 'right', 'left_f': 'left', 'right': 'right', 'left
 streamlines_template = {}
 num_streamlines_right_all = 0
 
-num_points = 50
-distance = 50
-num_bundles = 6
-
-
-
 combined_trk_folder = os.path.join(proj_path, 'combined_TRK')
 mkcdir(combined_trk_folder, sftp_out)
 trktemplate_paths = {}
@@ -173,10 +170,10 @@ for side in sides:
 
 #streams_dict['left_f'] = streams_dict['left']
 
-feature2 = ResampleFeature(nb_points=num_points)
+feature2 = ResampleFeature(nb_points=bundle_points)
 metric2 = AveragePointwiseEuclideanMetric(feature=feature2)
 qb = QuickBundles(threshold=distance, metric=metric2, max_nb_clusters=num_bundles)
-qb_test = QuickBundles(threshold=distance, metric=metric2, max_nb_clusters=1)
+#qb_test = QuickBundles(threshold=distance, metric=metric2, max_nb_clusters=1)
 #qb = QuickBundles(metric=metric2, max_nb_clusters=num_bundles)
 #qb_test = QuickBundles(metric=metric2, max_nb_clusters=1)
 
@@ -237,14 +234,28 @@ if bundle_lr_combined:
     timings.append(time.perf_counter())
     print(f'Organized top {num_bundles} bundles for left and right side, took {timings[-1] - timings[-2]} seconds')
 
+    if test:
+        subj_trk, trkexists = gettrkpath(path_TRK, template_subjects[0], str_identifier, pruned=prune, verbose=False,
+                                         sftp=sftp_in)
+        streamlines_data = load_trk_remote(subj_trk, 'same', sftp_in)
+        header = streamlines_data.space_attributes
+
     for side in sides:
         pickled_centroids = os.path.join(pickle_folder, f'bundles_centroids_{side}.py')
         if not checkfile_exists_remote(pickled_centroids, sftp_out) or overwrite:
             # pickledump_remote(bundles.centroids,pickled_centroids,sftp_out)
             pickledump_remote(centroids_perside[side], pickled_centroids, sftp_out)
+            print(f'Saved centroids at {pickled_centroids}, took {timings[-1] - timings[-2]} seconds')
+        else:
+            print(f'Centroids at {pickled_centroids} already exist')
         timings.append(time.perf_counter())
-        print(f'Saved centroids at {pickled_centroids}, took {timings[-1] - timings[-2]} seconds')
 
+        if test:
+            for bundle_id in np.arange(num_bundles):
+                sg = lambda: (s for i, s in enumerate(centroids_perside[side][bundle_id:bundle_id+1]))
+                filepath_bundle = os.path.join(figures_proj_path, f'centroid_{side}_bundle_{bundle_id+1}.trk')
+                save_trk_header(filepath=filepath_bundle, streamlines=sg, header=header,
+                            affine=np.eye(4), verbose=verbose, sftp=sftp_out)
     del bundles
 else:
     raise Exception('No longer functional for other versions, need to make sure that the sides compared to each other are equivalent '

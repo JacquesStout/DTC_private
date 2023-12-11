@@ -57,8 +57,12 @@ figures_outpath = params['figures_outpath']
 distance = params['distance']
 removed_list = params['removed_list']
 num_bundles = int(params['num_bundles'])
-num_points = int(params['num_points'])
+#num_points = int(params['num_points'])
+points_resample = int(params['points_resample'])
+bundle_points = int(params['bundle_points'])
 distance = int(params['distance'])
+verbose = int(params['verbose'])
+streamline_lr_inclusion  = params['streamline_lr_inclusion']
 
 fury.colormap.distinguishable_colormap(nb_colors=int(num_bundles))
 overwrite=True
@@ -143,6 +147,7 @@ for side in sides:
         #centroid_all_side_tracker[np.shape(centroids_all)[0]-1] = (side,i)
         streamline_bundle[side,i] = []
 
+"""
 if test:
     for side in sides:
         subj_trk, trkexists = gettrkpath(path_TRK, template_subjects[0], str_identifier, pruned=prune, verbose=False,
@@ -155,16 +160,7 @@ if test:
             filepath_bundle = os.path.join(figures_proj_path, f'centroid_{side}_bundle_{bundle_id+1}.trk')
             save_trk_header(filepath=filepath_bundle, streamlines=sg, header=header,
                         affine=np.eye(4), verbose=verbose, sftp=sftp_out)
-        """
-        centroid_streamlines = centroids[side][:]
-        filepath_bundle = os.path.join(figures_proj_path, f'centroid_{side}.trk')
-        save_trk_header(filepath=filepath_bundle, streamlines=centroid_streamlines, header=header,
-                        affine=np.eye(4), verbose=verbose)
-        """
-
-
-verbose = True
-overwrite=False
+"""
 
 save_img = False
 
@@ -203,16 +199,18 @@ for subject in full_subjects_list:
     else:
         print(f'Starting run for subject {subject}')
     subj_trk, trkexists = gettrkpath(path_TRK, subject, str_identifier, pruned=prune, verbose=False, sftp=sftp_in)
+    print(f'Ready to load {subj_trk}')
+
     streamlines_data = load_trk_remote(subj_trk, 'same', sftp_in)
     if verbose:
         print(f'Finished loading of {subj_trk}')
     header = streamlines_data.space_attributes
     streamlines = streamlines_data.streamlines
     streamlines_side = {}
-    streamlines_numpoints = set_number_of_points(streamlines, nb_points=num_points)
+    streamlines_numpoints = set_number_of_points(streamlines, nb_points=points_resample)
     del(streamlines)
-    streamlines_side['right'] = filter_streamlines(roi_mask_right, streamlines_numpoints, world_coords=True, include='only_mask')
-    streamlines_side['left'] = filter_streamlines(roi_mask_left, streamlines_numpoints, world_coords=True, include='only_mask')
+    streamlines_side['right'] = filter_streamlines(roi_mask_right, streamlines_numpoints, world_coords=True, include=streamline_lr_inclusion)
+    streamlines_side['left'] = filter_streamlines(roi_mask_left, streamlines_numpoints, world_coords=True, include=streamline_lr_inclusion)
     del(streamlines_numpoints)
 
     for side in sides:

@@ -38,7 +38,6 @@ else:
     params = read_parameters_from_ini(project_summary_file)
 
 #locals().update(params) #This line will add to the code the variables specified above from the config file, namely
-#project, streamline_type, text_folder, test, MDT_mask_folder, ratio, stepsize
 
 project = params['project']
 streamline_type = params['streamline_type']
@@ -47,7 +46,8 @@ ratio = params['ratio']
 stepsize = params['stepsize']
 template_subjects = params['template_subjects']
 setpoints = params['setpoints']
-num_points = int(params['num_points'])
+#num_points = int(params['num_points'])
+points_resample = int(params['points_resample'])
 
 overwrite=False
 verbose = False
@@ -153,7 +153,7 @@ for side in sides:
                     streamlines_temp = load_trk_remote(trkpaths[subject, side], 'same', sftp_in).streamlines
 
                 if setpoints:
-                    streamlines_template[side].extend(set_number_of_points(streamlines_temp, num_points))
+                    streamlines_template[side].extend(set_number_of_points(streamlines_temp, points_resample))
                 else:
                     streamlines_template[side].extend(streamlines_temp)
 

@@ -29,11 +29,12 @@ from dipy.tracking._utils import (_mapping_to_voxel, _to_voxel_coordinates)
 from collections import defaultdict, OrderedDict
 from itertools import combinations, groupby
 import pandas as pd
-import sys
+import sys, warnings
 from dipy.viz import window, actor
 from DTC.visualization_tools.tract_visualize import show_bundles, setup_view, view_test, setup_view_colortest
 import nibabel as nib
 from dipy.tracking.utils import length as tract_length
+from dipy.segment.bundles import bundle_shape_similarity
 
 """
 from os.path import expanduser, join
@@ -75,7 +76,9 @@ setpoints = params['setpoints']
 figures_outpath = params['figures_outpath']
 references = params['references']
 
-overwrite=False
+spe_refs = ['ln','greywhite']
+
+overwrite=True
 verbose = False
 
 if 'samos' in socket.gethostname():
@@ -123,7 +126,11 @@ proj_path = os.path.join(outpath_all,project_run_identifier)
 figures_proj_path = os.path.join(figures_outpath, project_run_identifier)
 small_streamlines_testzone = os.path.join(figures_proj_path,'single_streamlines')
 
-mkcdir([figures_outpath,figures_proj_path, small_streamlines_testzone])
+try:
+    mkcdir([figures_outpath,figures_proj_path, small_streamlines_testzone])
+except FileNotFoundError:
+    text_warning = f'Could not create folder {figures_outpath}'
+    warnings.warn(text_warning)
 
 pickle_folder = os.path.join(proj_path, 'pickle_roi'+ratiostr)
 trk_proj_path = os.path.join(proj_path, 'trk_roi'+ratiostr)
@@ -163,10 +170,12 @@ clustering = False
 
 save_img = True
 
-qb_test = QuickBundles(threshold=distance, metric=metric2, max_nb_clusters=1)
+qb_fullbundle = QuickBundles(threshold=50, metric=metric2, max_nb_clusters=1)
 
 right_mask_path = os.path.join(MDT_mask_folder, 'IITmean_RPI_MDT_mask_right.nii.gz')
 left_mask_path = os.path.join(MDT_mask_folder, 'IITmean_RPI_MDT_mask_left.nii.gz')
+
+grey_white_label_path = os.path.join(MDT_mask_folder,f"gwm_labels_MDT.nii.gz")
 
 roi_mask_right = nib.load(right_mask_path)
 roi_mask_left = nib.load(left_mask_path)
@@ -192,6 +201,21 @@ for remove in removed_list:
     if remove in full_subjects_list:
         full_subjects_list.remove(remove)
 
+column_bundle_compare = ['Subject'] + [f'BUAN_{bundle_id}' for bundle_id in bundle_ids]
+#BUAN_df = pd.DataFrame(columns=column_bundle_compare)
+
+overwrite=False
+
+"""
+stat_folder = '/mnt/newJetStor/paros/paros_WORK/jacques/stats_temp_test'
+test_mode = False
+references = ['fa','ln','greywhite']
+references = ['greywhite','ln']
+full_subjects_list = full_subjects_list[:4]
+"""
+
+calc_BUAN = True
+bundle_compare_summary = os.path.join(stat_folder, f'bundle_comparison.xlsx')
 
 for subject in full_subjects_list:
 
@@ -207,17 +231,19 @@ for subject in full_subjects_list:
 
     column_names = ['Streamline_ID']
     for ref in references:
-        if ref!='ln':
-            column_names+=([f'point_{ID}_fa' for ID in np.arange(num_points)])
+        if ref != 'ln':
+            column_names+=([f'point_{ID}_{ref}' for ID in np.arange(num_points)])
         if ref=='ln':
             column_names+=(['Length'])
 
     print(f'Files will be saved at {stat_folder}')
+    bundle_data_dic = {}
+
     for side in sides:
         for bundle_id in bundle_ids:
             stat_path_subject = os.path.join(stat_folder, f'{subject}_{side}_bundle_{bundle_id}.xlsx')
 
-            if not overwrite and checkfile_exists_remote(stat_path_subject, sftp_out):
+            if not overwrite and checkfile_exists_remote(stat_path_subject, sftp_out) and not calc_BUAN:
                 print(f'Already created file for subject {subject}, side {side} and {bundle_id}')
                 continue
     
@@ -225,25 +251,66 @@ for subject in full_subjects_list:
     
             filepath_bundle = os.path.join(trk_proj_path, f'{subject}_{side}_bundle_{bundle_id}.trk')
             bundle_data = load_trk_remote(filepath_bundle, 'same', sftp_in)
-    
+            bundle_data_dic[side,bundle_id] = bundle_data
             bundle_streamlines = bundle_data.streamlines
             num_streamlines = np.shape(bundle_streamlines)[0]
             header = bundle_data.space_attributes
     
             dataf_subj['Streamline_ID'] = np.arange(num_streamlines)
+
+            if not overwrite and checkfile_exists_remote(stat_path_subject, sftp_out):
+                print(f'Already created file for subject {subject}, side {side} and {bundle_id}')
+                continue
+
             #dataf_subj.set_index('Streamline_ID', inplace=True)
     
             #workbook = xlsxwriter.Workbook(stat_path_subject)
             #worksheet = workbook.add_worksheet()
     
             for ref in references:
+
                 if ref=='ln':
 
                     row_index = dataf_subj.index[dataf_subj['Streamline_ID'] == sl].tolist()[0]
                     column_indices = dataf_subj.columns.get_loc('Length')
                     dataf_subj.iloc[:, column_indices] = list(tract_length(bundle_streamlines[:]))
 
-                if ref != 'ln':
+                elif ref=='greywhite':
+                    gw_label, gw_affine, _, _, _ = load_nifti_remote(grey_white_label_path, sftp=None)
+                    column_indices = dataf_subj.columns.get_loc('Length')
+                    dataf_subj.iloc[:, column_indices] = list(tract_length(bundle_streamlines[:]))
+
+                    bundle_streamlines_transformed = transform_streamlines(bundle_streamlines,
+                                                                           np.linalg.inv(gw_affine))
+
+                    edges = np.ndarray(shape=(3, 0), dtype=int)
+                    lin_T, offset = _mapping_to_voxel(bundle_data.space_attributes[0])
+                    #stream_point_ref = []
+                    from time import time
+
+                    time1 = time()
+                    testmode = False
+
+                    for sl, _ in enumerate(bundle_streamlines_transformed):
+                        # Convert streamline to voxel coordinates
+                        # entire = _to_voxel_coordinates(target_streamlines_set[sl], lin_T, offset)
+
+                        voxel_coords = np.round(bundle_streamlines_transformed[sl]).astype(int)
+                        voxel_coords_tweaked = retweak_points(voxel_coords, np.shape(gw_label))
+
+                        label_values = gw_label[
+                            voxel_coords_tweaked[:, 0], voxel_coords_tweaked[:, 1], voxel_coords_tweaked[:, 2]]
+
+                        label_values = ['grey' if x == 1 else 'white' if x == 2 else x for x in label_values]
+
+                        #stream_point_ref.append(label_values)
+
+                        column_names_ref = [f'point_{i}_{ref}' for i, _ in enumerate(label_values)]
+                        row_index = dataf_subj.index[dataf_subj['Streamline_ID'] == sl].tolist()[0]
+                        column_indices = [dataf_subj.columns.get_loc(col) for col in column_names_ref]
+                        dataf_subj.iloc[row_index, column_indices] = label_values
+
+                else:
                     ref_img_path = get_diff_ref(ref_MDT_folder, subject, ref, sftp=None)
                     ref_data, ref_affine, _, _, _ = load_nifti_remote(ref_img_path, sftp=None)
     
@@ -252,8 +319,8 @@ for subject in full_subjects_list:
     
                     edges = np.ndarray(shape=(3, 0), dtype=int)
                     lin_T, offset = _mapping_to_voxel(bundle_data.space_attributes[0])
-                    stream_ref = []
-                    stream_point_ref = []
+                    #stream_ref = []
+                    #stream_point_ref = []
                     from time import time
     
                     time1 = time()
@@ -268,8 +335,8 @@ for subject in full_subjects_list:
                         ref_values = ref_data[
                             voxel_coords_tweaked[:, 0], voxel_coords_tweaked[:, 1], voxel_coords_tweaked[:, 2]]
     
-                        stream_point_ref.append(ref_values)
-                        stream_ref.append(np.mean(ref_values))
+                        #stream_point_ref.append(ref_values)
+                        #stream_ref.append(np.mean(ref_values))
     
                         if np.mean(ref_values) == 0:
                             if verbose:
@@ -310,3 +377,27 @@ for subject in full_subjects_list:
     
             save_df_remote(dataf_subj,stat_path_subject,sftp_out)
             print(f'Wrote file for subject {subject}, side {side} and {bundle_id}')
+
+    BUANs = []
+    column_names_ref = [f'BUAN_{bundle_id}' for bundle_id in bundle_ids]
+
+    BUAN_ids = {}
+    qb = QuickBundles(threshold=50, metric=metric2, max_nb_clusters=num_bundles)
+
+    for bundle_id in bundle_ids:
+        rng = np.random.RandomState()
+        clust_thr = [5, 3, 1.5]
+        threshold = 12
+
+        BUAN_id = bundle_shape_similarity(bundle_data_dic['left',bundle_id].streamlines, bundle_data_dic['right',bundle_id].streamlines,
+                                 rng, clust_thr, threshold)
+
+        BUAN_ids[bundle_id] = (BUAN_id)
+
+    subj_data = {'Subject': subject, **{f'BUAN_{bundle_id}': BUAN_ids[bundle_id] for bundle_id in bundle_ids}}
+    if not 'BUAN_df' in locals():
+        BUAN_df = pd.DataFrame.from_records([subj_data])
+    else:
+        BUAN_df = pd.concat([BUAN_df, pd.DataFrame.from_records([subj_data])], ignore_index=True)
+
+save_df_remote(BUAN_df, bundle_compare_summary, sftp_out)
