@@ -222,13 +222,13 @@ def header_superpose(target_path, origin_path, outpath=None, verbose=False):
 
     target_nii=nib.load(target_path)
     origin_nii=nib.load(origin_path)
-    if np.shape(target_nii._data)[0:3] != np.shape(origin_nii._data)[0:3]:
+    if np.shape(target_nii.get_fdata())[0:3] != np.shape(origin_nii.get_fdata())[0:3]:
         raise TypeError('not implemented')
     else:
         target_affine=target_nii._affine
         target_header = target_nii._header
         if np.any(target_affine != origin_nii._affine) or np.any(target_header != origin_nii._header):
-            new_nii = nib.Nifti1Image(origin_nii._data, target_affine, target_header)
+            new_nii = nib.Nifti1Image(origin_nii.get_fdata(), target_affine, target_header)
             if outpath is None:
                 outpath = origin_path
                 txt= (f'Overwriting original file {origin_path}')
@@ -382,7 +382,7 @@ def header_superpose_trk(target_path, origin_path, outpath=None):
 def affine_superpose(target_path, origin_path, outpath=None, transpose=None, verbose=False):
     target_nii=nib.load(target_path)
     origin_nii=nib.load(origin_path)
-    if np.shape(target_nii._data)[0:3] != np.shape(origin_nii._data)[0:3]:
+    if np.shape(target_nii.get_fdata())[0:3] != np.shape(origin_nii.get_fdata())[0:3]:
         raise TypeError('not implemented')
     else:
         target_affine=target_nii._affine
@@ -782,7 +782,7 @@ def img_transform_exec(img, current_vorder, desired_vorder, output_path=None, wr
 
     nii = nib.load(img)
 
-    nii_data = nii.get_data()
+    nii_data = nii.get_fdata()
     hdr = nii.header
 
     dims = nii.shape
