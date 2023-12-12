@@ -3,6 +3,7 @@ from DTC.nifti_handlers.atlas_handlers.convert_atlas_mask import create_label_ma
 from DTC.nifti_handlers.atlas_handlers.convert_atlas_mask import atlas_converter
 import os
 from DTC.file_manager.file_tools import mkcdir, check_files, getfromfile
+from DTC.file_manager.computer_nav import checkfile_exists_all
 
 ROI_legends = os.path.join('/Volumes/Data/Badea/Lab/', './atlases/IITmean_RPI/IITmean_RPI_index.xlsx')
 converter_lr, converter_comb, index_to_struct_lr, index_to_struct_comb = atlas_converter(ROI_legends)
@@ -30,4 +31,8 @@ for key in converter_lr.keys():
     region_path = os.path.join(folder_outpath, f'{region_name}_MDT.nii.gz')
     mask_outpath_list.append(region_path)
 
-create_label_mask(atlas_path, label_list, mask_outpath_list, conserve_val = False, exclude = False)
+allfiles_exist = checkfile_exists_all(mask_outpath_list,None)
+if not allfiles_exist:
+    create_label_mask(atlas_path, label_list, mask_outpath_list, conserve_val = False, exclude = False)
+else:
+    print(f'Already created all masks at {folder_outpath}')
