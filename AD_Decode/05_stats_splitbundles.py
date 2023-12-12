@@ -382,17 +382,26 @@ for subject in full_subjects_list:
     column_names_ref = [f'BUAN_{bundle_id}' for bundle_id in bundle_ids]
 
     BUAN_ids = {}
-    qb = QuickBundles(threshold=50, metric=metric2, max_nb_clusters=num_bundles)
+
+    affine_flip = np.eye(4)
+    affine_flip[0, 0] = -1
+    affine_flip[0, 3] = 0
+
 
     for bundle_id in bundle_ids:
         rng = np.random.RandomState()
         clust_thr = [5, 3, 1.5]
         threshold = 12
 
-        BUAN_id = bundle_shape_similarity(bundle_data_dic['left',bundle_id].streamlines, bundle_data_dic['right',bundle_id].streamlines,
-                                 rng, clust_thr, threshold)
+        streamlines_left = bundle_data_dic['left',bundle_id].streamlines
+        streamlines_right = bundle_data_dic['right',bundle_id].streamlines
+        streamlines_right_flipped = transform_streamlines(streamlines_right, affine_flip,
+                                                           in_place=False)
+        BUAN_id = bundle_shape_similarity(streamlines_left, streamlines_right_flipped, rng, clust_thr, threshold)
 
         BUAN_ids[bundle_id] = (BUAN_id)
+
+
 
     subj_data = {'Subject': subject, **{f'BUAN_{bundle_id}': BUAN_ids[bundle_id] for bundle_id in bundle_ids}}
     if not 'BUAN_df' in locals():
