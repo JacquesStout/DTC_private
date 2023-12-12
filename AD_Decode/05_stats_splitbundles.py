@@ -75,6 +75,9 @@ removed_list = params['removed_list']
 setpoints = params['setpoints']
 figures_outpath = params['figures_outpath']
 references = params['references']
+bundle_points = int(params['bundle_points'])
+num_bundles = int(params['num_bundles'])
+points_resample = int(params['points_resample'])
 
 spe_refs = ['ln','greywhite']
 
@@ -146,11 +149,7 @@ dict_revtracker = {'right_f': 'right', 'left_f': 'left', 'right': 'right', 'left
 streamlines_template = {}
 num_streamlines_right_all = 0
 
-num_points = 50
-distance = 50
-num_bundles = 6
-
-feature2 = ResampleFeature(nb_points=num_points)
+feature2 = ResampleFeature(nb_points=bundle_points)
 metric2 = AveragePointwiseEuclideanMetric(feature=feature2)
 
 combined_trk_folder = os.path.join(proj_path, 'combined_TRK')
@@ -232,7 +231,7 @@ for subject in full_subjects_list:
     column_names = ['Streamline_ID']
     for ref in references:
         if ref != 'ln':
-            column_names+=([f'point_{ID}_{ref}' for ID in np.arange(num_points)])
+            column_names+=([f'point_{ID}_{ref}' for ID in np.arange(points_resample)])
         if ref=='ln':
             column_names+=(['Length'])
 
@@ -271,7 +270,6 @@ for subject in full_subjects_list:
 
                 if ref=='ln':
 
-                    row_index = dataf_subj.index[dataf_subj['Streamline_ID'] == sl].tolist()[0]
                     column_indices = dataf_subj.columns.get_loc('Length')
                     dataf_subj.iloc[:, column_indices] = list(tract_length(bundle_streamlines[:]))
 

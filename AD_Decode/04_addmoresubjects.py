@@ -124,7 +124,7 @@ dict_revtracker = {'right_f': 'right', 'left_f': 'left', 'right': 'right', 'left
 streamlines_template = {}
 num_streamlines_right_all = 0
 
-feature2 = ResampleFeature(nb_points=num_points)
+feature2 = ResampleFeature(nb_points=bundle_points)
 metric2 = AveragePointwiseEuclideanMetric(feature=feature2)
 
 combined_trk_folder = os.path.join(proj_path, 'combined_TRK')
@@ -138,7 +138,10 @@ centroids = {}
 
 for side in sides:
     pickled_centroids = os.path.join(pickle_folder, f'bundles_centroids_{side}.py')
-    centroids_side = remote_pickle(pickled_centroids,sftp_out,erase_temp=False)
+    try:
+        centroids_side = remote_pickle(pickled_centroids,sftp_out,erase_temp=False)
+    except pickle.UnpicklingError:
+        print(f'{pickled_centroids} path could not be loaded')
     bundles_num = np.shape(centroids_side)[0]
     centroids[side] = centroids_side
     for i in np.arange(bundles_num):

@@ -74,12 +74,25 @@ if 'santorini' in socket.gethostname().split('.')[0]:
     project_headfile_folder = '/Users/jas/bass/gitfolder/DTC_private/BuSA_headfiles'
 if 'blade' in socket.gethostname().split('.')[0]:
     project_headfile_folder = '/mnt/munin2/Badea/Lab/jacques/BuSA_headfiles'
-
+import sys
 #project_run_identifier = '202311_10template_test01'
-project_run_identifier = '202311_10template_1000_72'
+
+if len(sys.argv)<2:
+    project_run_identifier = '202311_10template_1000_72_interhe'
+else:
+    project_run_identifier = sys.argv[1]
+
+if len(sys.argv)<3:
+    parts = ['1','2','3','4','5']
+else:
+    parts = [str(sys.argv[2])]
+
+print(project_run_identifier, parts)
+
 project_summary_file = os.path.join(project_headfile_folder,project_run_identifier+'.ini')
 
-parts = ['4','5']
+#parts = ['1','2','3','4','5']
+#parts = ['2']
 #parts = ['3','4']
 subjects = []
 project_summary_file = os.path.join(project_headfile_folder,project_run_identifier+'.ini')
@@ -98,7 +111,7 @@ bundle_id_looping = False
 
 overwrite = False
 
-qsub = False
+qsub = True
 
 testmode = False
 
@@ -195,3 +208,4 @@ if '5' in parts:
     if error_status is False:
         txt = f'Error found on qstat runs, details found at {error_filepath}'
         raise Exception(txt)
+
