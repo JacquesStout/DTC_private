@@ -76,11 +76,11 @@ if 'blade' in socket.gethostname().split('.')[0]:
     project_headfile_folder = '/mnt/munin2/Badea/Lab/jacques/BuSA_headfiles'
 
 #project_run_identifier = '202311_10template_test01'
-project_run_identifier = '202311_10template_1000'
+project_run_identifier = '202311_10template_1000_72'
 project_summary_file = os.path.join(project_headfile_folder,project_run_identifier+'.ini')
 
-parts = ['1','2','3','4','5']
-parts = ['5']
+parts = ['4','5']
+#parts = ['3','4']
 subjects = []
 project_summary_file = os.path.join(project_headfile_folder,project_run_identifier+'.ini')
 params = read_parameters_from_ini(project_summary_file)
@@ -97,6 +97,8 @@ bundle_ids = np.arange(num_bundles)
 bundle_id_looping = False
 
 overwrite = False
+
+qsub = False
 
 testmode = False
 
@@ -151,10 +153,13 @@ if '4' in parts:
         python_command = f"python /home/jas297/linux/DTC_private/AD_Decode/04_addmoresubjects.py {project_summary_file} {subj}"
         job_name = job_descrp + "_job04"+subj
         command = os.path.join(GD, "submit_sge_cluster_job.bash") + " " + sbatch_folder_path + " " + job_name + " 0 0 '" + python_command + "'"
-        if testmode:
-            print(python_command)
+        if qsub:
+            if testmode:
+                print(python_command)
+            else:
+                os.system(command)
         else:
-            os.system(command)
+            os.system(python_command)
     pause_jobs()
     error_status,error_filepath = check_for_errors(start_time,sbatch_folder_path)
     if error_status is False:
