@@ -269,7 +269,7 @@ trk_preprocess_postrigid_affine = os.path.join(path_trk_tempdir,
                                                f'{subj}{str_identifier}_preprocess_postrigid_affine.trk')
 trk_MDT_space = os.path.join(path_TRK_output, f'{subj}_MDT{str_identifier}_2.trk')
 
-warp_path = runno_to_MDT
+warp_path = MDT_to_runno
 #warp_path = runno_to_MDT
 
 # final_img_exists = checkfile_exists_remote(trk_MDT_space)
