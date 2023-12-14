@@ -36,6 +36,9 @@ ratio = 10
 stepsize = 2
 method= 'decimate'
 streamline_type = 'mrtrix'
+
+#methods can be 'decimate', 'top_len', and 'bot_len', where decimate just takes every 'ratio' streamline
+#top_len selects the 'ratio' longest streamlines, 'bot_len' selects the 'ratio' shortest streamlines
 """
 filelist = os.listdir(trk_folder)
 filelist = sorted(filelist)
