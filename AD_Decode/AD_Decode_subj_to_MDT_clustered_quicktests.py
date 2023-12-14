@@ -26,7 +26,7 @@ from ants.core.ants_transform_io import create_ants_transform, write_transform, 
 from DTC.nifti_handlers.transform_handler import rigid_reg, translation_reg
 from DTC.tract_manager.tract_handler import reducetractnumber
 from DTC.nifti_handlers.transform_handler import img_transform_exec
-
+from dipy.io.streamline import load_tractogram, save_tractogram
 
 def get_rotation_matrix(angle, axis):
     """Compute the rotation matrix for a 3D rotation.
