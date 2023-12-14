@@ -510,7 +510,7 @@ def recenter_nii_affine(img, return_translation = False):
     except:
         raise('Could not load img at '+img)
 
-    nii_data = nii.get_data()
+    nii_data = nii.get_fdata()
     affine = nii._affine
 
     if return_translation:
@@ -543,7 +543,7 @@ def recenter_nii_save(img, output_path, return_translation = False, verbose=Fals
     except:
         raise('Could not load img at '+img)
 
-    nii_data = nii.get_data()
+    nii_data = nii.get_fdata()
     affine = nii._affine
 
     newaffine = recenter_affine(np.shape(nii_data),affine)
@@ -566,7 +566,7 @@ def recenter_nii_save_pure(img, output_path, return_translation = False, verbose
     except:
         raise('Could not load img at '+img)
 
-    nii_data = nii.get_data()
+    nii_data = nii.get_fdata()
     affine = nii._affine
 
     newaffine = np.eye(4)
@@ -590,7 +590,7 @@ def recenter_nii_save_test(img, output_path, return_translation = False, verbose
     except:
         raise('Could not load img at '+img)
 
-    nii_data = nii.get_data()
+    nii_data = nii.get_fdata()
     affine = nii._affine
 
     newaffine = recenter_affine_test(np.shape(nii_data),affine)
@@ -612,7 +612,7 @@ def recenter_nii_save_test(img, output_path, return_translation = False, verbose
     except:
         raise('Could not load img at '+img)
 
-    nii_data = nii.get_data()
+    nii_data = nii.get_fdata()
     affine = nii._affine
 
     newaffine = recenter_affine_test(np.shape(nii_data),affine)
@@ -623,6 +623,32 @@ def recenter_nii_save_test(img, output_path, return_translation = False, verbose
     nib.save(new_nii, output_path)
     if verbose:
         print(f'Saved')
+
+
+def recenter_nii_save_testzone(img, output_path, return_translation = False, verbose=False):
+
+    if not os.path.exists(img):
+        raise('Nifti img file does not exists')
+
+    try:
+        nii = nib.load(img)
+    except:
+        raise('Could not load img at '+img)
+
+    nii_data = nii.get_fdata()
+    affine = nii._affine
+
+    newaffine = recenter_affine_test(np.shape(nii_data),affine)
+    new_nii=nib.Nifti1Image(nii_data, newaffine)
+    output_path = str(output_path)
+    if verbose:
+        print(f'Saving nifti file to {output_path}')
+    nib.save(new_nii, output_path)
+    if verbose:
+        print(f'Saved')
+
+
+
 
 """
 def recenter_nii_save_test(img, output_path, return_translation=False, verbose=False):
@@ -635,7 +661,7 @@ def recenter_nii_save_test(img, output_path, return_translation=False, verbose=F
     except:
         raise ('Could not load img at ' + img)
 
-    nii_data = nii.get_data()
+    nii_data = nii.get_fdata()
     affine = nii._affine
 
     newaffine = recenter_affine(np.shape(nii_data), affine)
@@ -671,7 +697,7 @@ def add_translation(img, output_path, translation, verbose):
     except:
         raise('Could not load img at '+img)
 
-    nii_data = nii.get_data()
+    nii_data = nii.get_fdata()
     affine = nii._affine
 
     newaffine = affine
@@ -693,10 +719,10 @@ def recenter_to_eye(nii,output_path,verbose=False):
     d = np.einsum('ii->i', newaffine)
     d[0:3] *= nii.header['pixdim'][1:4]
     # newaffine = recenter_affine(np.shape(new_data),newaffine)
-    newaffine = recenter_affine_test(np.shape(nii.get_data()), newaffine)
+    newaffine = recenter_affine_test(np.shape(nii.get_fdata()), newaffine)
     newaffine[:3, 3] += 0.1
 
-    new_nii=nib.Nifti1Image(nii.get_data(), newaffine, nii.header)
+    new_nii=nib.Nifti1Image(nii.get_fdata(), newaffine, nii.header)
     output_path = str(output_path)
     if verbose:
         print(f'Saving nifti file to {output_path}')
