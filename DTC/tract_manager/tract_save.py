@@ -134,3 +134,41 @@ def unload_trk(tractogram_path, reference='same'):
     except:
         hdr_control = tract_obj.space_attributes
     return streams_control, hdr_control, tract_obj
+
+
+def convert_tck_to_trk(input_file, output_file, ref):
+    header = {}
+
+    nii = nib.load(ref)
+    header[Field.VOXEL_TO_RASMM] = nii.affine.copy()
+    header[Field.VOXEL_SIZES] = nii.header.get_zooms()[:3]
+    header[Field.DIMENSIONS] = nii.shape[:3]
+    header[Field.VOXEL_ORDER] = "".join(aff2axcodes(nii.affine))
+
+    tck = nib.streamlines.load(input_file)
+    nib.streamlines.save(tck.tractogram, output_file, header=header)
+
+
+def convert_tck_to_trk(input_file, output_file, ref):
+    header = {}
+
+    nii = nib.load(ref)
+    header[Field.VOXEL_TO_RASMM] = nii.affine.copy()
+    header[Field.VOXEL_SIZES] = nii.header.get_zooms()[:3]
+    header[Field.DIMENSIONS] = nii.shape[:3]
+    header[Field.VOXEL_ORDER] = "".join(aff2axcodes(nii.affine))
+
+    tck = nib.streamlines.load(input_file)
+    nib.streamlines.save(tck.tractogram, output_file, header=header)
+
+
+def convert_trk_to_tck(input_file, output_file, ref):
+    import nipype.interfaces.mrtrix as mrt
+    import shutil
+
+    tck2trk = mrt.MRTrix2TrackVis()
+    tck2trk.inputs.image_file = ref
+    tck2trk.inputs.in_file = input_file
+    tck2trk.run()
+    shutil.move('converted.trk', output_file)
+    return

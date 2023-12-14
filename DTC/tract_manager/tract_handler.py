@@ -38,6 +38,7 @@ from dipy.io.utils import get_reference_info
 from nibabel.streamlines.array_sequence import ArraySequence
 from dipy.io.stateful_tractogram import StatefulTractogram, Space
 from scipy.ndimage import map_coordinates
+from nibabel.streamlines import Field
 
 
 def cut_invalid_streamlines(sft):
@@ -121,19 +122,6 @@ def cut_invalid_streamlines(sft):
     new_sft.to_origin(origin)
 
     return new_sft, cutting_counter
-
-
-def convert_tck_to_trk(input_file, output_file, ref):
-    header = {}
-
-    nii = nib.load(ref)
-    header[Field.VOXEL_TO_RASMM] = nii.affine.copy()
-    header[Field.VOXEL_SIZES] = nii.header.get_zooms()[:3]
-    header[Field.DIMENSIONS] = nii.shape[:3]
-    header[Field.VOXEL_ORDER] = "".join(aff2axcodes(nii.affine))
-
-    tck = nib.streamlines.load(input_file)
-    nib.streamlines.save(tck.tractogram, output_file, header=header)
 
 
 def transform_warp_sft(sft, linear_transfo, target, inverse=False,
@@ -317,7 +305,6 @@ def transform_streamwarp(streamlines, target, deformation_data,
         # final_points = np.array([-1*x_def, -1*y_def, z_def])
         # No modif required
         final_points = np.array([x_def, y_def, z_def])
-        final_points += np.array(points).T
 
         streamlines._data[cur_position:max_position] = final_points.T
         cur_position = max_position
