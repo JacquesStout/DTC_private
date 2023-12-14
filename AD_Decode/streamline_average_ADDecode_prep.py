@@ -3,9 +3,9 @@ from dipy.io.streamline import load_trk
 import warnings
 from dipy.tracking.streamline import transform_streamlines
 import os, glob
-from DTC.nifti_handlers.nifti_handlers.nifti_handlers.nifti_handler import getlabeltypemask
-from DTC.file_manager.file_manager.file_tools import mkcdir
-from DTC.tract_manager.tract_manager.DTC_manager import gettrkpath
+from DTC.nifti_handlers.nifti_handler import getlabeltypemask
+from DTC.file_manager.file_tools import mkcdir, getfromfile, check_files
+from DTC.tract_manager.tract_handler import ratio_to_str, gettrkpath, gettrkpath_testsftp
 from DTC.nifti_handlers.atlas_handlers.convert_atlas_mask import atlas_converter
 import socket
 from DTC.diff_handlers.connectome_handlers.excel_management import M_grouping_excel_save
@@ -14,6 +14,10 @@ from DTC.file_manager.argument_tools import parse_arguments_function
 from DTC.diff_handlers.connectome_handlers.connectome_handler import connectivity_matrix_custom, connectivity_matrix_func
 import random
 from time import time
+from dipy.tracking.streamline import transform_streamlines
+from DTC.file_manager.computer_nav import get_mainpaths, get_atlas, load_trk_remote, checkfile_exists_remote
+from DTC.tract_manager.DTC_manager import get_str_identifier, check_dif_ratio
+
 
 project = 'AD_Decode'
 
@@ -34,7 +38,7 @@ else:
     raise Exception('No other computer name yet')
 
 #Setting identification parameters for ratio, labeling type, etc
-ratio = 1
+ratio = 100
 ratio_str = ratio_to_str(ratio)
 print(ratio_str)
 if ratio_str == '_all':
@@ -62,7 +66,17 @@ if fixed:
 else:
     fixed_str = ''
 
-str_identifier = f'_stepsize_2{ratio_str}_wholebrain_pruned'
+stepsize=2
+streamline_type = 'mrtrix'
+if streamline_type == 'mrtrix':
+    prune = False
+    trkroi = [""]
+else:
+    prune = True
+    trkroi = ["wholebrain"]
+
+str_identifier = get_str_identifier(stepsize, ratio, trkroi, type=streamline_type)
+
 labeltype = 'lrordered'
 verbose=True
 picklesave=True
@@ -70,11 +84,9 @@ picklesave=True
 function_processes = parse_arguments_function(sys.argv)
 print(f'there are {function_processes} function processes')
 
-if project=='AD_Decode':
-    mainpath=os.path.join(mainpath,project,'Analysis')
-else:
-    mainpath = os.path.join(mainpath, project)
-TRK_folder = os.path.join(mainpath, f'TRK_MPCA_MDT{fixed_str}{folder_ratio_str}')
+mainpath = '/Volumes/dusom_mousebrains/All_Staff/Nariman_mrtrix_ad_decode/'
+TRK_folder = os.path.join(mainpath, 'TRK_MDT'+ratio_str)
+
 label_folder = os.path.join(mainpath, 'DWI')
 trkpaths = glob.glob(os.path.join(TRK_folder, '*trk'))
 excel_folder = os.path.join(mainpath, f'Excels_MDT{inclusive_str}{symmetric_str}{folder_ratio_str}')
@@ -106,59 +118,98 @@ subjects = ['S01912', 'S02110', 'S02224', 'S02227', 'S02230', 'S02231', 'S02266'
         'S02804', 'S02813', 'S02812', 'S02817', 'S02840', 'S02842', 'S02871', 'S02877', 'S02898', 'S02926', 'S02938',
         'S02939', 'S02954', 'S02967', 'S02987', 'S03010', 'S03017', 'S03028', 'S03033', 'S03034', 'S03045', 'S03048',
         'S03069', 'S03225', 'S03265', 'S03293', 'S03308', 'S03321', 'S03343', 'S03350', 'S03378', 'S03391', 'S03394']
+removed_list = ['S02745', 'S02230', 'S02490', 'S02523', 'S02654']
 
-random.shuffle(subjects)
-#removed_list = ['S02266']
-removed_list = ['S02523']
+atlas_folder = '/Volumes/Data/Badea/Lab/atlases'
+
+if project=='AMD' or project=='AD_Decode':
+    atlas_legends = get_atlas(atlas_folder, 'IIT')
+
 for remove in removed_list:
     if remove in subjects:
         subjects.remove(remove)
 
+sftp=None
+_, _, index_to_struct, _ = atlas_converter(atlas_legends, sftp=sftp)
+labelmask, labelaffine, labeloutpath, index_to_struct = getlabeltypemask(label_folder, 'MDT', atlas_legends,
+                                                     labeltype=labeltype, verbose=verbose, sftp=sftp)
 
-_, _, index_to_struct, _ = atlas_converter(ROI_legends)
-labelmask, labelaffine, labeloutpath, index_to_struct = getlabeltypemask(label_folder, 'MDT', ROI_legends,
-                                                                             labeltype=labeltype, verbose=verbose)
+print(f'Beginning streamline_prep run from {TRK_folder} for folder {excel_folder}')
+
 for subject in subjects:
-    trkpath, exists = gettrkpath(TRK_folder, subject, str_identifier, pruned=False, verbose=verbose)
+    trkpath, exists = gettrkpath(TRK_folder, subject, str_identifier, pruned=False, verbose=verbose, sftp=sftp)
+
     if not exists:
         txt = f'Could not find subject {subject} at {TRK_folder} with {str_identifier}'
         warnings.warn(txt)
         continue
 
-    M_xlsxpath = os.path.join(excel_folder, subject + str_identifier + "_connectomes.xlsx")
-    grouping_xlsxpath = os.path.join(excel_folder, subject + str_identifier + "_grouping.xlsx")
+    M_xlsxpath = os.path.join(excel_folder, subject + "_connectomes.xlsx")
+    grouping_xlsxpath = os.path.join(excel_folder, subject + "_grouping.xlsx")
 
-    if (os.path.exists(M_xlsxpath) or os.path.exists(grouping_xlsxpath)) and not overwrite:
-        print(f'Found written file for subject {subject} at {M_xlsxpath} and {grouping_xlsxpath}')
+    _, exists = check_files([M_xlsxpath, grouping_xlsxpath], sftp=sftp)
+    if np.all(exists) and not overwrite:
+        if verbose:
+            print(f'Found written file for subject {subject} at {M_xlsxpath} and {grouping_xlsxpath}')
         continue
     else:
         t1 = time()
-        trkdata = load_trk(trkpath, 'same')
+
+    """
+    ##### Alignment checker
+    from DTC.tract_manager.tract_handler import reducetractnumber
+    tempfilepath = trkpath.replace('.trk','_ratio_100.trk')
+    if not os.path.exists(tempfilepath):
+        reducetractnumber(trkpath, tempfilepath, getdata=False, ratio=100,
+                          return_affine=False, verbose=False)
+    trkdatatemp = load_trk_remote(tempfilepath, 'same', sftp)
+    header = trkdatatemp.space_attributes
+    streamlines_world = transform_streamlines(trkdatatemp.streamlines, np.linalg.inv(labelaffine))
+    from dipy.viz import window, actor
+    from DTC.visualization_tools.tract_visualize import show_bundles, setup_view_legacy
+    import nibabel as nib
+    lut_cmap = actor.colormap_lookup_table(
+        scale_range=(0.05, 0.3))
+    scene = setup_view_legacy(nib.streamlines.ArraySequence(trkdatatemp.streamlines), colors=lut_cmap,
+                       ref=labeloutpath, world_coords=True,
+                       objectvals=[None], colorbar=True, record=None, scene=None, interactive=True)
+
+    #The alignment is correct if the original streamlines are aligned with the references or labels when world_coords=True,
+    #or when the transformed streamliens are aligned with the references or labels when world_coords = False
+    """
+
+    trkdata = load_trk_remote(trkpath, 'same', sftp)
+
+    if verbose:
+        print(f"Time taken for loading the trk file {trkpath} set was {str((- t1 + time()) / 60)} minutes")
+    t2 = time()
+    header = trkdata.space_attributes
+
+    streamlines_world = transform_streamlines(trkdata.streamlines, np.linalg.inv(labelaffine))
+
+    if function_processes == 1:
+
+        M, _, _, _, grouping = connectivity_matrix_custom(streamlines_world, np.eye(4), labelmask,
+                                                          inclusive=inclusive, symmetric=symmetric,
+                                                          return_mapping=True,
+                                                          mapping_as_streamlines=False, reference_weighting=None,
+                                                          volume_weighting=False)
+    else:
+        M, _, _, _, grouping = connectivity_matrix_func(streamlines_world, np.eye(4), labelmask,
+                                                        inclusive=inclusive,
+                                                        symmetric=symmetric, return_mapping=True,
+                                                        mapping_as_streamlines=False, reference_weighting=None,
+                                                        volume_weighting=False,
+                                                        function_processes=function_processes, verbose=False)
+
+    M_grouping_excel_save(M, grouping, M_xlsxpath, grouping_xlsxpath, index_to_struct, verbose=False, sftp=sftp)
+
+    del (trkdata)
+    if verbose:
+        print(f"Time taken for creating this connectome was set at {str((- t2 + time()) / 60)} minutes")
+    if checkfile_exists_remote(grouping_xlsxpath, sftp):
         if verbose:
-            print(f"Time taken for loading the trk file {trkpath} set was {str((- t1 + time())/60)} minutes")
-        t2 = time()
-        header = trkdata.space_attributes
-
-
-        streamlines_world = transform_streamlines(trkdata.streamlines, np.linalg.inv(labelaffine))
-
-        if function_processes == 1:
-
-            M, _, _, _, grouping = connectivity_matrix_custom(streamlines_world, np.eye(4), labelmask,
-                                              inclusive=inclusive, symmetric=symmetric, return_mapping=True,
-                                              mapping_as_streamlines=False, reference_weighting = None, volume_weighting=False)
-        else:
-            M, _, _, _, grouping = connectivity_matrix_func(streamlines_world, np.eye(4), labelmask, inclusive = inclusive,
-                                                   symmetric=symmetric, return_mapping=True, mapping_as_streamlines=False, reference_weighting = None,
-                                                   volume_weighting=False, verbose = False)
-
-        M_grouping_excel_save(M,grouping,M_xlsxpath, grouping_xlsxpath, index_to_struct, verbose=False)
-
-        del(trkdata)
-        if verbose:
-            print(f"Time taken for creating this connectome was set at {str((- t2 + time())/60)} minutes")
-        if os.path.exists(grouping_xlsxpath) and verbose:
             print(f'Saved grouping for subject {subject} at {grouping_xlsxpath}')
-        #grouping = extract_grouping(grouping_xlsxpath, index_to_struct, np.shape(M), verbose=verbose)
-        else:
-            raise Exception(f'saving of the excel at {grouping_xlsxpath} did not work')
+    # grouping = extract_grouping(grouping_xlsxpath, index_to_struct, np.shape(M), verbose=verbose)
+    else:
+        raise Exception(f'saving of the excel at {grouping_xlsxpath} did not work')
