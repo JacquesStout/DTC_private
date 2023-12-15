@@ -2,8 +2,7 @@ import os
 from DTC.nifti_handlers.transform_handler import get_affine_transform, get_flip_affine, header_superpose, \
     recenter_nii_affine, \
     convert_ants_vals_to_affine, read_affine_txt, recenter_nii_save, add_translation, recenter_nii_save_test, \
-    affine_superpose, get_affine_transform_test, convert_ants_vals_to_affine_test
-
+    affine_superpose, get_affine_transform_test
 import numpy as np
 import nibabel as nib
 from dipy.tracking.streamline import deform_streamlines, transform_streamlines
@@ -89,9 +88,9 @@ def load_matrix_in_any_format(filepath):
 
 project = 'AD_Decode'
 
-test_mode = True
+test_mode = False
 
-if test_mode:
+if test_mode and np.size(sys.argv)<2:
     subj = 'S02670'
 else:
     subj = sys.argv[1]
@@ -153,7 +152,7 @@ cleanup = False
 verbose = True
 recenter = True
 
-del_orig_files = False
+del_orig_files = True
 
 
 contrasts = ['fa', 'md', 'rd', 'ad']
@@ -185,7 +184,10 @@ MDT_median_img = os.path.join(final_template_run, "median_images", f'MDT_fa.nii.
 
 SAMBA_ref = os.path.join(SAMBA_inits, f'reference_image_native_S01912.nii.gz')
 
-nii_to_MDT = True
+MDT_median_img = os.path.join(final_template_run, "median_images", f'MDT_fa.nii.gz')
+MDT_median_mif = os.path.join(final_template_run, "median_images", f'MDT_fa.mif')
+
+nii_to_MDT = False
 trk_to_MDT = True
 
 if save_temp_trk_files:
@@ -301,7 +303,7 @@ trk_preprocess_posttrans = os.path.join(path_trk_tempdir, f'{subj}{str_identifie
 trk_preprocess_postrigid = os.path.join(path_trk_tempdir, f'{subj}{str_identifier}_preprocess_postrigid.trk')
 trk_preprocess_postrigid_affine = os.path.join(path_trk_tempdir,
                                                f'{subj}{str_identifier}_preprocess_postrigid_affine.trk')
-trk_MDT_space = os.path.join(path_TRK_output, f'{subj}_MDT{str_identifier}_5.trk')
+trk_MDT_space = os.path.join(path_TRK_output, f'{subj}_MDT{str_identifier}.trk')
 
 warp_path = MDT_to_runno
 # warp_path = runno_to_MDT
@@ -427,7 +429,7 @@ if trk_to_MDT and (not final_img_exists or overwrite):
 
     streamlines_postrigidaffine = transform_streamlines(streamlines_postrigid, np.linalg.inv(affine_mat))
     print('reaching point 5')
-    if (not checkfile_exists_remote(trk_preprocess_postrigid_affine, sftp) or overwrite) and save_temp_trk_files:
+    if (not checkfile_exists_remote(trk_preprocess_postrigid_affine, sftp) or overwrite):
         save_trk_header(filepath=trk_preprocess_postrigid_affine, streamlines=streamlines_postrigidaffine,
                         header=header,
                         affine=np.eye(4), verbose=verbose, sftp=sftp)
@@ -473,11 +475,17 @@ if trk_to_MDT and (not final_img_exists or overwrite):
     tck_preprocess_postrigid_affine = trk_preprocess_postrigid_affine.replace('.trk', '.tck')
     save_tractogram(cc_trk, tck_preprocess_postrigid_affine, bbox_valid_check=False)
 
+    if not save_temp_trk_files:
+        os.remove(trk_preprocess_postrigid_affine)
+
     tck_MDT_space = trk_MDT_space.replace('.trk', '.tck')
     command = f'tcktransform {tck_preprocess_postrigid_affine} {inv_warp_corrected_path} {tck_MDT_space} -force'
     os.system(command)
 
+    os.remove(tck_preprocess_postrigid_affine)
     convert_tck_to_trk(tck_MDT_space, trk_MDT_space, MDT_median_img)
+
+    os.remove(tck_MDT_space)
     """
     vox_size = nib.load(f'/mnt/munin2/Badea/Lab/human/AD_Decode_trk_transfer/DWI_MDT/{subj}_fa_to_MDT.nii.gz').header.get_zooms()[0]
     target_isocenter = np.diag(np.array([-vox_size, vox_size, vox_size, 1]))
@@ -488,6 +496,13 @@ if trk_to_MDT and (not final_img_exists or overwrite):
     current_grid_to_world=affine_subj_trk, stream_to_ref_grid=target_isocenter,
     ref_grid_to_world=np.eye(4))
     """
+    
+    if not save_temp_trk_files:
+        #os.remove(trk_preprocess_postrigid_affine)
+        os.remove(inv_warp_corrected_path)
+        for i in np.arange(3):
+            os.remove(f'{inv_identity_warp_basepath}{i}.nii')
+            os.remove(f'{inv_mrtrix_warp_basepath}{i}.nii')
     del streamlines_postrigidaffine
 
     """
