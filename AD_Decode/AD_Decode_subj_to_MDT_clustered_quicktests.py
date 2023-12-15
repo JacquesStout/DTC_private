@@ -2,7 +2,7 @@ import os
 from DTC.nifti_handlers.transform_handler import get_affine_transform, get_flip_affine, header_superpose, \
     recenter_nii_affine, \
     convert_ants_vals_to_affine, read_affine_txt, recenter_nii_save, add_translation, recenter_nii_save_test, \
-    affine_superpose, get_affine_transform_test
+    affine_superpose, get_affine_transform_test, convert_ants_vals_to_affine_test
 
 import numpy as np
 import nibabel as nib
@@ -27,6 +27,8 @@ from DTC.nifti_handlers.transform_handler import rigid_reg, translation_reg
 from DTC.tract_manager.tract_handler import reducetractnumber
 from DTC.nifti_handlers.transform_handler import img_transform_exec
 from dipy.io.streamline import load_tractogram, save_tractogram
+from scipy.io import loadmat
+
 
 def get_rotation_matrix(angle, axis):
     """Compute the rotation matrix for a 3D rotation.
@@ -58,11 +60,38 @@ def get_rotation_matrix(angle, axis):
 
     return rotation_matrix
 
+
+def load_matrix_in_any_format(filepath):
+    _, ext = os.path.splitext(filepath)
+    if ext == '.txt':
+        data = np.loadtxt(filepath)
+    elif ext == '.npy':
+        data = np.load(filepath)
+    elif ext == '.mat':
+        # .mat are actually dictionnary. This function support .mat from
+        # antsRegistration that encode a 4x4 transformation matrix.
+        transfo_dict = loadmat(filepath)
+        lps2ras = np.diag([-1, -1, 1])
+
+        rot = transfo_dict['AffineTransform_float_3_3'][0:9].reshape((3, 3))
+        trans = transfo_dict['AffineTransform_float_3_3'][9:12]
+        offset = transfo_dict['fixed']
+        r_trans = (np.dot(rot, offset) - offset - trans).T * [1, 1, -1]
+
+        data = np.eye(4)
+        data[0:3, 3] = r_trans
+        data[:3, :3] = np.dot(np.dot(lps2ras, rot), lps2ras)
+    else:
+        raise ValueError('Extension {} is not supported'.format(ext))
+
+    return data
+
+
 project = 'AD_Decode'
 
 test_mode = True
 
-if test_mode and not np.size(sys.argv)<2:
+if test_mode and np.size(sys.argv)<2:
     subj = 'S02670'
     subj = 'S01912'
     subj = 'S02524'
@@ -77,16 +106,23 @@ if test_mode:
     overwrite = True
     ratio = 100
     #mainpath = '/Volumes/Data/Badea/Lab/'
-    mainpath = '/mnt/munin2/Badea/Lab/'
+    nii_to_MDT = True
+    trk_to_MDT = True
+
 else:
     erase = False
     save_temp_trk_files = False
     save_temp_nii_files = False
     overwrite = False
     ratio = 1
+
+    nii_to_MDT = False
+    trk_to_MDT = True
+
+if 'santorini' in socket.gethostname():
+    mainpath = '/Volumes/Data/Badea/Lab/'
+else:
     mainpath = '/mnt/munin2/Badea/Lab/'
-
-
 
 # temporarily removing "H29056" to recalculate it
 ext = ".nii.gz"
@@ -101,7 +137,7 @@ outpath = os.path.join(mainpath, 'human/AD_Decode_trk_transfer')
 
 path_TRK = os.path.join(inpath, 'TRK')
 path_DWI = os.path.join(inpath, 'DWI')
-path_DWI = '/mnt/munin2/Badea/ADdecode.01/Analysis/DWI'
+path_DWI = os.path.join(mainpath,'../ADdecode.01/Analysis/DWI')
 #if test_mode:
 #    path_DWI = '/Volumes/Data/Badea/ADdecode.01/Analysis/DWI'
 ref = "fa"
@@ -157,10 +193,8 @@ MDT_median_mif = os.path.join(final_template_run, "median_images", f'MDT_fa.mif'
 
 SAMBA_ref = os.path.join(SAMBA_inits, f'reference_image_native_S01912.nii.gz')
 
-nii_to_MDT = True
-trk_to_MDT = True
+nii_to_MDT = False
 
-transform_to_init_mat_path = os.path.join(path_trk_tempdir,f'{subj}_subj_to_init.mat')
 
 if save_temp_trk_files:
     mkcdir(path_trk_tempdir, sftp)
@@ -171,6 +205,8 @@ if save_temp_trk_files:
 SAMBA_subj_toRAS = False
 
 str_identifier = get_str_identifier(stepsize, ratio, trkroi, type='mrtrix')
+
+transform_to_init_mat_path = os.path.join(path_trk_tempdir,f'{subj}_subj_to_init.mat')
 
 if nii_to_MDT or not os.path.exists(transform_to_init_mat_path):
     mkcdir(path_DWI_output)
@@ -269,6 +305,7 @@ str_identifier = get_str_identifier(stepsize, ratio, trkroi, type='mrtrix')
 
 prune = False
 
+trk_preprocess_init = os.path.join(path_trk_tempdir, f'{subj}{str_identifier}_trk_init.trk')
 trk_preprocess_posttrans = os.path.join(path_trk_tempdir, f'{subj}{str_identifier}_preprocess_posttrans.trk')
 trk_preprocess_postrigid = os.path.join(path_trk_tempdir, f'{subj}{str_identifier}_preprocess_postrigid.trk')
 trk_preprocess_postrigid_affine = os.path.join(path_trk_tempdir,
@@ -336,13 +373,14 @@ if trk_to_MDT and (not final_img_exists or overwrite):
                         affine=np.eye(4), verbose=verbose, sftp=sftp)
     """
 
-    transform_to_init = transform_rigid['fwdtransforms'][0]
+    transform_to_init = transform_to_init_mat_path
     toinit_reorient_struct = loadmat_remote(transform_to_init, sftp)
-    print(transform_to_init)
-    trk_preprocess_init = os.path.join(path_trk_tempdir, f'{subj}{str_identifier}_trk_init.trk')
+
     var_name = list(toinit_reorient_struct.keys())[0]
     toinit_ants = toinit_reorient_struct[var_name]
-    toinit_mat = convert_ants_vals_to_affine(toinit_ants)
+    #toinit_mat = convert_ants_vals_to_affine(toinit_ants)
+    #toinit_mat = convert_ants_vals_to_affine(toinit_ants)
+    toinit_mat = load_matrix_in_any_format(transform_to_init_mat_path)
 
     toinit_trans_mat = np.eye(4)
     toinit_trans_mat[:,3] = toinit_mat[:,3]
@@ -353,7 +391,19 @@ if trk_to_MDT and (not final_img_exists or overwrite):
     toinit_rot_mat = np.eye(4)
     toinit_rot_mat[:3,:3] = toinit_mat[:3,:3]
     streamlines_init = transform_streamlines(streamlines_init_1, np.linalg.inv(toinit_rot_mat))
-    
+
+
+    """
+    toinit_inv_mat = np.linalg.inv(toinit_mat)
+    toinit_trans_mat = np.eye(4)
+    toinit_trans_mat[:,3] = toinit_inv_mat[:,3]
+    streamlines_init_1 = transform_streamlines(streamlines_subj, (toinit_trans_mat))
+
+    toinit_rot_mat = np.eye(4)
+    toinit_rot_mat[:3,:3] = toinit_inv_mat[:3,:3]
+    streamlines_init = transform_streamlines(streamlines_init_1, (toinit_rot_mat))
+    trk_preprocess_init = '/Volumes/Data/Badea/Lab/human/AD_Decode_trk_transfer/TRK_transition/S01912_smallerTracks20000_trk_init_test.trk'
+    """
 
     if (not checkfile_exists_remote(trk_preprocess_init, sftp) or overwrite) and save_temp_trk_files:
         save_trk_header(filepath=trk_preprocess_init, streamlines=streamlines_init, header=header,
@@ -405,21 +455,27 @@ if trk_to_MDT and (not final_img_exists or overwrite):
     #MDT_median_img = os.path.join(final_template_run, "median_images", f'MDT_fa.nii.gz')
     #MDT_median_mif = os.path.join(final_template_run, "median_images", f'MDT_fa.mif')
 
-    if not os.path.exists(MDT_median_mif):
+    if not os.path.exists(MDT_median_mif) or overwrite:
         command = f'mrconvert  {MDT_median_img} {MDT_median_mif} -force'
         os.system(command)
-        
+
+    inv_identity_warp_basepath = os.path.join(path_trk_tempdir, f'{subj}_inv_identity_warp')
+    inv_mrtrix_warp_basepath = os.path.join(path_trk_tempdir, f'{subj}_inv_mrtrix_warp')
+    inv_warp_corrected_path = os.path.join(path_trk_tempdir, f'{subj}_inv_mrtrix_warp_corrected.mif')
+
     # make identity warp
-    command = f'warpinit {MDT_median_mif} inv_identity_warp[].nii'
-    os.system(command)
+    command = f'warpinit {MDT_median_mif} {inv_identity_warp_basepath}[].nii -force'
+    if not os.path.exists(inv_identity_warp_basepath) or overwrite:
+        os.system(command)
 
     # fill into the identities
-    for i in np.arange(2):
-        command = f'antsApplyTransforms -d 3 -e 0 -i inv_identity_warp{i}.nii -o inv_mrtrix_warp{i}.nii -r {MDT_median_img} -t {warp_path} --default-value 2147483647'
-        os.system(command)
+    for i in np.arange(3):
+        command = f'antsApplyTransforms -d 3 -e 0 -i {inv_identity_warp_basepath}{i}.nii -o {inv_mrtrix_warp_basepath}{i}.nii -r {MDT_median_img} -t {warp_path} --default-value 2147483647'
+        if not os.path.exists(f'{inv_mrtrix_warp_basepath}{i}.nii') or overwrite:
+            os.system(command)
         
     # combine the 3 filled warps
-    command = 'warpcorrect inv_mrtrix_warp[].nii inv_mrtrix_warp_corrected.mif -marker 2147483647 -force'
+    command = f'warpcorrect {inv_mrtrix_warp_basepath}[].nii {inv_warp_corrected_path} -marker 2147483647 -force'
     os.system(command)
 
     # apply the transform
@@ -427,10 +483,11 @@ if trk_to_MDT and (not final_img_exists or overwrite):
     tck_preprocess_postrigid_affine = trk_preprocess_postrigid_affine.replace('.trk','.tck')
     save_tractogram(cc_trk, tck_preprocess_postrigid_affine, bbox_valid_check=False)
 
-    tck_MDT_space = trk_MDT_space.replace('tck','trk')
-    command = 'tcktransform {tck_preprocess_postrigid_affine} inv_mrtrix_warp_corrected.mif {tck_MDT_space} -force'
+    tck_MDT_space = trk_MDT_space.replace('.trk','.tck')
+    command = f'tcktransform {tck_preprocess_postrigid_affine} {inv_warp_corrected_path} {tck_MDT_space} -force'
+    os.system(command)
 
-    convert_tck_to_trk(tck_MDT_space,trk_MDT_space)
+    convert_tck_to_trk(tck_MDT_space,trk_MDT_space, MDT_median_img)
     """
     vox_size = nib.load(f'/mnt/munin2/Badea/Lab/human/AD_Decode_trk_transfer/DWI_MDT/{subj}_fa_to_MDT.nii.gz').header.get_zooms()[0]
     target_isocenter = np.diag(np.array([-vox_size, vox_size, vox_size, 1]))
@@ -449,12 +506,12 @@ if trk_to_MDT and (not final_img_exists or overwrite):
     trk_MDT_space = os.path.join(path_TRK_output, f'{subj}_MDT{str_identifier}_6.trk')
     save_trk_header(filepath=trk_MDT_space, streamlines=mni_streamlines, header=header,
                     affine=np.eye(4), verbose=verbose, sftp=sftp)
-    tsave = time.perf_counter()
     """
-    print(f'Saved to {trk_MDT_space}, took {tsave - twarp:0.2f} seconds')
+    tsave = time.perf_counter()
+
+    print(f'Saved to {trk_MDT_space}, took {tsave - taf:0.2f} seconds')
 
     tf = time.perf_counter()
-    del mni_streamlines
 
     if del_orig_files:
         os.remove(subj_trk)
