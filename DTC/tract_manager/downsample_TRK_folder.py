@@ -40,7 +40,7 @@ random.shuffle(filelist)
 """
 
 filelist = glob_remote(os.path.join(trk_folder,'*trk'),sftp)
-
+filelist = sorted(filelist)
 test=False
 overwrite=False
 orig_identifier = get_str_identifier(stepsize, orig_ratio, '', type=streamline_type)
@@ -64,9 +64,8 @@ job_descrp = "BuSA"
 sbatch_folder_path = os.path.join(BD, job_descrp + '_sbatch/')
 mkcdir(sbatch_folder_path)
 
-filelist = [filelist[0]]
+#filelist = [filelist[0]]
 print(filelist)
-test = True
 
 verbose = True
 
