@@ -41,6 +41,24 @@ list_of_subjs = subjects = ['S01912', 'S02110', 'S02224', 'S02227', 'S02230', 'S
                             'S03343', 'S03350', 'S03378', 'S03391', 'S03394', 'S03847', 'S03866', 'S03867', 'S03889',
                             'S03890', 'S03896']
 
+subj_files = glob.glob('/mnt/munin2/Badea/Lab/human/AD_Decode_trk_transfer/TRK/*.trk')
+output_folder = ('/mnt/munin2/Badea/Lab/human/AD_Decode_trk_transfer/TRK_MDT')
+list_of_subjs = []
+
+pre_erase_unfinished = True
+#print(subj_files)
+for subj_file in subj_files:
+    subj = os.path.basename(subj_file)[:6]
+    list_of_subjs.append(subj)
+
+if pre_erase_unfinished:
+    for subj in list_of_subjs:
+        list_files_unfinished = glob.glob(os.path.join(output_folder,f'{subj}*'))
+        for file in list_files_unfinished:
+            os.remove(file)
+    
+print(list_of_subjs)
+
 for subj in list_of_subjs:
     # print(subj)
     # fmri_file = list_fmir_folders_path +subj + "/ses-1/func/" + subj +"_ses-1_bold.nii.gz"
@@ -51,3 +69,4 @@ for subj in list_of_subjs:
     command = GD + "submit_sge_cluster_job.bash " + sbatch_folder_path + " " + job_name + " 0 0 '" + python_command + "'"
     os.system(command)
     #print(command)
+
