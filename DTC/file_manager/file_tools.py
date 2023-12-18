@@ -18,10 +18,13 @@ from DTC.file_manager.computer_nav import checkfile_exists_remote, glob_remote
 def mkcdir(folderpaths, sftp=None):
     #creates new folder only if it doesnt already exists
 
+    if isinstance(folderpaths, str):
+        folderpaths = [folderpaths]
+
     if sftp is None:
         if np.size(folderpaths) == 1:
-            if not os.path.exists(folderpaths):
-                os.mkdir(folderpaths)
+            if not os.path.exists(folderpaths[0]):
+                os.mkdir(folderpaths[0])
         else:
             for folderpath in folderpaths:
                 if not os.path.exists(folderpath):
