@@ -204,11 +204,16 @@ full_subjects_list = full_subjects_list[:4]
 """
 
 calc_BUAN = True
-bundle_compare_summary = os.path.join(stat_folder, f'bundle_comparison.xlsx')
+
+if np.size(full_subjects_list)>4:
+    bundle_compare_summary = os.path.join(stat_folder, f'bundle_comparison.xlsx')
+else:
+    full_subjects_list_txt = '_'.join(full_subjects_list)
+    bundle_compare_summary = os.path.join(stat_folder, f'{full_subjects_list_txt}_bundle_comparison.xlsx')
 
 for subject in full_subjects_list:
 
-    files_subj = []
+    files_subj = [bundle_compare_summary]
     for side, bundle_id in streamline_bundle.keys():
         files_subj.append(os.path.join(trk_proj_path, f'{subject}_{side}_bundle_{bundle_id}.trk'))
     check_all = checkfile_exists_all(files_subj,sftp_out)
