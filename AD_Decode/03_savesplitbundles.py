@@ -68,7 +68,7 @@ distance = int(params['distance'])
 bundle_points = int(params['bundle_points'])
 num_bundles = int(params['num_bundles'])
 remote_output = bool(params['remote_output'])
-path_TRK = params['path_TRK']
+path_TRK = params['path_trk']
 
 overwrite=True
 verbose = False

@@ -65,7 +65,7 @@ streamline_lr_inclusion = params['streamline_lr_inclusion']
 length_threshold = int(params['length_threshold'])
 remote_input = bool(params['remote_input'])
 remote_output = bool(params['remote_output'])
-path_TRK = params['path_TRK']
+path_TRK = params['path_trk']
 
 fury.colormap.distinguishable_colormap(nb_colors=int(num_bundles))
 overwrite=True

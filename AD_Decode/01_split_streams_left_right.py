@@ -22,8 +22,8 @@ import configparser
 
 
 if len(sys.argv)<2:
-    project_headfile_folder = '/Users/jas/bass/gitfolder/DTC_private/BuSA_headfiles'
-    project_run_identifier = '202311_10template_test01'
+    project_headfile_folder = '/Volumes/Data/Badea/Lab/jacques/BuSA_headfiles/'
+    project_run_identifier = 'V0.9_10template_100_72_interhe'
     project_summary_file = os.path.join(project_headfile_folder, project_run_identifier + '.ini')
 else:
     project_summary_file = sys.argv[1]
@@ -46,7 +46,7 @@ streamline_lr_inclusion  = params['streamline_lr_inclusion']
 length_threshold = int(params['length_threshold'])
 remote_input = bool(params['remote_input'])
 remote_output = bool(params['remote_output'])
-path_TRK = params['path_TRK']
+path_TRK = params['path_trk']
 
 overwrite = False
 verbose = False
