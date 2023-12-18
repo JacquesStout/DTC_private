@@ -238,7 +238,7 @@ for subject in full_subjects_list:
             dataf_subj = pd.DataFrame(columns=column_names)
     
             filepath_bundle = os.path.join(trk_proj_path, f'{subject}_{side}_bundle_{bundle_id}.trk')
-            bundle_data = load_trk_remote(filepath_bundle, 'same', sftp_in)
+            bundle_data = load_trk_remote(filepath_bundle, 'same', sftp_out)
             bundle_data_dic[side,bundle_id] = bundle_data
             bundle_streamlines = bundle_data.streamlines
             num_streamlines = np.shape(bundle_streamlines)[0]
