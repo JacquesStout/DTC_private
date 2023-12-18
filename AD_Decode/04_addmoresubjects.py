@@ -113,6 +113,8 @@ mkcdir([figures_proj_path],sftp_out)
 pickle_folder = os.path.join(proj_path, 'pickle_roi'+ratiostr)
 trk_proj_path = os.path.join(proj_path, 'trk_roi'+ratiostr)
 
+mkcdir(trk_proj_path,sftp_out)
+
 srr = StreamlineLinearRegistration()
 
 streams_dict = {}
@@ -184,7 +186,6 @@ for remove in removed_list:
     if remove in full_subjects_list:
         full_subjects_list.remove(remove)
 
-overwrite=True
 for subject in full_subjects_list:
 
     files_subj = []
