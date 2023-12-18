@@ -6,20 +6,15 @@ from DTC.tract_manager.DTC_manager import get_str_identifier, check_dif_ratio
 from DTC.file_manager.computer_nav import get_mainpaths, glob_remote
 from DTC.file_manager.file_tools import mkcdir, check_files, getfromfile
 
-#path = '/Users/jas/jacques/APOE_subj_to_MDT'
-#trk_folder = os.path.join(path,'TRK')
-#new_trk_folder = os.path.join(path,'TRK')
-#trk_folder = os.path.join(path,'TRK_MPCA_fixed')
-#new_trk_folder = os.path.join(path,'TRK_MPCA_fixed_100')
-#trk_folder = '/Volumes/dusom_mousebrains/All_Staff/Data/AMD/TRK_rigidaff'
-#new_trk_folder = '/Volumes/dusom_mousebrains/All_Staff/Data/AMD/TRK_rigidaff_100'
 
-trk_folder = '/mnt/paros_DB/Projects/AD_Decode/Analysis/TRK_MDT'
-new_trk_folder = '/mnt/paros_WORK/jacques/AD_Decode/TRK_MDT_ratio_10'
+#trk_folder = '/mnt/paros_DB/Projects/AD_Decode/Analysis/TRK_MDT'
+#new_trk_folder = '/mnt/paros_WORK/jacques/AD_Decode/TRK_MDT_ratio_10'
+
+trk_folder = '/mnt/newJetStor/paros/paros_WORK/jacques/AD_Decode/TRK_MDT'
+new_trk_folder = '/mnt/newJetStor/paros/paros_WORK/jacques/AD_Decode/TRK_MDT_ratio_10'
 
 remote = True
 
-remote=True
 if remote:
     username, passwd = getfromfile(os.path.join(os.environ['HOME'],'remote_connect.rtf'))
 else:
@@ -28,7 +23,6 @@ else:
 
 inpath, _, _, sftp = get_mainpaths(remote,project = 'AD_Decode', username=username,password=passwd)
 
-print(new_trk_folder)
 mkcdir([new_trk_folder], sftp)
 
 orig_ratio =1
