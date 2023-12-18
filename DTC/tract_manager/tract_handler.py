@@ -186,11 +186,14 @@ def filter_streamlines(streamlines, roi_mask = None, include= 'all', label_list 
         if not isinstance(streamlines, nib.streamlines.ArraySequence):
             raise Exception('Unrecognizable streamline variable')
 
+    if threshold>0:
+        length_all = list(length(streamlines))
+        streamlines = [s for s,len in zip(streamlines,length_all) if len > threshold]
+        streamlines = ArraySequence(streamlines)
+
     roi_streamlines=streamlines
     #roi_streamlines = utils.target(streamlines, affine, roi_mask)
     roi_streamlines = roi_target_lesserror(streamlines, affine, roi_mask, include= include)
-    if threshold>0:
-        roi_streamlines = [s for s in roi_streamlines if length(s[0]) > threshold]
 
     roi_streamlines = Streamlines(roi_streamlines)
 
