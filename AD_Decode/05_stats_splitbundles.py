@@ -78,25 +78,21 @@ references = params['references']
 bundle_points = int(params['bundle_points'])
 num_bundles = int(params['num_bundles'])
 points_resample = int(params['points_resample'])
+remote_output = bool(params['remote_output'])
+path_TRK = params['path_TRK']
 
 spe_refs = ['ln','greywhite']
 
 overwrite=True
 verbose = False
 
-if 'samos' in socket.gethostname():
-    remote=False
-else:
-    remote=True
-
-if remote:
+if remote_output:
     username, passwd = getfromfile(os.path.join(os.environ['HOME'],'remote_connect.rtf'))
 else:
     username = None
     passwd = None
 
-inpath, _, _, sftp_in = get_mainpaths(remote,project = project, username=username,password=passwd)
-sftp_out = sftp_in
+outpath, _, _, sftp_out = get_mainpaths(remote_output,project = project, username=username,password=passwd)
 
 
 if streamline_type == 'mrtrix':
@@ -123,8 +119,7 @@ if project == 'AD_Decode':
     anat_path = os.path.join(lab_folder,'mouse/VBM_21ADDecode03_IITmean_RPI_fullrun-work/dwi/SyN_0p5_3_0p5_fa/faMDT_NoNameYet_n37_i6/median_images/MDT_fa.nii.gz')
 
 
-path_TRK = os.path.join(inpath, 'TRK_MDT'+ratiostr)
-outpath_all = os.path.join(inpath, 'TRK_bundle_splitter')
+outpath_all = os.path.join(outpath, 'TRK_bundle_splitter')
 proj_path = os.path.join(outpath_all,project_run_identifier)
 figures_proj_path = os.path.join(figures_outpath, project_run_identifier)
 small_streamlines_testzone = os.path.join(figures_proj_path,'single_streamlines')
@@ -160,8 +155,6 @@ centroid_all_side_tracker = {}
 streamline_bundle = {}
 centroids = {}
 
-#full_subjects_list = ['S02373']
-
 verbose = False
 overwrite=False
 
@@ -178,8 +171,6 @@ grey_white_label_path = os.path.join(MDT_mask_folder,f"gwm_labels_MDT.nii.gz")
 
 roi_mask_right = nib.load(right_mask_path)
 roi_mask_left = nib.load(left_mask_path)
-
-#full_subjects_list = ['S02390']
 
 if len(sys.argv)>2:
     full_subjects_list = [sys.argv[2]]
@@ -201,7 +192,6 @@ for remove in removed_list:
         full_subjects_list.remove(remove)
 
 column_bundle_compare = ['Subject'] + [f'BUAN_{bundle_id}' for bundle_id in bundle_ids]
-#BUAN_df = pd.DataFrame(columns=column_bundle_compare)
 
 overwrite=False
 
@@ -226,7 +216,6 @@ for subject in full_subjects_list:
     if not check_all:
         print(f'Missing trk files for subject {subject} in {trk_proj_path}, please rerun bundle creator')
         continue
-    subj_trk, trkexists = gettrkpath(path_TRK, subject, str_identifier, pruned=prune, verbose=False, sftp=sftp_in)
 
     column_names = ['Streamline_ID']
     for ref in references:

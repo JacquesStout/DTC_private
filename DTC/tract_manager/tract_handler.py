@@ -28,7 +28,7 @@ from DTC.tract_manager.tract_save import save_trk_heavy_duty
 from dipy.io.streamline import load_trk
 from dipy.tracking.utils import length
 import glob
-import os, shutil
+import os, shutil, copy
 from DTC.tract_manager.tract_save import save_trk_header
 from DTC.tract_manager.streamline_nocheck import load_trk as load_trk_spe
 import nibabel as nib
@@ -39,6 +39,7 @@ from nibabel.streamlines.array_sequence import ArraySequence
 from dipy.io.stateful_tractogram import StatefulTractogram, Space
 from scipy.ndimage import map_coordinates
 from nibabel.streamlines import Field
+from DTC.diff_handlers.connectome_handlers.connectome_handler import _to_voxel_coordinates_warning, retweak_points
 
 
 def cut_invalid_streamlines(sft):
@@ -122,6 +123,105 @@ def cut_invalid_streamlines(sft):
     new_sft.to_origin(origin)
 
     return new_sft, cutting_counter
+
+
+def roi_target_lesserror(streamlines, affine, target_mask, include=True, verbose=False):
+    target_mask = np.array(target_mask, dtype=bool, copy=True)
+    lin_T, offset = _mapping_to_voxel(affine)
+    #yield
+    # End of initialization
+
+    for sl in streamlines:
+        ind = _to_voxel_coordinates_warning(sl, lin_T, offset)
+        i, j, k = ind.T
+        try:
+            state = target_mask[i, j, k]
+        except IndexError:
+            entire = retweak_points(ind, target_mask.shape, verbose=verbose)
+            i, j, k = entire.T
+            state = target_mask[i, j, k]
+            #raise ValueError("streamlines points are outside of target_mask")
+
+        #include if even a single point of streamline is in mask
+        if include is True or include=='all':
+            if state.any() == True:
+                yield sl
+        #do not include at all if even a single point of streamline is not in mask
+        elif include is False or include=='only_mask':
+            if not np.invert(state).any():
+                yield sl
+
+        #only include the streamline points in mask (will look strange if the streamline loops back)
+        elif include =='clip':
+            yield sl[state]
+
+
+def filter_streamlines(streamlines, roi_mask = None, include= 'all', label_list = None, world_coords = False, interactive=False, threshold = 0):
+    #interactive: Enables/disables interactive visualization
+
+    if isinstance(roi_mask, str):
+        roi_mask = nib.load(roi_mask)
+    if isinstance(roi_mask, nib.Nifti1Image):
+        affine = roi_mask.affine
+        if label_list is not None:
+            roi_mask_new = np.zeros(shape=roi_mask.shape, dtype=np.bool_)
+            for i in np.arange(roi_mask.shape[0]):
+                for j in np.arange(roi_mask.shape[1]):
+                    for k in np.arange(roi_mask.shape[2]):
+                        if roi_mask[i][j][k] in label_list:
+                            roi_mask_new[i][j][k] = True
+                        else:
+                            roi_mask_new[i][j][k] = False
+            roi_mask = roi_mask_new
+        else:
+            roi_mask = roi_mask.get_fdata()
+            roi_mask = roi_mask.astype(np.bool_)
+
+
+    if not isinstance(streamlines, nib.streamlines.ArraySequence):
+        try:
+            streamlines = streamlines.streamlines
+        except:
+            raise Exception('Unrecognizable streamline variable')
+        if not isinstance(streamlines, nib.streamlines.ArraySequence):
+            raise Exception('Unrecognizable streamline variable')
+
+    roi_streamlines=streamlines
+    #roi_streamlines = utils.target(streamlines, affine, roi_mask)
+    roi_streamlines = roi_target_lesserror(streamlines, affine, roi_mask, include= include)
+    if threshold>0:
+        roi_streamlines = [s for s in roi_streamlines if length(s[0]) > threshold]
+
+    roi_streamlines = Streamlines(roi_streamlines)
+
+    from dipy.viz import window, actor, colormap as cmap
+
+    # Make display objects
+    if interactive:
+
+        if world_coords:
+            roi_streamlines = transform_streamlines(roi_streamlines, np.linalg.inv(affine))
+
+        color = cmap.line_colors(roi_streamlines)
+        roi_streamlines_actor = actor.line(roi_streamlines, color)
+        ROI_actor = actor.contour_from_roi(roi_mask, color=(1., 1., 0.), opacity=0.1)
+
+        r = window.Scene()
+
+        r.add(roi_streamlines_actor)
+        r.add(ROI_actor)
+
+        # Save figures
+        # window.record(r, n_frames=1, out_path='corpuscallosum_axial.png',
+        #   size=(800, 800))
+        print('ROI mask created - look at python window!')
+
+        window.show(r)
+        r.set_camera(position=[-1, 0, 0], focal_point=[0, 0, 0], view_up=[0, 0, 1])
+        # window.record(r, n_frames=1, out_path='corpuscallosum_sagittal.png',
+        #             size=(800, 800))
+
+    return roi_streamlines
 
 
 def transform_warp_sft(sft, linear_transfo, target, inverse=False,
@@ -585,7 +685,7 @@ def gettrkpath_testsftp(trkpath, subject, str_identifier, sftp = None, pruned=Fa
         return filepath, False
 
 
-def get_trk_params(streamlines, verbose = False):
+def get_trk_params(streamlines, verbose = False, quantile_val = None):
     #Gets extra parameters from a set of streamlines and returns them (num tracts, average/min/max length, std length)
     if verbose:
         print("loaded ")
@@ -597,10 +697,13 @@ def get_trk_params(streamlines, verbose = False):
     # lengths = list(length(trkstreamlines))
     lengths = list(lengths)
     numtracts = np.size(lengths)
-    minlength = np.min(lengths)
-    maxlength = np.max(lengths)
+    minlength = np.min(([length for length in lengths if length>0]))
+    maxlength = np.max(([length for length in lengths if length<5000]))
     meanlength = np.mean(lengths)
     stdlength = np.std(lengths)
+    if quantile_val is not None:
+        quantile = np.quantile(lengths, quantile_val)
+        return numtracts, minlength, maxlength, meanlength, stdlength, quantile
     return numtracts, minlength, maxlength, meanlength, stdlength
 
 

@@ -24,15 +24,14 @@ import time, socket
 import nibabel as nib
 from DTC.visualization_tools.tract_visualize import show_bundles, setup_view, view_test, setup_view_colortest
 from dipy.tracking.streamline import transform_streamlines
-from DTC.tract_manager.tract_handler import ratio_to_str
-from DTC.tract_manager.tract_handler import gettrkpath
+from DTC.tract_manager.tract_handler import gettrkpath, filter_streamlines, ratio_to_str
 from dipy.segment.metric import mdf
 from dipy.tracking.streamline import set_number_of_points
-from DTC.tract_manager.tract_to_roi_handler import filter_streamlines
 
 
 if len(sys.argv)<2:
-    project_headfile_folder = '/Users/jas/bass/gitfolder/DTC_private/BuSA_headfiles'
+    #project_headfile_folder = '/Users/jas/bass/gitfolder/DTC_private/BuSA_headfiles'
+    project_headfile_folder = '/Volumes/Data/Badea/Lab/jacques/BuSA_headfiles'
     project_run_identifier = '202311_10template_1000_newcentroids'
     project_summary_file = os.path.join(project_headfile_folder, project_run_identifier + '.ini')
 else:
@@ -62,25 +61,25 @@ points_resample = int(params['points_resample'])
 bundle_points = int(params['bundle_points'])
 distance = int(params['distance'])
 verbose = int(params['verbose'])
-streamline_lr_inclusion  = params['streamline_lr_inclusion']
+streamline_lr_inclusion = params['streamline_lr_inclusion']
+length_threshold = int(params['length_threshold'])
+remote_input = bool(params['remote_input'])
+remote_output = bool(params['remote_output'])
+path_TRK = params['path_TRK']
 
 fury.colormap.distinguishable_colormap(nb_colors=int(num_bundles))
 overwrite=True
 verbose = False
 
-if 'samos' in socket.gethostname():
-    remote=False
-else:
-    remote=True
 
-if remote:
+if remote_input or remote_output:
     username, passwd = getfromfile(os.path.join(os.environ['HOME'],'remote_connect.rtf'))
 else:
     username = None
     passwd = None
 
-inpath, _, _, sftp_in = get_mainpaths(remote,project = project, username=username,password=passwd)
-sftp_out = sftp_in
+_, _, _, sftp_in = get_mainpaths(remote_input,project = project, username=username,password=passwd)
+outpath, _, _, sftp_out = get_mainpaths(remote_output,project = project, username=username,password=passwd)
 
 if 'santorini' in socket.gethostname().split('.')[0]:
     lab_folder = '/Volumes/Data/Badea/Lab'
@@ -105,8 +104,7 @@ str_identifier = get_str_identifier(stepsize, ratio, trkroi, type='mrtrix')
 
 ratiostr = ratio_to_str(ratio,spec_all=False)
 
-path_TRK = os.path.join(inpath, 'TRK_MDT'+ratiostr)
-outpath_all = os.path.join(inpath, 'TRK_bundle_splitter')
+outpath_all = os.path.join(outpath, 'TRK_bundle_splitter')
 proj_path = os.path.join(outpath_all,project_run_identifier)
 figures_proj_path = os.path.join(proj_path, 'Figures')
 #mkcdir([figures_proj_path],sftp_out)
@@ -114,7 +112,6 @@ mkcdir([figures_proj_path],sftp_out)
 
 pickle_folder = os.path.join(proj_path, 'pickle_roi'+ratiostr)
 trk_proj_path = os.path.join(proj_path, 'trk_roi'+ratiostr)
-
 
 srr = StreamlineLinearRegistration()
 
@@ -212,8 +209,8 @@ for subject in full_subjects_list:
     streamlines_side = {}
     streamlines_numpoints = set_number_of_points(streamlines, nb_points=points_resample)
     del(streamlines)
-    streamlines_side['right'] = filter_streamlines(roi_mask_right, streamlines_numpoints, world_coords=True, include=streamline_lr_inclusion)
-    streamlines_side['left'] = filter_streamlines(roi_mask_left, streamlines_numpoints, world_coords=True, include=streamline_lr_inclusion)
+    streamlines_side['right'] = filter_streamlines(roi_mask_right, streamlines_numpoints, world_coords=True, include=streamline_lr_inclusion, threshold = length_threshold)
+    streamlines_side['left'] = filter_streamlines(roi_mask_left, streamlines_numpoints, world_coords=True, include=streamline_lr_inclusion, threshold = length_threshold)
     del(streamlines_numpoints)
 
     for side in sides:

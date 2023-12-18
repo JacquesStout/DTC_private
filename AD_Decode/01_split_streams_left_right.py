@@ -17,8 +17,7 @@ from DTC.tract_manager.DTC_manager import get_str_identifier, check_dif_ratio
 from DTC.tract_manager.tract_save import save_trk_header
 from DTC.file_manager.argument_tools import parse_arguments
 import sys
-from DTC.tract_manager.tract_to_roi_handler import filter_streamlines
-from DTC.tract_manager.tract_handler import ratio_to_str
+from DTC.tract_manager.tract_handler import ratio_to_str, filter_streamlines
 import configparser
 
 
@@ -44,6 +43,10 @@ ratio = params['ratio']
 stepsize = params['stepsize']
 template_subjects = params['template_subjects']
 streamline_lr_inclusion  = params['streamline_lr_inclusion']
+length_threshold = int(params['length_threshold'])
+remote_input = bool(params['remote_input'])
+remote_output = bool(params['remote_output'])
+path_TRK = params['path_TRK']
 
 overwrite = False
 verbose = False
@@ -76,28 +79,24 @@ str_identifier = get_str_identifier(stepsize, ratio, trkroi, type='mrtrix')
 #method = ['trk_roiseeded', 'trk_roisplit']
 computer_name = socket.gethostname()
 
-remote=True
-if remote:
+if remote_input or remote_output:
     username, passwd = getfromfile(os.path.join(os.environ['HOME'],'remote_connect.rtf'))
 else:
     username = None
     passwd = None
 
-inpath, _, _, sftp = get_mainpaths(remote,project = project, username=username,password=passwd)
+_, _, _, sftp_in = get_mainpaths(remote_input,project = project, username=username,password=passwd)
+outpath, _, _, sftp_out = get_mainpaths(remote_output,project = project, username=username,password=passwd)
 
 ratio_str = ratio_to_str(ratio,spec_all=False)
 
-#path_TRK = os.path.join(inpath, 'TRK_MPCA_MDT'+ratio_str)
-path_TRK = os.path.join(inpath, 'TRK_MDT'+ratio_str)
-
-outpath_all = os.path.join(inpath, 'TRK_bundle_splitter')
+outpath_all = os.path.join(outpath, 'TRK_bundle_splitter')
 proj_path = os.path.join(outpath_all,project_run_identifier)
 
 pickle_folder = os.path.join(proj_path, 'pickle_roi'+ratio_str)
 outpath_trk = os.path.join(proj_path, 'trk_roi'+ratio_str)
 
-
-mkcdir([outpath_all, proj_path, pickle_folder, outpath_trk], sftp)
+mkcdir([outpath_all, proj_path, pickle_folder, outpath_trk], sftp_out)
 
 method = 'dwi_roi_to_trk'
 
@@ -115,7 +114,7 @@ if method=='dwi_roi_to_trk':
         picklepath_l = os.path.join(pickle_folder, f'{subject}_roi_lstream.p')
         trkpath_left = os.path.join(outpath_trk, f'{subject}_roi_lstream.trk')
 
-        _, exists = check_files([picklepath_r, trkpath_right, picklepath_l, trkpath_left], sftp)
+        _, exists = check_files([picklepath_r, trkpath_right, picklepath_l, trkpath_left], sftp_out)
         if not np.invert(exists).any():
             print(f'already did subject {subject}')
             continue
@@ -126,7 +125,7 @@ if method=='dwi_roi_to_trk':
         roi_mask_left = nib.load(left_mask_path)
         print(f'Loaded masks {right_mask_path} and {left_mask_path}')
 
-        subj_trk, trkexists = gettrkpath(path_TRK, subject, str_identifier, pruned=prune, verbose=False, sftp=sftp)
+        subj_trk, trkexists = gettrkpath(path_TRK, subject, str_identifier, pruned=prune, verbose=False, sftp=sftp_in)
 
         t1 = time.perf_counter()
 
@@ -136,7 +135,7 @@ if method=='dwi_roi_to_trk':
             print(txt)
             continue
 
-        streamlines_data = load_trk_remote(subj_trk, 'same', sftp)
+        streamlines_data = load_trk_remote(subj_trk, 'same', sftp_in)
         header = streamlines_data.space_attributes
         streamlines = streamlines_data
 
@@ -145,34 +144,34 @@ if method=='dwi_roi_to_trk':
         print(f'Loaded the streamlines in {subj_trk}, took {ttrk - t1:0.2f} seconds')
         #roi_rstream, roi_rreal = filter_streamlines(roi_mask_right, streamlines, world_coords = True, include='all')
 
-        roi_rstream = filter_streamlines(roi_mask_right, streamlines, world_coords = True, include=streamline_lr_inclusion)
+        roi_rstream = filter_streamlines(streamlines, roi_mask = roi_mask_right , world_coords = True, include=streamline_lr_inclusion, threshold = length_threshold)
         print('Right side done!')
 
-        roi_lstream = filter_streamlines(roi_mask_left, streamlines, world_coords = True, include=streamline_lr_inclusion)
+        roi_lstream = filter_streamlines(streamlines, roi_mask = roi_mask_left, world_coords = True, include=streamline_lr_inclusion, threshold = length_threshold)
         print('Left side done!')
 
         import pickle
 
-        if (not checkfile_exists_remote(trkpath_right, sftp) or overwrite):
+        if (not checkfile_exists_remote(trkpath_right, sftp_out) or overwrite):
             save_trk_header(filepath=trkpath_right, streamlines=roi_rstream, header=header,
-                            affine=np.eye(4), verbose=verbose, sftp=sftp)
+                            affine=np.eye(4), verbose=verbose, sftp=sftp_out)
             print(f'Writing subject {subject} for right side at {trkpath_right}')
         else:
             print(f'Already wrote {trkpath_right}')
-        if not checkfile_exists_remote(picklepath_r, sftp):
-            pickledump_remote(roi_rstream, picklepath_r, sftp)
+        if not checkfile_exists_remote(picklepath_r, sftp_out):
+            pickledump_remote(roi_rstream, picklepath_r, sftp_out)
         else:
             print(f'Already wrote {picklepath_r}')
 
 
-        if (not checkfile_exists_remote(trkpath_left, sftp) or overwrite):
+        if (not checkfile_exists_remote(trkpath_left, sftp_out) or overwrite):
             save_trk_header(filepath=trkpath_left, streamlines=roi_lstream, header=header,
-                            affine=np.eye(4), verbose=verbose, sftp=sftp)
+                            affine=np.eye(4), verbose=verbose, sftp=sftp_out)
             print(f'Writing subject {subject} for left side at {trkpath_left}')
         else:
             print(f'Already wrote {trkpath_left}')
 
-        if not checkfile_exists_remote(picklepath_l, sftp):
-            pickledump_remote(roi_lstream, picklepath_l, sftp)
+        if not checkfile_exists_remote(picklepath_l, sftp_out):
+            pickledump_remote(roi_lstream, picklepath_l, sftp_out)
         else:
             print(f'Already wrote {picklepath_l}')

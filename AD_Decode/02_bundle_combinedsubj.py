@@ -46,11 +46,17 @@ ratio = params['ratio']
 stepsize = params['stepsize']
 template_subjects = params['template_subjects']
 setpoints = params['setpoints']
-#num_points = int(params['num_points'])
 points_resample = int(params['points_resample'])
+remote_output = bool(params['remote_output'])
 
 overwrite=False
 verbose = False
+
+if remote_output:
+    username, passwd = getfromfile(os.path.join(os.environ['HOME'],'remote_connect.rtf'))
+else:
+    username = None
+    passwd = None
 
 if streamline_type == 'mrtrix':
     prune = False
@@ -73,32 +79,14 @@ if project == 'AD_Decode':
     anat_path = os.path.join(lab_folder,'mouse/VBM_21ADDecode03_IITmean_RPI_fullrun-work/dwi/SyN_0p5_3_0p5_fa/faMDT_NoNameYet_n37_i6/median_images/MDT_fa.nii.gz')
 
 
-if 'samos' in socket.gethostname():
-    remote=False
-else:
-    remote=True
-
-if remote:
-    username, passwd = getfromfile(os.path.join(os.environ['HOME'],'remote_connect.rtf'))
-else:
-    username = None
-    passwd = None
-
-inpath, _, _, sftp_in = get_mainpaths(remote,project = project, username=username,password=passwd)
-
-sftp_out = sftp_in
+outpath, _, _, sftp_out = get_mainpaths(remote_output,project = project, username=username,password=passwd)
 
 ratiostr = ratio_to_str(ratio,spec_all=False)
 
-#path_TRK = os.path.join(inpath, 'TRK_MPCA_MDT'+ratiostr)
-path_TRK = os.path.join(inpath, 'TRK_MDT'+ratiostr)
 
-
-outpath_all = os.path.join(inpath, 'TRK_bundle_splitter')
+outpath_all = os.path.join(outpath, 'TRK_bundle_splitter')
 proj_path = os.path.join(outpath_all,project_run_identifier)
 
-
-#pickle_folder = os.path.join(proj_path, 'pickle_roi'+ratiostr)
 trk_proj_path = os.path.join(proj_path, 'trk_roi'+ratiostr)
 
 srr = StreamlineLinearRegistration()
@@ -140,17 +128,17 @@ for side in sides:
                 trkpaths[subject,'right'] = os.path.join(trk_proj_path, f'{subject}_roi_rstream.trk')
                 trkpaths[subject,'left'] = os.path.join(trk_proj_path, f'{subject}_roi_lstream.trk')
 
-                if not checkfile_exists_remote(trkpaths[subject, side], sftp_in):
+                if not checkfile_exists_remote(trkpaths[subject, side], sftp_out):
                     print(f'skipped subject {subject}')
                     continue
 
                 if 'header' not in locals():
-                    streamlines_temp_data = load_trk_remote(trkpaths[subject, side], 'same', sftp_in)
+                    streamlines_temp_data = load_trk_remote(trkpaths[subject, side], 'same', sftp_out)
                     header = streamlines_temp_data.space_attributes
                     streamlines_temp = streamlines_temp_data.streamlines
                     del streamlines_temp_data
                 else:
-                    streamlines_temp = load_trk_remote(trkpaths[subject, side], 'same', sftp_in).streamlines
+                    streamlines_temp = load_trk_remote(trkpaths[subject, side], 'same', sftp_out).streamlines
 
                 if setpoints:
                     streamlines_template[side].extend(set_number_of_points(streamlines_temp, points_resample))
@@ -161,8 +149,6 @@ for side in sides:
 
                 del streamlines_temp
 
-                #streams_dict[side, subject] = np.arange(num_streamlines_all,
-                #                                        num_streamlines_all + num_streamlines_subj)
                 streams_dict_side[side,subject] = np.arange(num_streamlines_all, num_streamlines_all + num_streamlines_subj)
 
                 if verbose:
@@ -186,7 +172,7 @@ for side in sides:
                 affine_flip[0, 0] = -1
                 affine_flip[0, 3] = 0
                 if np.size(streamlines_template[dict_revtracker[side]]) == 0:
-                    streamlines_template_data = load_trk_remote(trktemplate_paths[dict_revtracker[side]], 'same', sftp_in)
+                    streamlines_template_data = load_trk_remote(trktemplate_paths[dict_revtracker[side]], 'same', sftp_out)
                     if 'header' not in locals():
                         header = streamlines_template_data.space_attributes
                     streamlines_template[dict_revtracker[side]] = streamlines_template_data.streamlines
@@ -214,7 +200,7 @@ for side in sides:
                 timings.append(time.perf_counter())
                 print(f'Loaded dictionary from {streams_dict_picklepaths[dict_revtracker[sidetemp]]}, took {timings[-1] - timings[-2]} seconds')
                 if np.size(streamlines_template[sidetemp]) == 0:
-                    streamlines_template_data = load_trk_remote(trktemplate_paths[sidetemp], 'same', sftp_in)
+                    streamlines_template_data = load_trk_remote(trktemplate_paths[sidetemp], 'same', sftp_out)
                     if 'header' not in locals():
                         header = streamlines_template_data.space_attributes
                     streamlines_template[sidetemp] = streamlines_template_data.streamlines

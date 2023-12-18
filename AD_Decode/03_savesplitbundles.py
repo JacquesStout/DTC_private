@@ -67,6 +67,8 @@ setpoints = params['setpoints']
 distance = int(params['distance'])
 bundle_points = int(params['bundle_points'])
 num_bundles = int(params['num_bundles'])
+remote_output = bool(params['remote_output'])
+path_TRK = params['path_TRK']
 
 overwrite=True
 verbose = False
@@ -83,21 +85,14 @@ if project == 'AD_Decode':
     ref_MDT_folder = os.path.join(lab_folder,'mouse/VBM_21ADDecode03_IITmean_RPI_fullrun-work/dwi/SyN_0p5_3_0p5_fa/faMDT_NoNameYet_n37_i6/reg_images')
     anat_path = os.path.join(lab_folder,'mouse/VBM_21ADDecode03_IITmean_RPI_fullrun-work/dwi/SyN_0p5_3_0p5_fa/faMDT_NoNameYet_n37_i6/median_images/MDT_fa.nii.gz')
 
-if 'samos' in socket.gethostname():
-    remote=False
-else:
-    remote=True
 
-if remote:
+if remote_output:
     username, passwd = getfromfile(os.path.join(os.environ['HOME'],'remote_connect.rtf'))
 else:
     username = None
     passwd = None
 
-inpath, _, _, sftp_in = get_mainpaths(remote,project = project, username=username,password=passwd)
-sftp_out = sftp_in
-
-
+outpath, _, _, sftp_out = get_mainpaths(remote_output,project = project, username=username,password=passwd)
 
 if streamline_type == 'mrtrix':
     prune = False
@@ -111,8 +106,7 @@ str_identifier = get_str_identifier(stepsize, ratio, trkroi, type=streamline_typ
 ratiostr = ratio_to_str(ratio,spec_all=False)
 
 
-path_TRK = os.path.join(inpath, 'TRK_MDT'+ratiostr)
-outpath_all = os.path.join(inpath, 'TRK_bundle_splitter')
+outpath_all = os.path.join(outpath, 'TRK_bundle_splitter')
 proj_path = os.path.join(outpath_all,project_run_identifier)
 figures_proj_path = os.path.join(proj_path, 'Figures')
 mkcdir([figures_proj_path],sftp_out)
@@ -168,14 +162,11 @@ for side in sides:
     else:
         print(f'Could not find {streams_dict_picklepaths[dict_revtracker[side]]}')
 
-#streams_dict['left_f'] = streams_dict['left']
 
 feature2 = ResampleFeature(nb_points=bundle_points)
 metric2 = AveragePointwiseEuclideanMetric(feature=feature2)
 qb = QuickBundles(threshold=distance, metric=metric2, max_nb_clusters=num_bundles)
-#qb_test = QuickBundles(threshold=distance, metric=metric2, max_nb_clusters=1)
-#qb = QuickBundles(metric=metric2, max_nb_clusters=num_bundles)
-#qb_test = QuickBundles(metric=metric2, max_nb_clusters=1)
+
 
 for side in sides:
     if (checkfile_exists_remote(trktemplate_paths[side], sftp_out)):
@@ -218,27 +209,17 @@ if bundle_lr_combined:
     for bundle_toflip in centroids_perside['left']:
         centroids_perside['right'].append(np.array(transform_streamlines(bundle_toflip, affine_flip, in_place=False)))
 
-    """
-    bundle_centroids = bundle_centroids_flipped
-    for comb_bundle in selected_bundles['combined']:
-        dist_min = 100000
-        bundle_id = -1
-        combcentroid = comb_bundle.centroid
-        for i, centroid in enumerate(bundle_centroids):
-            dist = (mdf(combcentroid, centroid))
-            if dist < dist_min:
-                bundle_id = i
-                dist_min = dist
-    """
 
     timings.append(time.perf_counter())
     print(f'Organized top {num_bundles} bundles for left and right side, took {timings[-1] - timings[-2]} seconds')
 
+    """
     if test:
         subj_trk, trkexists = gettrkpath(path_TRK, template_subjects[0], str_identifier, pruned=prune, verbose=False,
                                          sftp=sftp_in)
         streamlines_data = load_trk_remote(subj_trk, 'same', sftp_in)
         header = streamlines_data.space_attributes
+    """
 
     for side in sides:
         pickled_centroids = os.path.join(pickle_folder, f'bundles_centroids_{side}.py')
@@ -250,12 +231,11 @@ if bundle_lr_combined:
             print(f'Centroids at {pickled_centroids} already exist')
         timings.append(time.perf_counter())
 
-        if test:
-            for bundle_id in np.arange(num_bundles):
-                sg = lambda: (s for i, s in enumerate(centroids_perside[side][bundle_id:bundle_id+1]))
-                filepath_bundle = os.path.join(figures_proj_path, f'centroid_{side}_bundle_{bundle_id+1}.trk')
-                save_trk_header(filepath=filepath_bundle, streamlines=sg, header=header,
-                            affine=np.eye(4), verbose=verbose, sftp=sftp_out)
+        for bundle_id in np.arange(num_bundles):
+            sg = lambda: (s for i, s in enumerate(centroids_perside[side][bundle_id:bundle_id+1]))
+            filepath_bundle = os.path.join(figures_proj_path, f'centroid_{side}_bundle_{bundle_id+1}.trk')
+            save_trk_header(filepath=filepath_bundle, streamlines=sg, header=header, affine=np.eye(4), verbose=verbose,
+                            sftp=sftp_out)
     del bundles
 else:
     raise Exception('No longer functional for other versions, need to make sure that the sides compared to each other are equivalent '

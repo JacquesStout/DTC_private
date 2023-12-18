@@ -363,7 +363,7 @@ def view_test(scene,testtype='interactive',record_path = None):
 
 def setup_view(trk_object, colors=None, world_coords=False, show=True, fname=None, str_tube=False, ref=None,
                objectvals = None, colorbar=False, record = None, scene = None, plane = 'all', interactive = True,
-               addedmask = None, value_range = (0,2000), verbose = True):
+               addedmask = None, value_range = (0,2000), linewidth = 1, verbose = True):
 
     from dipy.viz import actor, window, ui
 
@@ -665,7 +665,7 @@ def setup_view(trk_object, colors=None, world_coords=False, show=True, fname=Non
             for (i, bundle) in enumerate(bundles):
                 color = colors[i]
                 #         lines_actor = actor.streamtube(bundle, color, linewidth=0.05
-                object_actor = actor.line(np.array(bundle), color, linewidth=1.0)
+                object_actor = actor.line(np.array(bundle), color, linewidth=linewidth)
 
                 scene.add(object_actor)
                 object_actors_toremove.append(object_actor)
