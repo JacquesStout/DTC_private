@@ -184,6 +184,7 @@ for remove in removed_list:
     if remove in full_subjects_list:
         full_subjects_list.remove(remove)
 
+overwrite=True
 for subject in full_subjects_list:
 
     files_subj = []
@@ -207,12 +208,16 @@ for subject in full_subjects_list:
     header = streamlines_data.space_attributes
     streamlines = streamlines_data.streamlines
     streamlines_side = {}
-    streamlines_numpoints = set_number_of_points(streamlines, nb_points=points_resample)
-    del(streamlines)
-    streamlines_side['right'] = filter_streamlines(streamlines_numpoints, roi_mask=roi_mask_right, world_coords=True, include=streamline_lr_inclusion, threshold = length_threshold)
-    streamlines_side['left'] = filter_streamlines(streamlines_numpoints, roi_mask=roi_mask_left, world_coords=True, include=streamline_lr_inclusion, threshold = length_threshold)
 
-    del(streamlines_numpoints)
+    streamlines_side_right = filter_streamlines(streamlines, roi_mask=roi_mask_right, world_coords=True, include=streamline_lr_inclusion, threshold = length_threshold)
+    streamlines_side_left = filter_streamlines(streamlines, roi_mask=roi_mask_left, world_coords=True, include=streamline_lr_inclusion, threshold = length_threshold)
+
+    del(streamlines)
+
+    streamlines_side['right'] = set_number_of_points(streamlines_side_right, nb_points=points_resample)
+    streamlines_side['left'] = set_number_of_points(streamlines_side_left, nb_points=points_resample)
+
+    del(streamlines_side_right, streamlines_side_left)
 
     for side in sides:
         for streamline in streamlines_side[side]:
