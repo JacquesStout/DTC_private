@@ -27,11 +27,12 @@ from dipy.tracking.streamline import transform_streamlines
 from DTC.tract_manager.tract_handler import gettrkpath, filter_streamlines, ratio_to_str
 from dipy.segment.metric import mdf
 from dipy.tracking.streamline import set_number_of_points
+import pickle
 
 
 if len(sys.argv)<2:
     project_headfile_folder = '/Volumes/Data/Badea/Lab/jacques/BuSA_headfiles/'
-    project_run_identifier = 'V0.9_10template_100_72_interhe'
+    project_run_identifier = 'V0_9_10template_100_72_interhe'
     project_summary_file = os.path.join(project_headfile_folder, project_run_identifier + '.ini')
 else:
     project_summary_file = sys.argv[1]
@@ -208,8 +209,9 @@ for subject in full_subjects_list:
     streamlines_side = {}
     streamlines_numpoints = set_number_of_points(streamlines, nb_points=points_resample)
     del(streamlines)
-    streamlines_side['right'] = filter_streamlines(roi_mask_right, streamlines_numpoints, world_coords=True, include=streamline_lr_inclusion, threshold = length_threshold)
-    streamlines_side['left'] = filter_streamlines(roi_mask_left, streamlines_numpoints, world_coords=True, include=streamline_lr_inclusion, threshold = length_threshold)
+    streamlines_side['right'] = filter_streamlines(streamlines_numpoints, roi_mask=roi_mask_right, world_coords=True, include=streamline_lr_inclusion, threshold = length_threshold)
+    streamlines_side['left'] = filter_streamlines(streamlines_numpoints, roi_mask=roi_mask_left, world_coords=True, include=streamline_lr_inclusion, threshold = length_threshold)
+
     del(streamlines_numpoints)
 
     for side in sides:

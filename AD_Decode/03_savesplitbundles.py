@@ -42,7 +42,7 @@ import copy
 
 if len(sys.argv)<2:
     project_headfile_folder = '/Volumes/Data/Badea/Lab/jacques/BuSA_headfiles/'
-    project_run_identifier = 'V0.9_10template_100_72_interhe'
+    project_run_identifier = 'V0_9_10template_100_72_interhe'
     project_summary_file = os.path.join(project_headfile_folder, project_run_identifier + '.ini')
 else:
     project_summary_file = sys.argv[1]
