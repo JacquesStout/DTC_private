@@ -232,7 +232,7 @@ if bundle_lr_combined:
 
         for bundle_id in np.arange(num_bundles):
             sg = lambda: (s for i, s in enumerate(centroids_perside[side][bundle_id:bundle_id+1]))
-            filepath_bundle = os.path.join(figures_proj_path, f'centroid_{side}_bundle_{bundle_id+1}.trk')
+            filepath_bundle = os.path.join(figures_proj_path, f'centroid_{side}_bundle_{bundle_id}.trk')
             save_trk_header(filepath=filepath_bundle, streamlines=sg, header=header, affine=np.eye(4), verbose=verbose,
                             sftp=sftp_out)
     del bundles

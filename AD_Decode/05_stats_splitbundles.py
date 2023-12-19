@@ -81,7 +81,7 @@ points_resample = int(params['points_resample'])
 remote_output = bool(params['remote_output'])
 path_TRK = params['path_trk']
 
-unique_refs = ['ln','CCI']
+unique_refs = ['Length','CCI']
 
 overwrite=True
 verbose = False
@@ -202,8 +202,6 @@ full_subjects_list = full_subjects_list[:4]
 
 calc_BUAN = True
 
-references = ['CCI'] + references
-
 for subject in full_subjects_list:
 
     bundle_compare_summary = os.path.join(stat_folder, f'{subject}_bundle_comparison.xlsx')
@@ -264,6 +262,8 @@ for subject in full_subjects_list:
 
                 elif ref =='CCI':
                     column_indices = dataf_subj.columns.get_loc('CCI')
+                    #print(tract_length(bundle_streamlines))
+                    #print([[i] for i in tract_length(bundle_streamlines)])
                     cci = cluster_confidence(bundle_streamlines, override=True)
                     dataf_subj.iloc[:, column_indices] = cci
 
@@ -408,5 +408,5 @@ for subject in full_subjects_list:
         else:
             BUAN_df = pd.concat([BUAN_df, pd.DataFrame.from_records([subj_data])], ignore_index=True)
 
-if calc_BUAN and (not os.path.exists(bundle_compare_summary) or overwrite):
+if np.size(full_subjects_list)>0 and calc_BUAN and (not os.path.exists(bundle_compare_summary) or overwrite):
     save_df_remote(BUAN_df, bundle_compare_summary, sftp_out)
