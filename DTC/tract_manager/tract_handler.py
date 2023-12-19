@@ -155,6 +155,11 @@ def roi_target_lesserror(streamlines, affine, target_mask, include=True, verbose
         elif include =='clip':
             yield sl[state]
 
+        #only include if the majority of streamline points are in mask
+        elif include == 'majority':
+            if np.sum(state)>(np.size(state)/2):
+                yield sl
+
 
 def filter_streamlines(streamlines, roi_mask = None, include= 'all', label_list = None, world_coords = False, interactive=False, threshold = 0):
     #interactive: Enables/disables interactive visualization
