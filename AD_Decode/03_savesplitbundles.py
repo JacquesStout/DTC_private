@@ -108,7 +108,8 @@ ratiostr = ratio_to_str(ratio,spec_all=False)
 outpath_all = os.path.join(outpath, 'TRK_bundle_splitter')
 proj_path = os.path.join(outpath_all,project_run_identifier)
 figures_proj_path = os.path.join(proj_path, 'Figures')
-mkcdir([figures_proj_path],sftp_out)
+centroids_proj_path = os.path.join(figures_proj_path,'Centroids')
+mkcdir([figures_proj_path,centroids_proj_path],sftp_out)
 
 pickle_folder = os.path.join(proj_path, 'pickle_roi'+ratiostr)
 trk_proj_path = os.path.join(proj_path, 'trk_roi'+ratiostr)
@@ -232,7 +233,7 @@ if bundle_lr_combined:
 
         for bundle_id in np.arange(num_bundles):
             sg = lambda: (s for i, s in enumerate(centroids_perside[side][bundle_id:bundle_id+1]))
-            filepath_bundle = os.path.join(figures_proj_path, f'centroid_{side}_bundle_{bundle_id}.trk')
+            filepath_bundle = os.path.join(centroids_proj_path, f'centroid_{side}_bundle_{bundle_id}.trk')
             save_trk_header(filepath=filepath_bundle, streamlines=sg, header=header, affine=np.eye(4), verbose=verbose,
                             sftp=sftp_out)
     del bundles
