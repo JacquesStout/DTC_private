@@ -156,7 +156,6 @@ streamline_bundle = {}
 centroids = {}
 
 verbose = False
-overwrite=False
 
 clustering = False
 
@@ -193,8 +192,6 @@ for remove in removed_list:
 
 column_bundle_compare = ['Subject'] + [f'BUAN_{bundle_id}' for bundle_id in bundle_ids]
 
-overwrite=True
-
 """
 stat_folder = '/mnt/newJetStor/paros/paros_WORK/jacques/stats_temp_test'
 test_mode = False
@@ -207,14 +204,9 @@ calc_BUAN = True
 
 references = ['CCI'] + references
 
-if np.size(full_subjects_list)>4:
-    bundle_compare_summary = os.path.join(stat_folder, f'bundle_comparison.xlsx')
-else:
-    full_subjects_list_txt = '_'.join(full_subjects_list)
-    bundle_compare_summary = os.path.join(stat_folder, f'{full_subjects_list_txt}_bundle_comparison.xlsx')
-
 for subject in full_subjects_list:
 
+    bundle_compare_summary = os.path.join(stat_folder, f'{subject}_bundle_comparison.xlsx')
     files_subj = []
     for side, bundle_id in streamline_bundle.keys():
         files_subj.append(os.path.join(trk_proj_path, f'{subject}_{side}_bundle_{bundle_id}.trk'))
@@ -238,7 +230,8 @@ for subject in full_subjects_list:
         for bundle_id in bundle_ids:
             stat_path_subject = os.path.join(stat_folder, f'{subject}_{side}_bundle_{bundle_id}.xlsx')
 
-            if not overwrite and checkfile_exists_remote(stat_path_subject, sftp_out) and not calc_BUAN:
+            if not overwrite and checkfile_exists_remote(stat_path_subject, sftp_out) and not (
+                    calc_BUAN and not os.path.exists(bundle_compare_summary)):
                 print(f'Already created file for subject {subject}, side {side} and {bundle_id}')
                 continue
     
@@ -384,34 +377,36 @@ for subject in full_subjects_list:
             save_df_remote(dataf_subj,stat_path_subject,sftp_out)
             print(f'Wrote file for subject {subject}, side {side} and {bundle_id}')
 
-    BUANs = []
-    column_names_ref = [f'BUAN_{bundle_id}' for bundle_id in bundle_ids]
+    if calc_BUAN and (not os.path.exists(bundle_compare_summary) or overwrite):
+        BUANs = []
+        column_names_ref = [f'BUAN_{bundle_id}' for bundle_id in bundle_ids]
 
-    BUAN_ids = {}
+        BUAN_ids = {}
 
-    affine_flip = np.eye(4)
-    affine_flip[0, 0] = -1
-    affine_flip[0, 3] = 0
-
-
-    for bundle_id in bundle_ids:
-        rng = np.random.RandomState()
-        clust_thr = [5, 3, 1.5]
-        threshold = 12
-
-        streamlines_left = bundle_data_dic['left',bundle_id].streamlines
-        streamlines_right = bundle_data_dic['right',bundle_id].streamlines
-        streamlines_right_flipped = transform_streamlines(streamlines_right, affine_flip,
-                                                           in_place=False)
-        BUAN_id = bundle_shape_similarity(streamlines_left, streamlines_right_flipped, rng, clust_thr, threshold)
-
-        BUAN_ids[bundle_id] = (BUAN_id)
+        affine_flip = np.eye(4)
+        affine_flip[0, 0] = -1
+        affine_flip[0, 3] = 0
 
 
-    subj_data = {'Subject': subject, **{f'BUAN_{bundle_id}': BUAN_ids[bundle_id] for bundle_id in bundle_ids}}
-    if not 'BUAN_df' in locals():
-        BUAN_df = pd.DataFrame.from_records([subj_data])
-    else:
-        BUAN_df = pd.concat([BUAN_df, pd.DataFrame.from_records([subj_data])], ignore_index=True)
+        for bundle_id in bundle_ids:
+            rng = np.random.RandomState()
+            clust_thr = [5, 3, 1.5]
+            threshold = 12
 
-save_df_remote(BUAN_df, bundle_compare_summary, sftp_out)
+            streamlines_left = bundle_data_dic['left',bundle_id].streamlines
+            streamlines_right = bundle_data_dic['right',bundle_id].streamlines
+            streamlines_right_flipped = transform_streamlines(streamlines_right, affine_flip,
+                                                               in_place=False)
+            BUAN_id = bundle_shape_similarity(streamlines_left, streamlines_right_flipped, rng, clust_thr, threshold)
+
+            BUAN_ids[bundle_id] = (BUAN_id)
+
+
+        subj_data = {'Subject': subject, **{f'BUAN_{bundle_id}': BUAN_ids[bundle_id] for bundle_id in bundle_ids}}
+        if not 'BUAN_df' in locals():
+            BUAN_df = pd.DataFrame.from_records([subj_data])
+        else:
+            BUAN_df = pd.concat([BUAN_df, pd.DataFrame.from_records([subj_data])], ignore_index=True)
+
+if calc_BUAN and (not os.path.exists(bundle_compare_summary) or overwrite):
+    save_df_remote(BUAN_df, bundle_compare_summary, sftp_out)
