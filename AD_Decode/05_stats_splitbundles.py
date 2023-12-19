@@ -19,7 +19,7 @@ from dipy.align.streamlinear import StreamlineLinearRegistration
 from time import sleep
 import socket
 import nibabel as nib
-from dipy.tracking.streamline import transform_streamlines
+from dipy.tracking.streamline import transform_streamlines, cluster_confidence
 from DTC.tract_manager.tract_handler import ratio_to_str
 from DTC.tract_manager.tract_handler import gettrkpath
 from DTC.nifti_handlers.nifti_handler import get_diff_ref
@@ -81,7 +81,7 @@ points_resample = int(params['points_resample'])
 remote_output = bool(params['remote_output'])
 path_TRK = params['path_trk']
 
-spe_refs = ['ln','greywhite']
+unique_refs = ['ln','CCI']
 
 overwrite=True
 verbose = False
@@ -193,7 +193,7 @@ for remove in removed_list:
 
 column_bundle_compare = ['Subject'] + [f'BUAN_{bundle_id}' for bundle_id in bundle_ids]
 
-overwrite=False
+overwrite=True
 
 """
 stat_folder = '/mnt/newJetStor/paros/paros_WORK/jacques/stats_temp_test'
@@ -205,6 +205,8 @@ full_subjects_list = full_subjects_list[:4]
 
 calc_BUAN = True
 
+references = ['CCI'] + references
+
 if np.size(full_subjects_list)>4:
     bundle_compare_summary = os.path.join(stat_folder, f'bundle_comparison.xlsx')
 else:
@@ -213,7 +215,7 @@ else:
 
 for subject in full_subjects_list:
 
-    files_subj = [bundle_compare_summary]
+    files_subj = []
     for side, bundle_id in streamline_bundle.keys():
         files_subj.append(os.path.join(trk_proj_path, f'{subject}_{side}_bundle_{bundle_id}.trk'))
     check_all = checkfile_exists_all(files_subj,sftp_out)
@@ -224,10 +226,10 @@ for subject in full_subjects_list:
 
     column_names = ['Streamline_ID']
     for ref in references:
-        if ref != 'ln':
+        if ref not in unique_refs:
             column_names+=([f'point_{ID}_{ref}' for ID in np.arange(points_resample)])
-        if ref=='ln':
-            column_names+=(['Length'])
+        if ref in unique_refs:
+            column_names+=([ref])
 
     print(f'Files will be saved at {stat_folder}')
     bundle_data_dic = {}
@@ -262,11 +264,23 @@ for subject in full_subjects_list:
     
             for ref in references:
 
-                if ref=='ln':
+                if ref=='Length':
 
                     column_indices = dataf_subj.columns.get_loc('Length')
                     dataf_subj.iloc[:, column_indices] = list(tract_length(bundle_streamlines[:]))
 
+                elif ref =='CCI':
+                    column_indices = dataf_subj.columns.get_loc('CCI')
+                    cci = cluster_confidence(bundle_streamlines, override=True)
+                    dataf_subj.iloc[:, column_indices] = cci
+
+                    """
+                    length_streamlines = list(tract_length(bundle_streamlines))
+                    cut_streamlines = [streamline for streamline, length in zip(bundle_streamlines, length_streamlines) if length > 40]
+                    fbc = FBCMeasures(streamlines[group][selected_bundles[group][idbundle].indices], k)
+                    fbc_sl, lfbc_orig, rfbc_bundle = \
+                        fbc.get_points_rfbc_thresholded(-0.1, emphasis=0.01)
+                    """
                 elif ref=='greywhite':
                     gw_label, gw_affine, _, _, _ = load_nifti_remote(grey_white_label_path, sftp=None)
                     column_indices = dataf_subj.columns.get_loc('Length')
@@ -392,7 +406,6 @@ for subject in full_subjects_list:
         BUAN_id = bundle_shape_similarity(streamlines_left, streamlines_right_flipped, rng, clust_thr, threshold)
 
         BUAN_ids[bundle_id] = (BUAN_id)
-
 
 
     subj_data = {'Subject': subject, **{f'BUAN_{bundle_id}': BUAN_ids[bundle_id] for bundle_id in bundle_ids}}
