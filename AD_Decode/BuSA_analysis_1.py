@@ -29,10 +29,13 @@ def outlier_removal(values, qsep=3):
 
 
 remote=False
-project = '202311_10template_test01'
-kos=True
 
+if len(sys.argv)<2:
+    project = 'V0_9_10template_100_72_interhe'
+else:
+    project = sys.argv[1]
 
+loc = 'home'
 
 if 'santorini' in socket.gethostname().split('.')[0]:
     root = f'/Users/jas/jacques/AD_Decode/BuSA_analysis/{project}'
@@ -43,8 +46,11 @@ else:
 
 stats_path = os.path.join(root,'stats')
 
-if kos:
+if loc=='kos':
     root = f'/Volumes/Shared Folder/newJetStor/paros/paros_WORK/jacques/AD_Decode/TRK_bundle_splitter/{project}'
+elif loc=='munin':
+    root = f'/Volumes/Data/Badea/Lab/AD_Decode/TRK_bundle_splitter/{project}'
+
 
 if remote:
     from DTC.file_manager.file_tools import mkcdir, check_files, getfromfile
