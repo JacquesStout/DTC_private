@@ -5,7 +5,7 @@ import random
 from DTC.tract_manager.DTC_manager import get_str_identifier, check_dif_ratio
 from DTC.file_manager.computer_nav import get_mainpaths, glob_remote
 from DTC.file_manager.file_tools import mkcdir, check_files, getfromfile
-
+import subprocess
 
 #trk_folder = '/mnt/paros_DB/Projects/AD_Decode/Analysis/TRK_MDT'
 #new_trk_folder = '/mnt/paros_WORK/jacques/AD_Decode/TRK_MDT_ratio_10'
@@ -69,6 +69,8 @@ print(filelist)
 
 verbose = True
 
+qsub = False
+
 for filepath in filelist:
     _, f_ext = os.path.splitext(filepath)
     filename = os.path.basename(filepath)
@@ -79,12 +81,14 @@ for filepath in filelist:
         newfilename = filename.replace(orig_identifier,new_identifier)
 
         newfilepath = os.path.join(new_trk_folder, newfilename)
-
         python_command = f"python /home/jas297/linux/DTC_private/DTC/tract_manager/downsample_TRK_file.py {filepath} {newfilepath} {ratio} {method} {verbose}"
-        job_name = job_descrp + "_" + subj
-        command = os.path.join(GD,
+        if qsub:
+            job_name = job_descrp + "_" + subj
+            command = os.path.join(GD,
                                "submit_sge_cluster_job.bash") + " " + sbatch_folder_path + " " + job_name + " 0 0 '" + python_command + "'"
-        if test:
-            print(python_command)
+            if test:
+                print(python_command)
+            else:
+                os.system(command)
         else:
-            os.system(command)
+            subprocess.run(python_command,shell=True,check=True)
