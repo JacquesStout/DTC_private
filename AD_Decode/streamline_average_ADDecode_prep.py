@@ -39,14 +39,16 @@ else:
 
 #Setting identification parameters for ratio, labeling type, etc
 ratio = 100
-ratio_str = ratio_to_str(ratio)
+ratio_str = ratio_to_str(ratio,spec_all=False)
+
 print(ratio_str)
+
 if ratio_str == '_all':
     folder_ratio_str = ''
 else:
     folder_ratio_str = ratio_str.replace('_ratio','')
 
-inclusive = True
+inclusive = False
 symmetric = True
 fixed = True
 overwrite = False
@@ -84,7 +86,7 @@ picklesave=True
 function_processes = parse_arguments_function(sys.argv)
 print(f'there are {function_processes} function processes')
 
-mainpath = '/Volumes/dusom_mousebrains/All_Staff/Nariman_mrtrix_ad_decode/'
+mainpath = '/Volumes/Shared Folder/newJetStor/paros/paros_WORK/jacques/AD_Decode/'
 TRK_folder = os.path.join(mainpath, 'TRK_MDT'+ratio_str)
 
 label_folder = os.path.join(mainpath, 'DWI')
@@ -97,9 +99,6 @@ if not os.path.exists(TRK_folder):
     raise Exception(f'cannot find TRK folder at {TRK_folder}')
 
 #reference_img refers to statistical values that we want to compare to the streamlines, say fa, rd, etc
-
-references = ['fa', 'md', 'rd', 'ad', 'b0']
-references = []
 
 #Initializing dictionaries to be filled
 stream_point = {}

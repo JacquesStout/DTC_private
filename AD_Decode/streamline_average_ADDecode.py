@@ -376,7 +376,6 @@ for target_tuple in target_tuples:
                 subj += 1
                 groupstreamlines[group].extend(target_streamlines_set)
 
-
             if write_stats:
                 worksheet.write(subj, 0, group)
                 l=1
@@ -390,7 +389,6 @@ for target_tuple in target_tuples:
 
                 #groupstreamlines_orig[group].extend(target_streamlines)
 
-
             group_qb[group] = QuickBundles(threshold=distance2, metric=metric2)
             group_clusters[group] = group_qb[group].cluster(groupstreamlines[group])
             if os.path.exists(centroid_file_path) and overwrite:
@@ -399,7 +397,6 @@ for target_tuple in target_tuples:
                 if verbose:
                     print(f'Summarized the clusters for group {group} at {centroid_file_path}')
                 pickle.dump(group_clusters[group], open(centroid_file_path, "wb"))
-
 
             if np.shape(groupLines[group, ref])[0] != np.shape(groupstreamlines[group])[0]:
                 raise Exception('happened from there')
