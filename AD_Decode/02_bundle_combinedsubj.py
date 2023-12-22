@@ -129,8 +129,8 @@ for side in sides:
                 trkpaths[subject,'left'] = os.path.join(trk_proj_path, f'{subject}_roi_lstream.trk')
 
                 if not checkfile_exists_remote(trkpaths[subject, side], sftp_out):
-                    print(f'skipped subject {subject}')
-                    continue
+                    txt = (f'Could not find {trkpaths[subject,side]}')
+                    raise Exception('txt')
 
                 if 'header' not in locals():
                     streamlines_temp_data = load_trk_remote(trkpaths[subject, side], 'same', sftp_out)

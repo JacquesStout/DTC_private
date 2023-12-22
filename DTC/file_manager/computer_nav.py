@@ -180,7 +180,8 @@ def badpath_fixer(path):
 def make_temppath(path, to_fix=False):
     if 'blade' in socket.gethostname().split('.')[0]:
         temp_folder = '/mnt/munin2/Badea/Lab/jacques/temp'
-        mkcdir(temp_folder,None)
+        if not os.path.exists(temp_folder):
+            os.mkdir(temp_folder)
     else:
         temp_folder = os.path.expanduser("~")
     temppath = f'{os.path.join(temp_folder, os.path.basename(path).split(".")[0]+"_temp."+ ".".join(os.path.basename(path).split(".")[1:]))}'

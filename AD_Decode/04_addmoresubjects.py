@@ -229,7 +229,8 @@ for subject in full_subjects_list:
                 if dist<dist_min:
                     bundle_id = i
                     dist_min = dist
-            streamline_bundle[side,bundle_id].append(streamline)
+            if bundle_id != -1:
+                streamline_bundle[side,bundle_id].append(streamline)
     if verbose:
         print(f'Finished streamline prep')
     for side,bundle_id in streamline_bundle.keys():

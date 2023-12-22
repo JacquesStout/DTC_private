@@ -13,6 +13,9 @@ import subprocess
 trk_folder = '/mnt/newJetStor/paros/paros_WORK/jacques/AD_Decode/TRK_MDT'
 new_trk_folder = '/mnt/newJetStor/paros/paros_WORK/jacques/AD_Decode/TRK_MDT_ratio_10'
 
+trk_folder = '/mnt/newJetStor/paros/paros_WORK/jacques/AD_Decode/TRK_MDT_ratio_100'
+new_trk_folder = '/mnt/newJetStor/paros/paros_WORK/jacques/AD_Decode/TRK_MDT_ratio_1000'
+
 remote = True
 
 if remote:
@@ -25,7 +28,7 @@ inpath, _, _, sftp = get_mainpaths(remote,project = 'AD_Decode', username=userna
 
 mkcdir([new_trk_folder], sftp)
 
-orig_ratio =1
+orig_ratio =100
 ratio = 10
 stepsize = 2
 method= 'decimate'
