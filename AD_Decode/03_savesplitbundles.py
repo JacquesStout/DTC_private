@@ -167,9 +167,8 @@ feature2 = ResampleFeature(nb_points=bundle_points)
 metric2 = AveragePointwiseEuclideanMetric(feature=feature2)
 qb = QuickBundles(threshold=distance, metric=metric2, max_nb_clusters=num_bundles)
 
-
 for side in sides:
-    if (checkfile_exists_remote(trktemplate_paths[side], sftp_out)):
+    if checkfile_exists_remote(trktemplate_paths[side], sftp_out):
         streamlines_template_data = load_trk_remote(trktemplate_paths[side], 'same', sftp_out)
         if 'header' not in locals():
             header = streamlines_template_data.space_attributes
@@ -212,14 +211,6 @@ if bundle_lr_combined:
 
     timings.append(time.perf_counter())
     print(f'Organized top {num_bundles} bundles for left and right side, took {timings[-1] - timings[-2]} seconds')
-
-    """
-    if test:
-        subj_trk, trkexists = gettrkpath(path_TRK, template_subjects[0], str_identifier, pruned=prune, verbose=False,
-                                         sftp=sftp_in)
-        streamlines_data = load_trk_remote(subj_trk, 'same', sftp_in)
-        header = streamlines_data.space_attributes
-    """
 
     for side in sides:
         pickled_centroids = os.path.join(pickle_folder, f'bundles_centroids_{side}.py')

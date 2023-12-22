@@ -477,7 +477,7 @@ def setup_view(trk_object, colors=None, world_coords=False, show=True, fname=Non
             # adding slicer sliders
 
             image_actor_x = image_actor_z.copy()
-            x_midpoint = int(np.round(shape[0] / 2))
+            x_midpoint = int(np.round(shape[0] / 2)-6)
             image_actor_x.display_extent(x_midpoint,
                                          x_midpoint, 0,
                                          shape[1],
@@ -544,9 +544,9 @@ def setup_view(trk_object, colors=None, world_coords=False, show=True, fname=Non
         panel = ui.Panel2D(size=(300, 200),
                            color=(1, 1, 1),
                            opacity=0.1,
-                           align="right")
-        panel.center = (1030, 120)
-
+                           align="left")
+        #panel.center = (1030, 120)
+        panel.center = (200, 120)
 
         if show_z:
             line_slider_z.on_change = change_slice_z
@@ -586,7 +586,7 @@ def setup_view(trk_object, colors=None, world_coords=False, show=True, fname=Non
             else:
                 if np.shape(objectvals)[0] == np.size(trk_object):
                     for i,color in enumerate(objectvals):
-                        colorobject = actor.text_3d(text=f'Bundle {str(i + 1)}', position=(150, -i * 10, 0), color=color, justification = 'right', vertical_justification = 'middle')
+                        colorobject = actor.text_3d(text=f'Bundle {str(i + 1)}', position=(500, -i * 10, 0), color=color, justification = 'right', vertical_justification = 'middle')
                         scene.add(colorobject)
                         object_actors_toremove.append(colorobject)
                 else:
@@ -631,7 +631,7 @@ def setup_view(trk_object, colors=None, world_coords=False, show=True, fname=Non
         warnings.warn('Empty trk object, only showing the reference image')
     elif isinstance(trk_object, ClusterCentroid):
         if isinstance(colors, vtk.vtkLookupTable) and objectvals[0] is not None:
-            object_actor = actor.line(trk_object, objectvals, linewidth=0.1,
+            object_actor = actor.line(trk_object, objectvals, linewidth=linewidth, #default linewidth was 0.1
                                       lookup_colormap=colors)
             scene.add(object_actor)
             object_actors_toremove.append(object_actor)
@@ -642,12 +642,12 @@ def setup_view(trk_object, colors=None, world_coords=False, show=True, fname=Non
     elif isinstance(trk_object[0], ClusterCentroid):
         bundles = trk_object
         if str_tube:
-            object_actor = actor.streamtube(bundles, colors, linewidth=0.5)
+            object_actor = actor.streamtube(bundles, colors, linewidth=linewidth) #default linewidth was 0.5
             # ren.add(bundle_actor)
         if isinstance(colors, vtk.vtkLookupTable) and objectvals[0] is not None:
             if np.size(np.shape(objectvals[0]))<=1: #if object vals just contains a list of values where the number of values is the same as the number of bundles, then do this (color per bundle)
                 for (i, bundle) in enumerate(bundles):
-                    object_actor = actor.line(bundle, objectvals[i], linewidth=0.1,
+                    object_actor = actor.line(bundle, objectvals[i], linewidth=linewidth, #default linewidth was 0.1
                                               lookup_colormap=colors)
                     scene.add(object_actor)
                     object_actors_toremove.append(object_actor)
@@ -658,7 +658,7 @@ def setup_view(trk_object, colors=None, world_coords=False, show=True, fname=Non
                         stream = bundle[s]
                         for idx in range(len(stream)):
                             colors_points.append(vals[s][idx])
-                    object_actor = actor.line(bundle, colors_points, linewidth=0.2, lookup_colormap=colors)
+                    object_actor = actor.line(bundle, colors_points, linewidth=linewidth, lookup_colormap=colors) #default linewidth was 0.2
                     scene.add(object_actor)
                     object_actors_toremove.append(object_actor)
         else:
@@ -676,14 +676,14 @@ def setup_view(trk_object, colors=None, world_coords=False, show=True, fname=Non
             for (i, bundle) in enumerate(bundles):
                 #         lines_actor = actor.streamtube(bundle, color, linewidth=0.05
                 # color = (0.0, 1.0, 0.0)
-                object_actor = actor.line(bundle, color, linewidth=1.0)
+                object_actor = actor.line(bundle, color, linewidth=linewidth) #default linewidth was 1.0
                 # lines_actor.RotateX(-90)
                 # lines_actor.RotateZ(90)
                 scene.add(object_actor)
                 object_actors_toremove.append(object_actor)
     elif isinstance(trk_object, Streamlines):
         if objectvals is not None and objectvals[0] is not None:
-            object_actor = actor.line(trk_object, objectvals, linewidth=0.1,
+            object_actor = actor.line(trk_object, objectvals, linewidth=linewidth, #default linewidth was 0.1
                                       lookup_colormap=colors)
         else:
             object_actor = actor.line(trk_object)
@@ -703,13 +703,16 @@ def setup_view(trk_object, colors=None, world_coords=False, show=True, fname=Non
                         stream = bundle[s]
                         for idx in range(len(stream)):
                             colors_points.append(vals[s][idx])
-                    object_actor = actor.line(bundle, colors_points, linewidth=0.2, lookup_colormap=colors)
+                    try:
+                        object_actor = actor.line(bundle, colors_points, linewidth=linewidth, lookup_colormap=colors) #default linewidth was 0.2
+                    except:
+                        print('hi')
                     scene.add(object_actor)
                     object_actors_toremove.append(object_actor)
 
             elif np.size(np.shape(objectvals[0]))<=1:### treat objectvals as line coloring
                 for bundle, vals in zip(trk_object, objectvals):
-                    object_actor = actor.line(bundle, vals, linewidth=0.1,
+                    object_actor = actor.line(bundle, vals, linewidth=linewidth, #default linewidth was 0.1
                                                   lookup_colormap=colors)
                     scene.add(object_actor)
                     object_actors_toremove.append(object_actor)
@@ -722,6 +725,25 @@ def setup_view(trk_object, colors=None, world_coords=False, show=True, fname=Non
 
     #scene.add(object_actor)
 
+    initial_viewing_angle = np.array([30, 60])
+
+    if plane == 'x':
+        scene.set_camera(position=(-485.65, -22.20, 6.98), focal_point=(-3.16, 9.20, 9.93), view_up=(-0.00, -0.00, 1.00))
+    if plane == 'y':
+        scene.set_camera(position=(1.29, -440.26, 0.83), focal_point=(-3.97, 24.36, 7.06), view_up=(0.00, -0.00, 1.00))
+    if plane == 'z':
+        scene.set_camera(position=(2.49, 0.11, 644.42), focal_point=(5.31, 3.80, 59.37), view_up=(-0.00, 1.00, 0.00))
+
+    #scene.set_camera_orientation(view_up=(0, 0, 1), view_angle=initial_viewing_angle)
+
+    """
+    Position(1.29, -440.26, 0.83)
+    Focal
+    Point(-3.97, 24.36, 7.06)
+    View
+    Up(0.01, -0.01, 1.00)
+    """
+
     if interactive:
         if not 'show_m' in locals():
             show_m = window.ShowManager(scene, size=(2000, 900))
@@ -730,6 +752,7 @@ def setup_view(trk_object, colors=None, world_coords=False, show=True, fname=Non
         show_m.add_window_callback(win_callback)
         show_m.render()
         show_m.start()
+        #scene.camera_info()
         del show_m
 
     if record is not None:
