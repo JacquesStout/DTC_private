@@ -391,7 +391,7 @@ def affine_superpose(target_path, origin_path, outpath=None, transpose=None, ver
         if transpose is not None:
             target_affine[:3,3] = transpose
         if np.any(target_affine != origin_nii._affine):
-            new_nii = nib.Nifti1Image(origin_nii._data, target_affine, origin_nii._header)
+            new_nii = nib.Nifti1Image(origin_nii.get_fdata(), target_affine, origin_nii._header)
             if outpath is None:
                 outpath = origin_path
             nib.save(new_nii, outpath)
