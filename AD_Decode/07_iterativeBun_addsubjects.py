@@ -66,7 +66,7 @@ if not os.path.exists(project_summary_file):
 else:
     params = read_parameters_from_ini(project_summary_file)
 
-
+#--proj /mnt/munin2/Badea/Lab/jacques/BuSA_headfiles/V0_9_10template_100_6_interhe_majority.ini  --split 6 --id 4 --subj S01912
 project = params['project']
 streamline_type = params['streamline_type']
 test = params['test']

@@ -35,7 +35,9 @@ subjects = [folder_path.split('/')[-2] for folder_path in glob.glob(os.path.join
 subjects = ['20231011_155125_230925_11_apoe_18abb11_apoe_1_1']
 subjects = ['20231107_101335_210222_17_exvivotestCS_v2_18abb11_DEV_1_1']
 subjects = [folder_path.split('/')[-2] for folder_path in glob.glob(os.path.join(data_path,'20221115*/'))]
+subjects = [folder_path.split('/')[-2] for folder_path in glob.glob(os.path.join(data_path,'20231107*/'))]
 #subjects = ['20231004_105847_230918_11_apoe_18abb11_APOE_1_1']
+
 #subjects = ['20231024_175640_210222_17_exvivotestCS_apoe_18abb11_1_1']
 #subjects = ['20231101_111601_221128_14_apoe_18abb11_1_1']
 #subjects = ['20231024_143134_221128_9_apoe_rev_phase_18abb11_1_1']
