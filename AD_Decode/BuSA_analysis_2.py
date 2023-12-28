@@ -96,6 +96,12 @@ ref_subj = 'S02224'
 bundles = [i for i in all_subj_bundles if ref_subj in i]
 bundles = [ i[6:] for i in bundles]
 
+
+for bundle in bundles:
+    if 'comparison' in bundle:
+        bundles.remove(bundle)
+
+
 num_groups = 6
 
 tr_list = [0] + [np.quantile(master_df['age'],(i+1)*(1/num_groups)) for i in np.arange(num_groups)] + [1+ np.max(master_df['age'])]

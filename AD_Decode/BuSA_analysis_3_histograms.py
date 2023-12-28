@@ -48,21 +48,41 @@ if 'santorini' in socket.gethostname().split('.')[0]:
     figures_path = '/Users/jas/jacques/AD_Decode/BuSA_analysis/Figures'
     excel_path = '/Users/jas/jacques/AD_Decode/BuSA_analysis/Excels'
 else:
-    root = '/Users/ali/Desktop/Dec23/BuSA/AD_decode_bundles/'
+    root = '/Users/ali/Desktop/Dec23/BuSA/AD_decode_bundles/stats/'
     master = '/Users/ali/Desktop/Dec23/BuSA/AD_DECODE_data_stripped.csv'
-    figures_path = '/Users/ali/Desktop/Dec23/BuSA/AD_decode_bundles/Figures'
     excel_path = '/Users/ali/Desktop/Dec23/BuSA/AD_decode_bundles/Excels'
+    figures_path = '/Users/ali/Desktop/Dec23/BuSA/AD_decode_bundles/Figures'
+
+
+if len(sys.argv)<2:
+    project = 'V0_9_10template_100_6_interhe_majority'
+else:
+    project = sys.argv[1]
+
+loc = 'munin'
+
+if loc=='kos':
+    root = f'/Volumes/Shared Folder/newJetStor/paros/paros_WORK/jacques/AD_Decode/TRK_bundle_splitter/{project}'
+elif loc=='munin':
+    root = f'/Volumes/Data/Badea/Lab/AD_Decode/TRK_bundle_splitter/{project}'
+
+figures_path = os.path.join(root,'Figures')
+excel_path = os.path.join(root,'Excels')
+stats_path = os.path.join(root,'stats')
 
 mkcdir(excel_path)
 
 master_df = pd.read_csv(master)
 
-stats_path = os.path.join(root,'stats')
 all_subj_bundles = os.listdir(stats_path)
 
 ref_subj = 'S02224'
 bundles = [i for i in all_subj_bundles if ref_subj in i]
 bundles = [ i[6:] for i in bundles]
+
+for bundle in bundles:
+    if 'comparison' in bundle:
+        bundles.remove(bundle)
 
 num_groups = 6
 
