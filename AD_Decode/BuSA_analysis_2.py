@@ -80,27 +80,31 @@ if loc=='kos':
 elif loc=='munin':
     root = f'/Volumes/Data/Badea/Lab/AD_Decode/TRK_bundle_splitter/{project}'
 
+master_df = pd.read_csv(master)
 
-figures_path = os.path.join(root,'Figures')
-excel_path = os.path.join(root,'Excels')
+length_cut = 40
+if length_cut is None:
+    length_str = ''
+else:
+    length_str = f'_Lengthcut{length_cut}'
+
+figures_path = os.path.join(root,f'Figures{length_str}')
+excel_path = os.path.join(root,f'Excels{length_str}')
 stats_path = os.path.join(root,'stats')
-
 
 mkcdir(excel_path)
 
-master_df = pd.read_csv(master)
-
 all_subj_bundles = os.listdir(stats_path)
 
-ref_subj = 'S02224' 
+ref_subj = 'S02224'
 bundles = [i for i in all_subj_bundles if ref_subj in i]
 bundles = [ i[6:] for i in bundles]
 
-
+bundles_new = []
 for bundle in bundles:
-    if 'comparison' in bundle:
-        bundles.remove(bundle)
-
+    if 'comparison' not in bundle:
+        bundles_new.append(bundle)
+bundles = bundles_new
 
 num_groups = 6
 
@@ -118,7 +122,12 @@ tr_list = [0] + [np.quantile(master_df['age'],(i+1)*(1/num_groups)) for i in np.
 allvars = {}
 allmeans = {}
 
-contrast = 'mrtrix'
+contrast = 'mrtrixfa'
+
+
+grid_var_path = os.path.join(figures_path,f'grid_var_{contrast}')
+
+mkcdir(grid_var_path)
 
 verbose=True
 save_fig = True
@@ -132,7 +141,7 @@ if test:
 basis = skfda.representation.basis.MonomialBasis(n_basis=10)
 
 total_num_bundles = np.size(bundles)/2
-
+bundles = [bundles[5]]
 for bundle in bundles:
 
     if 'left' in bundle:
@@ -141,7 +150,6 @@ for bundle in bundles:
         side = 'right'
     bundle_num = bundle.split('bundle_')[1].split('.')[0]
 
-    fig_bundle_path = os.path.join(figures_path,f'bundle_{side}_{bundle_num}_boxsquaremodel.png')
     this_bundle_subjs = [i for i in all_subj_bundles if bundle in i]
     this_bundle_subjs = sorted(this_bundle_subjs)
     if test:
@@ -153,7 +161,7 @@ for bundle in bundles:
 
     
     for subj in this_bundle_subjs:
-        temp =  pd.read_excel(os.path.join(stats_path, subj))
+        temp = pd.read_excel(os.path.join(stats_path, subj))
         #temp = pd.DataFrame()
         temp['Subject']=subj[2:6]
         index = master_df["MRI_Exam"] == int(subj[2:6])
@@ -164,7 +172,10 @@ for bundle in bundles:
             print(f'Subject {subj} is missing')
         #temp = temp.to_numpy()
         bundle_df = temp
-            
+
+        if length_cut is not None:
+            bundle_df = bundle_df[bundle_df['Length'] >= int(length_cut)]
+
         bundle_df[f'average{contrast}'] = np.mean(bundle_df[column_names],1)
         column_indices = [bundle_df.columns.get_loc(column_names[i]) for i in np.arange(np.size(column_names))]    
         #bundle_df = pd.DataFrame()
@@ -223,7 +234,7 @@ for i,subj in enumerate(this_bundle_subjs):
         #distance_var_FAbundle_array[i, int(bundle_id)] = norm(right_side_coefs - left_side_coefs)[0]
         if save_fig:
             for side in ['left','right']:
-                figs_plotvar_path = os.path.join(figures_path, f'grid_var_{contrast}_{subj[2:6]}_{side}_bundle_{int(bundle_id)}')
+                figs_plotvar_path = os.path.join(grid_var_path, f'grid_var_{contrast}_{subj[2:6]}_{side}_bundle_{int(bundle_id)}')
                 var = allvars[subj[2:6], side, str(int(bundle_id))]
                 var.plot()
                 plt.savefig(figs_plotvar_path)

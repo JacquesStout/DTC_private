@@ -80,9 +80,11 @@ ref_subj = 'S02224'
 bundles = [i for i in all_subj_bundles if ref_subj in i]
 bundles = [ i[6:] for i in bundles]
 
+bundles_new = []
 for bundle in bundles:
-    if 'comparison' in bundle:
-        bundles.remove(bundle)
+    if 'comparison' not in bundle:
+        bundles_new.append(bundle)
+bundles = bundles_new
 
 num_groups = 6
 

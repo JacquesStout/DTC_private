@@ -64,8 +64,14 @@ else:
 
 master_df = pd.read_csv(master)
 
-figures_path = os.path.join(root,'Figures')
-excel_path = os.path.join(root,'Excels')
+length_cut = 40
+if length_cut is None:
+    length_str = ''
+else:
+    length_str = f'_Lengthcut{length_cut}'
+
+figures_path = os.path.join(root,f'Figures{length_str}')
+excel_path = os.path.join(root,f'Excels{length_str}')
 stats_path = os.path.join(root,'stats')
 
 mkcdir([stats_path,figures_path, excel_path])
@@ -80,9 +86,11 @@ bundles = [i for i in all_subj_bundles if ref_subj in i]
 bundles = [ i[6:] for i in bundles]
 bundles = sorted(bundles)
 
+bundles_new = []
 for bundle in bundles:
-    if 'comparison' in bundle:
-        bundles.remove(bundle)
+    if 'comparison' not in bundle:
+        bundles_new.append(bundle)
+bundles = bundles_new
 
 num_groups = 5
 num_bundles = 6
@@ -114,6 +122,8 @@ mkcdir([figures_box_path,figures_agegrouping_path])
 #meanbundle.split('_')[1]s = {}
 #sds = {}
 
+testmode = False
+
 for bundle in bundles:
 
     if 'left' in bundle:
@@ -125,7 +135,8 @@ for bundle in bundles:
     fig_bundle_path = os.path.join(figures_box_path,f'bundle_{side}_{bundle_num}_boxsquaremodel.png')
     this_bundle_subjs = [i for i in all_subj_bundles if bundle in i]
     this_bundle_subjs = sorted(this_bundle_subjs)
-    #this_bundle_subjs = this_bundle_subjs[:2]
+    if testmode:
+        this_bundle_subjs = this_bundle_subjs[:3]
 
     #bundle_df = pd.DataFrame()
     for subj in this_bundle_subjs:
@@ -151,7 +162,10 @@ for bundle in bundles:
             bundle_df = pd.concat([bundle_df,temp])
     
     bundle_df = bundle_df.dropna()
-    
+
+    if length_cut is not None:
+        bundle_df = bundle_df[bundle_df['Length'] >= int(length_cut)]
+
     column_names = []
     for i in range(1,50):
         column_names.append("point_"+str(i)+f"_{ref}")
