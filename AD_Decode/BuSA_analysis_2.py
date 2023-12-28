@@ -67,11 +67,30 @@ else:
     excel_path = '/Users/ali/Desktop/Dec23/BuSA/AD_decode_bundles/Excels'
     figures_path = '/Users/ali/Desktop/Dec23/BuSA/AD_decode_bundles/Figures'
 
+
+if len(sys.argv)<2:
+    project = 'V0_9_10template_100_6_interhe_majority'
+else:
+    project = sys.argv[1]
+
+loc = 'munin'
+
+if loc=='kos':
+    root = f'/Volumes/Shared Folder/newJetStor/paros/paros_WORK/jacques/AD_Decode/TRK_bundle_splitter/{project}'
+elif loc=='munin':
+    root = f'/Volumes/Data/Badea/Lab/AD_Decode/TRK_bundle_splitter/{project}'
+
+
+figures_path = os.path.join(root,'Figures')
+excel_path = os.path.join(root,'Excels')
+stats_path = os.path.join(root,'stats')
+
+
 mkcdir(excel_path)
 
 master_df = pd.read_csv(master)
 
-all_subj_bundles = os.listdir(root)
+all_subj_bundles = os.listdir(stats_path)
 
 ref_subj = 'S02224' 
 bundles = [i for i in all_subj_bundles if ref_subj in i]
@@ -126,7 +145,7 @@ for bundle in bundles:
 
     
     for subj in this_bundle_subjs:
-        temp =  pd.read_excel(root + subj)
+        temp =  pd.read_excel(os.path.join(stats_path, subj))
         #temp = pd.DataFrame()
         temp['Subject']=subj[2:6]
         index = master_df["MRI_Exam"] == int(subj[2:6])
