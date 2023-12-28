@@ -178,6 +178,7 @@ def badpath_fixer(path):
 
 
 def make_temppath(path, to_fix=False):
+    print(socket.gethostname())
     if 'blade' in socket.gethostname().split('.')[0]:
         temp_folder = '/mnt/munin2/Badea/Lab/jacques/temp'
         if not os.path.exists(temp_folder):
@@ -185,6 +186,7 @@ def make_temppath(path, to_fix=False):
     else:
         temp_folder = os.path.expanduser("~")
     temppath = f'{os.path.join(temp_folder, os.path.basename(path).split(".")[0]+"_temp."+ ".".join(os.path.basename(path).split(".")[1:]))}'
+    print(temppath)
     if to_fix:
         return badpath_fixer(temppath)
     else:
@@ -299,7 +301,8 @@ def load_trk_remote(trkpath,reference,sftp=None):
     #from dipy.io.streamline import load_trk
     from DTC.tract_manager.streamline_nocheck import load_trk as load_trk_spe
     if sftp is not None:
-        temp_path = f'{os.path.join(os.path.expanduser("~"), os.path.basename(trkpath))}'
+        #temp_path = f'{os.path.join(os.path.expanduser("~"), os.path.basename(trkpath))}'
+        temp_path=make_temppath(trkpath)
         sftp.get(trkpath, temp_path)
         try:
             trkdata = load_trk_spe(temp_path, reference)
@@ -310,6 +313,7 @@ def load_trk_remote(trkpath,reference,sftp=None):
                 os.remove(temp_path)
             raise Exception(e)
     else:
+        print(trkpath)
         trkdata = load_trk_spe(trkpath, reference)
     return trkdata
 

@@ -89,10 +89,13 @@ parser.add_argument('--id', type=parse_list_arg, help='An integer or a list of i
 
 args = parser.parse_args()
 bundle_id_orig = args.id
-bundle_id_orig_txt = '_'.join(bundle_id_orig)
+bundle_id_qsub = ','.join(bundle_id_orig)
 bundle_split = args.split
 project_run_identifier = args.proj
 parts = args.parts
+
+if parts is None:
+    parts = ['6','7','8']
 
 subjects = []
 project_summary_file = os.path.join(project_headfile_folder, project_run_identifier + '.ini')
@@ -113,10 +116,10 @@ overwrite = False
 
 qsub = True
 
-testmode = False
+testmode = True
 
 if '6' in parts:
-    python_command = f"python /home/jas297/linux/DTC_private/AD_Decode/06_iterativeBun_makecentroids.py --proj {project_summary_file} --split {bundle_split} --id {bundle_id_orig}"
+    python_command = f"python /home/jas297/linux/DTC_private/AD_Decode/06_iterativeBun_makecentroids.py --proj {project_summary_file} --split {bundle_split} --id {bundle_id_qsub}"
     job_name = job_descrp + "_job06"
     command = os.path.join(GD,
                            "submit_sge_cluster_job.bash") + " " + sbatch_folder_path + " " + job_name + " 0 0 '" + python_command + "'"
@@ -132,7 +135,7 @@ if '6' in parts:
 
 if '7' in parts:
     for subj in full_subjects_list:
-        python_command = f"python /home/jas297/linux/DTC_private/AD_Decode/07_iterativeBun_addsubjects.py --proj {project_summary_file}  --split {bundle_split} --id {bundle_id_orig} --subj {subj}"
+        python_command = f"python /home/jas297/linux/DTC_private/AD_Decode/07_iterativeBun_addsubjects.py --proj {project_summary_file}  --split {bundle_split} --id {bundle_id_qsub} --subj {subj}"
         job_name = job_descrp + "_job07_" + subj
         command = os.path.join(GD,
                                "submit_sge_cluster_job.bash") + " " + sbatch_folder_path + " " + job_name + " 0 0 '" + python_command + "'"
@@ -148,7 +151,7 @@ if '7' in parts:
 
 if '8' in parts:
     for subj in full_subjects_list:
-        python_command = f"python /home/jas297/linux/DTC_private/AD_Decode/08_iterativeBun_stats.py --proj {project_summary_file}  --split {bundle_split} --id {bundle_id_orig} --subj {subj}"
+        python_command = f"python /home/jas297/linux/DTC_private/AD_Decode/08_iterativeBun_stats.py --proj {project_summary_file}  --split {bundle_split} --id {bundle_id_qsub} --subj {subj}"
         job_name = job_descrp + "_job08_" + subj
         command = os.path.join(GD,
                                "submit_sge_cluster_job.bash") + " " + sbatch_folder_path + " " + job_name + " 0 0 '" + python_command + "'"
