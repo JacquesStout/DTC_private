@@ -31,11 +31,11 @@ def outlier_removal(values, qsep=3):
 remote=False
 
 if len(sys.argv)<2:
-    project = 'V0_9_10template_100_36_interhe_majority'
+    project = 'V0_9_10template_100_6_interhe_majority'
 else:
     project = sys.argv[1]
 
-loc = 'home'
+loc = 'munin'
 
 if 'santorini' in socket.gethostname().split('.')[0]:
     root = f'/Users/jas/jacques/AD_Decode/BuSA_analysis/{project}'
@@ -44,7 +44,6 @@ else:
     root = '/Users/ali/Desktop/Dec23/BuSA/AD_decode_bundles/'
     master = '/Users/ali/Desktop/Dec23/BuSA/AD_DECODE_data_stripped.csv'
 
-stats_path = os.path.join(root,'stats')
 
 if loc=='kos':
     root = f'/Volumes/Shared Folder/newJetStor/paros/paros_WORK/jacques/AD_Decode/TRK_bundle_splitter/{project}'
@@ -58,7 +57,7 @@ if remote:
     from DTC.file_manager.computer_nav import glob_remote, load_df_remote
 
     username, passwd = getfromfile(os.path.join(os.environ['HOME'],'remote_connect.rtf'))
-    root = '/mnt/paros_WORK/jacques/AD_Decode/TRK_bundle_splitter/202311_10template_test01/stats'
+    root = f'/mnt/paros_WORK/jacques/AD_Decode/TRK_bundle_splitter/{project}'
     inpath, _, _, sftp = get_mainpaths(remote,project = 'AD_Decode', username=username,password=passwd)
 else:
     sftp = None
@@ -67,6 +66,8 @@ master_df = pd.read_csv(master)
 
 figures_path = os.path.join(root,'Figures')
 excel_path = os.path.join(root,'Excels')
+stats_path = os.path.join(root,'stats')
+
 mkcdir([stats_path,figures_path, excel_path])
 
 if remote:
@@ -78,6 +79,10 @@ ref_subj = 'S02224'
 bundles = [i for i in all_subj_bundles if ref_subj in i]
 bundles = [ i[6:] for i in bundles]
 bundles = sorted(bundles)
+
+for bundle in bundles:
+    if 'comparison' in bundle:
+        bundles.remove(bundle)
 
 num_groups = 5
 num_bundles = 6
@@ -97,12 +102,14 @@ columns_list = [f'Side_{bundle.split("_")[1]}_ID_{bundle.split("_")[3].split("."
 datameans = pd.DataFrame(columns=(['Age Group'] + columns_list))
 datasds = pd.DataFrame(columns=(['Age Group'] + columns_list))
 
-figures_box_path = os.path.join(figures_path,'boxsquares_age_FA')
-figures_agegrouping_path = os.path.join(figures_path,'agegrouping_mean_FA')
+verbose =True
+
+ref = 'mrtrixfa'
+
+figures_box_path = os.path.join(figures_path,f'boxsquares_age_{ref}')
+figures_agegrouping_path = os.path.join(figures_path,f'agegrouping_mean_{ref}')
 
 mkcdir([figures_box_path,figures_agegrouping_path])
-
-verbose =True
 
 #meanbundle.split('_')[1]s = {}
 #sds = {}
@@ -117,7 +124,9 @@ for bundle in bundles:
     
     fig_bundle_path = os.path.join(figures_box_path,f'bundle_{side}_{bundle_num}_boxsquaremodel.png')
     this_bundle_subjs = [i for i in all_subj_bundles if bundle in i]
-    
+    this_bundle_subjs = sorted(this_bundle_subjs)
+    #this_bundle_subjs = this_bundle_subjs[:2]
+
     #bundle_df = pd.DataFrame()
     for subj in this_bundle_subjs:
 
@@ -133,7 +142,8 @@ for bundle in bundles:
             temp['age'] = master_df[index]['age'].iloc[0]
             #temp['sex'] = master_df[index]['sex']
         except:
-            print(f'Subject {subj} is missing')
+            print(f'Subject {subj[:6]} is missing from excel database')
+            continue
         #temp = temp.to_numpy()
         if 'bundle_df' not in locals():
             bundle_df = temp
@@ -144,22 +154,22 @@ for bundle in bundles:
     
     column_names = []
     for i in range(1,50):
-        column_names.append("point_"+str(i)+"_fa")
-    bundle_df['averageFA'] = np.mean(bundle_df[column_names],1)
+        column_names.append("point_"+str(i)+f"_{ref}")
+    bundle_df[f'average{ref}'] = np.mean(bundle_df[column_names],1)
 
-    bundle_df_reduced = bundle_df[["averageFA" , "age"]]
+    bundle_df_reduced = bundle_df[[f"average{ref}" , "age"]]
 #    bundle_df_reduced = bundle_df_reduced.iloc[ 0:2000]
     
    # bundle_df_reduced.boxplot(column='averageFA',by='age')
     #sns.boxplot(x="age", y="averageFA", data=bundle_df_reduced)
-    sns.lmplot(x="age", y="averageFA", data=bundle_df_reduced, x_estimator=np.mean,  order=2)
+    sns.lmplot(x="age", y=f"average{ref}", data=bundle_df_reduced, x_estimator=np.mean,  order=2)
     plt.title(f'Boxplot for bundle {int(bundle_num)+1}',y=0.9)
 
     plt.savefig(fig_bundle_path)
 
     list_df = []
     for i in np.arange(num_groups):
-        list_df.append(bundle_df_reduced[(bundle_df_reduced['age']>tr_list[i]) & (bundle_df_reduced['age']<=tr_list[i+1])]['averageFA'])
+        list_df.append(bundle_df_reduced[(bundle_df_reduced['age']>tr_list[i]) & (bundle_df_reduced['age']<=tr_list[i+1])][f'average{ref}'])
     #group1 = bundle_df_reduced[bundle_df_reduced['age']<=tr1]['averageFA']
     #group2 = bundle_df_reduced[(bundle_df_reduced['age']>tr1) & (bundle_df_reduced['age']<=tr2)]['averageFA']
     #group3 = bundle_df_reduced[bundle_df_reduced['age']>tr2]['averageFA']
@@ -198,7 +208,7 @@ bundle_labels = [f'Bundle {str(num+1)}' for num in np.arange(np.shape(datameans)
 
 # Create 12 different plots with different colors
 for i,bundle_name in enumerate(columns_list):
-    fig_plot_path = os.path.join(figures_agegrouping_path,f'{bundle_name}_AgeGrouping_MeanFA.png')
+    fig_plot_path = os.path.join(figures_agegrouping_path,f'{bundle_name}_AgeGrouping_Mean{ref}.png')
     plt.figure()
     plt.plot(x_labels, datameans.loc[:,bundle_name], marker='o', color=plt.cm.viridis(i / datameans.shape[0]), label=bundle_name)
     plt.title(f'Change in values for {bundle_name}')
@@ -215,7 +225,7 @@ for i,bundle_name in enumerate(columns_list):
 
 # Create 12 different plots with different colors
 for i,bundle_name in enumerate(columns_list):
-    fig_plot_path = os.path.join(figures_agegrouping_path,f'{bundle_name}_AgeGrouping_SdFA.png')
+    fig_plot_path = os.path.join(figures_agegrouping_path,f'{bundle_name}_AgeGrouping_Sd{ref}.png')
     plt.figure()
     plt.plot(x_labels, datasds.loc[:,bundle_name], marker='o', color=plt.cm.viridis(i / datameans.shape[0]), label=bundle_name)
     plt.title(f'Change in values for {bundle_name}')
