@@ -112,6 +112,8 @@ tr_list = [0] + [np.quantile(master_df['age'],(i+1)*(1/num_groups)) for i in np.
 allvars = {}
 allmeans = {}
 
+contrast = 'mrtrix'
+
 verbose=True
 save_fig = True
 test = False
@@ -141,7 +143,7 @@ for bundle in bundles:
 
     column_names = []
     for i in range(0,50):
-        column_names.append("point_"+str(i)+"_fa")
+        column_names.append("point_"+str(i)+"_mrtrixfa")
 
     
     for subj in this_bundle_subjs:
@@ -157,7 +159,7 @@ for bundle in bundles:
         #temp = temp.to_numpy()
         bundle_df = temp
             
-        bundle_df['averageFA'] = np.mean(bundle_df[column_names],1)
+        bundle_df[f'average{contrast}'] = np.mean(bundle_df[column_names],1)
         column_indices = [bundle_df.columns.get_loc(column_names[i]) for i in np.arange(np.size(column_names))]    
         #bundle_df = pd.DataFrame()
         num_streamlines = np.shape(bundle_df)[0]
@@ -215,7 +217,7 @@ for i,subj in enumerate(this_bundle_subjs):
         #distance_var_FAbundle_array[i, int(bundle_id)] = norm(right_side_coefs - left_side_coefs)[0]
         if save_fig:
             for side in ['left','right']:
-                figs_plotvar_path = os.path.join(figures_path, f'grid_var_FA_{subj[2:6]}_{side}_bundle_{int(bundle_id)}')
+                figs_plotvar_path = os.path.join(figures_path, f'grid_var_{contrast}_{subj[2:6]}_{side}_bundle_{int(bundle_id)}')
                 var = allvars[subj[2:6], side, str(int(bundle_id))]
                 var.plot()
                 plt.savefig(figs_plotvar_path)
