@@ -121,14 +121,10 @@ if project == 'AD_Decode':
 
 outpath_all = os.path.join(outpath, 'TRK_bundle_splitter')
 proj_path = os.path.join(outpath_all,project_run_identifier)
-figures_proj_path = os.path.join(figures_outpath, project_run_identifier)
+figures_proj_path = os.path.join(proj_path, 'Figures')
 small_streamlines_testzone = os.path.join(figures_proj_path,'single_streamlines')
 
-try:
-    mkcdir([figures_outpath,figures_proj_path, small_streamlines_testzone])
-except FileNotFoundError:
-    text_warning = f'Could not create folder {figures_outpath}'
-    warnings.warn(text_warning)
+mkcdir([figures_proj_path, small_streamlines_testzone])
 
 pickle_folder = os.path.join(proj_path, 'pickle_roi'+ratiostr)
 trk_proj_path = os.path.join(proj_path, 'trk_roi'+ratiostr)
@@ -204,6 +200,7 @@ calc_BUAN = True
 
 for subject in full_subjects_list:
 
+
     bundle_compare_summary = os.path.join(stat_folder, f'{subject}_bundle_comparison.xlsx')
     files_subj = []
     for side, bundle_id in streamline_bundle.keys():
@@ -226,6 +223,11 @@ for subject in full_subjects_list:
 
     for side in sides:
         for bundle_id in bundle_ids:
+
+            any_zeros = []
+            mostly_zeros = []
+            only_zeros = []
+
             stat_path_subject = os.path.join(stat_folder, f'{subject}_{side}_bundle_{bundle_id}.xlsx')
 
             if not overwrite and checkfile_exists_remote(stat_path_subject, sftp_out) and not (
@@ -337,32 +339,39 @@ for subject in full_subjects_list:
                         #stream_point_ref.append(ref_values)
                         #stream_ref.append(np.mean(ref_values))
     
-                        if np.mean(ref_values) == 0:
+                        if np.any(ref_values) == 0:
                             if verbose:
                                 print('too low a value for new method')
                             testmode = True
     
                         if testmode:
                             from DTC.tract_manager.tract_save import save_trk_header
-    
-    
+
                             streamline_file_path = os.path.join(small_streamlines_testzone,
-                                                                f'{subject}_streamline_{sl}.trk')
+                                                                f'{subject}_streamline_{sl}_{side}_bundle_{bundle_id}.trk')
                             # sg = lambda: (s for i, s in enumerate(trkobject[0]))
                             from dipy.tracking import streamline
-    
-                            streamlines = streamline.Streamlines([bundle_streamlines[sl]])
-                            save_trk_header(filepath=streamline_file_path, streamlines=streamlines, header=header,
-                                            affine=np.eye(4), verbose=verbose, sftp=None)
+
+                            streamlines_sl = streamline.Streamlines([bundle_streamlines[sl]])
+                            bundle_sl = bundle_streamlines[sl]
+                            any_zeros.append(bundle_sl)
+                            if np.sum(ref_values==0)>25:
+                                mostly_zeros.append(bundle_sl)
+                            if np.all(ref_values==0):
+                                only_zeros.append(bundle_sl)
+                                save_trk_header(filepath=streamline_file_path, streamlines=streamlines_sl, header=header,
+                                                affine=np.eye(4), verbose=verbose, sftp=sftp_out)
                             testmode = False
-    
+
+                            """
                             lut_cmap = actor.colormap_lookup_table(
                                 scale_range=(0.05, 0.3))
     
-                            #scene = setup_view(nib.streamlines.ArraySequence(bundle_streamlines_transformed), colors=lut_cmap,
-                            #                   ref=ref_img_path, world_coords=False,
-                            #                   objectvals=[None], colorbar=True, record=None, scene=None, interactive=True, value_range = (0,0.8))
-    
+                            scene = setup_view(nib.streamlines.ArraySequence(bundle_streamlines_transformed), colors=lut_cmap,
+                                               ref=ref_img_path, world_coords=False,
+                                               objectvals=[None], colorbar=True, record=None, scene=None, interactive=True, value_range = (0,0.8))
+                            """
+
                         #new_row = {'Streamline_ID': sl}
                         column_names_ref = [f'point_{i}_{ref}' for i,_ in enumerate(ref_values)]
                         row_index = dataf_subj.index[dataf_subj['Streamline_ID'] == sl].tolist()[0]
@@ -376,6 +385,26 @@ for subject in full_subjects_list:
     
             save_df_remote(dataf_subj,stat_path_subject,sftp_out)
             print(f'Wrote file for subject {subject}, side {side} and {bundle_id}')
+
+            if np.size(any_zeros)>0:
+                streamline_file_path = os.path.join(small_streamlines_testzone,
+                                                    f'{subject}_streamlines_anyzeros_{side}_{bundle_id}.trk')
+                streamlines = streamline.Streamlines(any_zeros)
+                save_trk_header(filepath=streamline_file_path, streamlines=streamlines, header=header,
+                                affine=np.eye(4), verbose=verbose, sftp=sftp_out)
+            if np.size(mostly_zeros)>0:
+                streamline_file_path = os.path.join(small_streamlines_testzone,
+                                                    f'{subject}_streamlines_mostlyzeros_{side}_{bundle_id}.trk')
+                streamlines = streamline.Streamlines(mostly_zeros)
+                save_trk_header(filepath=streamline_file_path, streamlines=streamlines, header=header,
+                                affine=np.eye(4), verbose=verbose, sftp=sftp_out)
+            if np.size(only_zeros)>0:
+                streamline_file_path = os.path.join(small_streamlines_testzone,
+                                                    f'{subject}_streamlines_allzeros_{side}_{bundle_id}.trk')
+                streamlines = streamline.Streamlines(only_zeros)
+                save_trk_header(filepath=streamline_file_path, streamlines=streamlines, header=header,
+                                affine=np.eye(4), verbose=verbose, sftp=sftp_out)
+
 
     if calc_BUAN and (not os.path.exists(bundle_compare_summary) or overwrite):
         BUANs = []
