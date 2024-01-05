@@ -16,7 +16,7 @@ try :
 except KeyError:  
     print('BD not found locally')
     BD = '/mnt/munin2/Badea/Lab/mouse'    
-    #BD ='/Volumes/Data/Badea/Lab/mouse'
+    BD ='/Volumes/Data/Badea/Lab/mouse'
 else:
     print("BD is found locally.")
 #create sbatch folder
@@ -30,15 +30,24 @@ GD = '/mnt/clustertmp/common/rja20_dev/gunnies/'
 #GD = '/mnt/munin2/Badea/Lab/mouse/mrtrix_pipeline/'
 
 
-list_folders_path ='/mnt/munin2/Badea/ADdecode.01/Analysis/DWI/'
-#list_folders_path = '/Volumes/Data/Badea/ADdecode.01/Analysis/DWI/'
+act = True
+if act:
+    contrast = 'T1'
+    act_string = '_act'
+else:
+    contrast = 'dwi'
+    act_string = ''
+
+#list_folders_path ='/mnt/munin2/Badea/ADdecode.01/Analysis/DWI/'
+list_folders_path = os.path.join(BD,'../../ADdecode.01/Analysis/DWI/')
 list_folders_path = os.listdir(list_folders_path)
-list_of_subjs_long = [i for i in list_folders_path if 'dwi' in i]
+list_of_subjs_long = [i for i in list_folders_path if contrast in i]
 
-list_of_subjs = [i.partition('_subjspace_dwi.nii.gz')[0] for i in list_of_subjs_long]
+list_of_subjs = [i.partition(f'_{contrast}.nii.gz')[0] for i in list_of_subjs_long]
 
-conn_path = '/mnt/munin2/Badea/Lab/mouse/mrtrix_ad_decode/connectome/'
-#conn_path = '/Volumes/Data/Badea/Lab/mouse/mrtrix_ad_decode/connectome/'
+
+#conn_path = f'/mnt/munin2/Badea/Lab/mouse/mrtrix_ad_decode/connectome{act_string}/'
+conn_path = os.path.join(BD, f'mrtrix_ad_decode/connectome{act_string}/')
 if os.path.isdir(conn_path):
     done_subj = os.listdir(conn_path)
     done_subj = [i for i in done_subj if 'conn_plain' in i]
@@ -51,10 +60,11 @@ for subj in list_of_subjs:
     #print(subj)
     #fmri_file = list_fmir_folders_path +subj + "/ses-1/func/" + subj +"_ses-1_bold.nii.gz" 
     #nib.load(fmri_file)
-    python_command = "python /mnt/munin2/Badea/Lab/mouse/mrtrix_ad_decode/main_trc_conn.py "+subj
-    #python_command = "python /mnt/munin2/Badea/Lab/mouse/mrtrix_pipeline/main_trc_conn.py "+subj
+    if act:
+        python_command = f"python ~/DTC_private/AD_Decode/AD_Decode_trc_generation_wrapper.py {subj} True"
+    else:
+        python_command = f"python ~/DTC_private/AD_Decode/AD_Decode_trc_generation_wrapper.py {subj}"
+
     job_name = job_descrp + "_"+ subj
     command = GD + "submit_sge_cluster_job.bash " + sbatch_folder_path + " "+ job_name + " 0 0 '"+ python_command+"'"   
     os.system(command)
-#    subprocess.call(command, shell=True)
-#    os.system('qsub -S '+python_command  )
