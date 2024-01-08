@@ -141,7 +141,7 @@ if test:
 basis = skfda.representation.basis.MonomialBasis(n_basis=10)
 
 total_num_bundles = np.size(bundles)/2
-bundles = [bundles[5]]
+
 for bundle in bundles:
 
     if 'left' in bundle:
@@ -161,21 +161,20 @@ for bundle in bundles:
 
     
     for subj in this_bundle_subjs:
-        temp = pd.read_excel(os.path.join(stats_path, subj))
+        bundle_df = pd.read_excel(os.path.join(stats_path, subj))
         #temp = pd.DataFrame()
-        temp['Subject']=subj[2:6]
+        bundle_df['Subject']=subj[2:6]
         index = master_df["MRI_Exam"] == int(subj[2:6])
         try:
-            temp['age'] = master_df[index]['age'].iloc[0]
+            bundle_df['age'] = master_df[index]['age'].iloc[0]
             #temp['sex'] = master_df[index]['sex']
         except:
             print(f'Subject {subj} is missing')
         #temp = temp.to_numpy()
-        bundle_df = temp
 
         if length_cut is not None:
             bundle_df = bundle_df[bundle_df['Length'] >= int(length_cut)]
-
+        #bundle_df.loc[:,bundle_df.columns.get_loc(f'average{contrast}')] = np.mean(bundle_df[column_names],1)
         bundle_df[f'average{contrast}'] = np.mean(bundle_df[column_names],1)
         column_indices = [bundle_df.columns.get_loc(column_names[i]) for i in np.arange(np.size(column_names))]    
         #bundle_df = pd.DataFrame()

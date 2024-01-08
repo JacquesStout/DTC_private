@@ -39,6 +39,7 @@ import pandas as pd
 import copy
 """
 
+project_headfile_folder = '/Volumes/Data/Badea/Lab/jacques/BuSA_headfiles/'
 
 if len(sys.argv)<2:
     project_headfile_folder = '/Volumes/Data/Badea/Lab/jacques/BuSA_headfiles/'
@@ -47,6 +48,9 @@ if len(sys.argv)<2:
 else:
     project_summary_file = sys.argv[1]
     project_run_identifier = os.path.basename(project_summary_file).split('.')[0]
+
+if not os.path.exists(project_summary_file):
+    project_summary_file = os.path.join(project_headfile_folder,project_summary_file+'.ini')
 
 if not os.path.exists(project_summary_file):
     txt = f'Could not find configuration file at {project_summary_file}'

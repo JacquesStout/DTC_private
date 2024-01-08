@@ -120,7 +120,6 @@ srr = StreamlineLinearRegistration()
 streams_dict = {}
 dict_revtracker = {'right_f': 'right', 'left_f': 'left', 'right': 'right', 'left': 'left', 'combined':'combined'}
 
-streamlines_template = {}
 num_streamlines_right_all = 0
 
 feature2 = ResampleFeature(nb_points=bundle_points)
