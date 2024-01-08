@@ -820,6 +820,7 @@ def img_transform_exec(img, current_vorder, desired_vorder, output_path=None, wr
     new_data = nii_data
     affine = nii._affine
     vox_size = nii.header.get_zooms()[:3]
+    new_vox_size = vox_size
 
     if desired_vorder!=orig_current_vorder:
         if ((np.size(dims) > 4) and (dims(5) == 3)):
