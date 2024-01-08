@@ -39,12 +39,24 @@ else:
     act_string = ''
 
 #list_folders_path ='/mnt/munin2/Badea/ADdecode.01/Analysis/DWI/'
-list_folders_path = os.path.join(BD,'../../ADdecode.01/Analysis/DWI/')
-list_folders_path = os.listdir(list_folders_path)
+inputfiles_path = os.path.join(BD,'../../ADdecode.01/Analysis/DWI/')
+list_folders_path = os.listdir(inputfiles_path)
 list_of_subjs_long = [i for i in list_folders_path if contrast in i]
 
 list_of_subjs = [i.partition(f'_{contrast}.nii.gz')[0] for i in list_of_subjs_long]
 
+#print(list_of_subjs)
+for subj in list_of_subjs:
+    #print('hi')
+    coreg_path = f'{subj}_subjspace_coreg.nii.gz'
+    if coreg_path not in list_folders_path:
+        print(subj)
+        list_of_subjs.remove(subj)
+
+#list_of_coregs = [i.partition(f'_subjspace_coreg.nii.gz')[0] for i in list_of_subjs_long]
+
+#print(list_of_subjs)
+#print(list_of_coregs)
 
 #conn_path = f'/mnt/munin2/Badea/Lab/mouse/mrtrix_ad_decode/connectome{act_string}/'
 conn_path = os.path.join(BD, f'mrtrix_ad_decode/connectome{act_string}/')
@@ -55,16 +67,21 @@ if os.path.isdir(conn_path):
     list_of_subjs = set(list_of_subjs) - set(done_subj)
 #list_fmri_folders.remove(".DS_Store")
 
+test_mode = True
 
 for subj in list_of_subjs:
     #print(subj)
     #fmri_file = list_fmir_folders_path +subj + "/ses-1/func/" + subj +"_ses-1_bold.nii.gz" 
     #nib.load(fmri_file)
     if act:
-        python_command = f"python ~/DTC_private/AD_Decode/AD_Decode_trc_generation_wrapper.py {subj} True"
+        python_command = f"python ~/DTC_private/AD_Decode/AD_Decode_trc_generation.py {subj} True"
     else:
-        python_command = f"python ~/DTC_private/AD_Decode/AD_Decode_trc_generation_wrapper.py {subj}"
+        python_command = f"python ~/DTC_private/AD_Decode/AD_Decode_trc_generation.py {subj}"
 
     job_name = job_descrp + "_"+ subj
     command = GD + "submit_sge_cluster_job.bash " + sbatch_folder_path + " "+ job_name + " 0 0 '"+ python_command+"'"   
-    os.system(command)
+    if test_mode:
+        print(command)
+    else:
+        os.system(command)
+
