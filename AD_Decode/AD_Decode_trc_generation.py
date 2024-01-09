@@ -40,7 +40,10 @@ if act:
 else:
     act_string = ''
 
-#subj = "H21593" #reads subj number with s... from input of python file 
+if np.size(sys.argv)>3:
+    overwrite = bool(sys.argv[3])
+else:
+    overwrite = False
 
 index_gz = ".gz"
 
