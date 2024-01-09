@@ -59,6 +59,7 @@ for subject in subjects:
     if found==1:
         subj = f'S{subject[-5:]}'
         t1_outpath = os.path.join(outpath,f'{subj}_T1.nii.gz')
+        list_toview.append(subj)
         if not os.path.exists(t1_outpath):
             shutil.copy(t1_path, t1_outpath)
             print(f'Copied the T1 for subject {subj}')
@@ -66,3 +67,5 @@ for subject in subjects:
             print(f'Already copied the T1 for subject {subj}')
     if found==0:
         print(f'Did not find T1 for subject {subj}')
+
+print(','.join(list_toview))

@@ -170,7 +170,16 @@ subjects = ['S02402', 'S02410', 'S02421', 'S02424', 'S02446', 'S02451', 'S02469'
             'S01621', 'S04696']
 
 subjects = ['S03890', 'S03896', 'S00775', 'S04491', 'S04493', 'S01412', 'S04526', 'S01470', 'S01619', 'S01620',
-            'S01621', 'S04696']
+            'S01621', 'S04696', 'S04738']
+subjects = ['S01621']
+
+removed_list = ['02230','02490','02523','02745','01620']
+
+for remove in removed_list:
+    if remove in subjects:
+        subjects.remove(remove)
+#subjects = ['02842']
+print(subjects)
 
 #subjects.append(sys.argv[1])
 #subjects = ['00775']
@@ -280,3 +289,6 @@ for subject in subjects:
             os.remove(rd_mif)
             os.remove(ad_mif)
             os.remove(md_mif)
+
+    else:
+        print(f'Already finished {subject}')
