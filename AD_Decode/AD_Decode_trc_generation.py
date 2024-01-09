@@ -16,6 +16,7 @@ import shutil
 import sys
 import socket
 from DTC.file_manager.computer_nav import checkfile_exists_all
+from DTC.diff_handlers.bvec_handler import fix_bvals_bvecs
 
 #n_threds = str(multiprocessing.cpu_count())
 
@@ -56,7 +57,15 @@ if 'blade' in socket.gethostname().split('.')[0]:
 #orig_subj_path = '/Users/ali/Desktop/Mar23/mrtrixc_ad_decode/DWI/'
 
 bvec_path_orig = orig_subj_path+subj_ref+'_bvecs_fix.txt' 
-if not os.path.isfile(bvec_path_orig) : print('where is original bvec?')
+if not os.path.isfile(bvec_path_orig) :
+    bvec_path_orig_prefix = orig_subj_path+subj_ref+'_bvecs.txt'
+    bval_path_orig_prefix = orig_subj_path+subj_ref+'_bvals.txt'
+
+    if not os.path.exists(bvec_path_orig_prefix):
+        print('where is original bvec?')
+    else:
+        fix_bvals_bvecs(bval_path_orig_prefix, bvec_path_orig_prefix, outpath=orig_subj_path)
+
 nii_gz_path_orig =  orig_subj_path  + subj +'_subjspace_coreg.nii.gz'
 if not os.path.isfile(nii_gz_path_orig) : print('where is original 4d?')
 bval_path_orig = orig_subj_path + subj_ref +'_bvals_fix.txt'
@@ -125,20 +134,6 @@ if alloutputs_found and not overwrite:
 else:
     if not os.path.isdir(subj_path) : os.mkdir(subj_path)
 
-    #diff=nib.load(nii_gz_path_orig) # read the data of this volumetrtic file as nib object
-    #diff_data=diff.get_fdata() #read data as array
-
-    #for i in range(int(diff_data.shape[3])):
-    #    diff_data_3d=diff_data[:,:,:,i]
-    #    squuezed=squeeze_image(nib.Nifti1Image(diff_data_3d,diff.affine)) #squeeze the last dimension
-    #    vol_ith_path = subj_path + subj + '_'+str(i)+'.nii.gz'
-    #    nib.save(squuezed, vol_ith_path)
-    #    vol_ith_RAS_path = subj_path + subj + '_'+str(i)+'_RAS.nii.gz'
-    #    os.system("/Applications/Convert3DGUI.app/Contents/bin/c3d "+vol_ith_path+" -orient RAS -o "+vol_ith_RAS_path)
-
-    #volS_RAS_path = subj_path + subj + '_'
-    #nii_gz_path =  path_perm  + subj +'_RAS_coreg.nii.gz'
-    #os.system(f'/Users/ali/Downloads/ANTsR/install/bin/ImageMath 4 {nii_gz_path} TimeSeriesAssemble 1 0 {volS_RAS_path}*RAS.nii.gz') # concatenate volumes of fmri
     nii_gz_path = nii_gz_path_orig
 
     bvec_path = path_perm+subj+'_bvecs_RAS.txt'
