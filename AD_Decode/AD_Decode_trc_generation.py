@@ -47,10 +47,13 @@ index_gz = ".gz"
 if 'santorini' in socket.gethostname().split('.')[0]:
     root = '/Volumes/Data/Badea/Lab/mouse/mrtrix_ad_decode/'
     orig_subj_path = '/Volumes/Data/Badea/ADdecode.01/Analysis/DWI/'
+    temp_folder = '/Volumes/Data/Badea/ADdecode.01/Analysis/DWI_temp/'
 
 if 'blade' in socket.gethostname().split('.')[0]:
     root= '/mnt/munin2/Badea/Lab/mouse/mrtrix_ad_decode/'
     orig_subj_path = '/mnt/munin2/Badea/ADdecode.01/Analysis/DWI/'
+    orig_subj_path = '/mnt/munin2/Badea/ADdecode.01/Analysis/DWI_temp/'
+
 #root= '/Users/ali/Desktop/Mar23/mrtrixc_ad_decode/'
 
 
@@ -81,11 +84,11 @@ T1_orig_test =  orig_subj_path+subj+'_T1_test.nii.gz'
 T1_orig =  orig_subj_path+subj+'_T1.nii.gz'
 if not os.path.isfile(T1_orig) : print('where is original T1?')
 
-dwi_subjspace =  orig_subj_path+subj+'_subjspace_dwi.nii.gz'
-if not os.path.isfile(dwi_subjspace) : print('where is subjspace dwi?')
+subjspace_dwi =  orig_subj_path+subj+'_subjspace_dwi.nii.gz'
+if not os.path.isfile(subjspace_dwi) : print('where is subjspace dwi?')
 
-mask_subjspace = orig_subj_path+subj+'_subjspace_mask.nii.gz'
-if not os.path.isfile(mask_subjspace) : print('where is original mask?')
+subjspace_mask = orig_subj_path+subj+'_subjspace_mask.nii.gz'
+if not os.path.isfile(subjspace_mask) : print('where is original mask?')
 
 path_perm = root + 'perm_files/'
 if not os.path.isdir(path_perm) : os.mkdir(path_perm)
@@ -103,7 +106,7 @@ if test == 'test':
     T1 =T1_orig_test
     subj_path = root + 'temp/' + subj + f'_test{act_string}/'
 elif test == 'dwi':
-    T1 =dwi_subjspace
+    T1 =subjspace_dwi
     subj_path = root + 'temp/' + subj + f'_dwi{act_string}/'
 else:
     T1 = T1_orig
@@ -128,6 +131,8 @@ list_outputs_all = [distances_csv,mean_FA_connectome,parcels_csv,assignments_par
                     assignments_parcels_csv2,parcels_csv_3,assignments_parcels_csv3]
 alloutputs_found = checkfile_exists_all(list_outputs_all)
 
+coreg_T1 = True
+
 if alloutputs_found and not overwrite:
     print(f'All outputs found, subject {subj} is already done!')
 
@@ -149,6 +154,21 @@ else:
     #bvec_path  = '/Users/ali/Downloads/N59066_bvecs.txt'
 
     #changng to mif format
+
+    if coreg_T1:
+        T1_transform_cut_path = os.path.join(temp_folder, f'T1_to_dwi_')
+        T1_transform_path = os.path.join(temp_folder, f'T1_to_dwi_0GenericAffine.mat')
+        T1_reggedtodwi = os.path.join(orig_subj_path,f'{subj}_T1_registered.nii.gz')
+        subjspace_T1 = T1
+        if not os.path.exists(T1_transform_path):
+            command = f'antsRegistration -v 1 -d 3 -m Mattes[{subjspace_dwi}, {subjspace_T1}] -t affine[0.1] -c [3000x3000x0x0, 1e-8, 20] -s 4x2x1x0.5vox -f 6x4x2x1 -u 1 -z 1 -l 1 -x {subjspace_mask} -o {T1_transform_cut_path}'
+            os.system(command)
+
+        if not os.path.exists(T1_reggedtodwi):
+            command = f'antsApplyTransforms -d 3 -e 0 -i {subjspace_T1} -r {subjspace_dwi} -u float -o {T1_reggedtodwi} -t {T1_transform_path}'
+            os.system(command)
+        T1 = T1_reggedtodwi
+
     T1_mif = subj_path+subj+'_T1.mif'+index_gz
     if not os.path.exists(T1_mif) or overwrite:
         os.system('mrconvert ' +T1+ ' '+T1_mif + ' -force' )
@@ -309,13 +329,13 @@ else:
 
     if act:
 
-        mask_subjspace_mif = os.path.join(subj_path,f'{subj}_subjspace_mask.mif')
-        if not os.path.exists(mask_subjspace_mif) or overwrite:
-            os.system(f'mrconvert {mask_subjspace} {mask_subjspace_mif} -force')
+        subjspace_mask_mif = os.path.join(subj_path,f'{subj}_subjspace_mask.mif')
+        if not os.path.exists(subjspace_mask_mif) or overwrite:
+            os.system(f'mrconvert {subjspace_mask} {subjspace_mask_mif} -force')
 
         fivett_nocoreg_mif  = subj_path+subj+'5tt_nocoreg.mif'
         if not os.path.exists(fivett_nocoreg_mif) or overwrite:
-            os.system('5ttgen fsl '  +T1_mif+ ' '+fivett_nocoreg_mif + f' -mask {mask_subjspace_mif} -force')
+            os.system('5ttgen fsl '  +T1_mif+ ' '+fivett_nocoreg_mif + f' -mask {subjspace_mask_mif} -force')
 
 
         #Extracting the b0 images: for Coregistering the anatomical and diffusion datasets:
