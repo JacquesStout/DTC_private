@@ -55,7 +55,7 @@ if 'santorini' in socket.gethostname().split('.')[0]:
 if 'blade' in socket.gethostname().split('.')[0]:
     root= '/mnt/munin2/Badea/Lab/mouse/mrtrix_ad_decode/'
     orig_subj_path = '/mnt/munin2/Badea/ADdecode.01/Analysis/DWI/'
-    orig_subj_path = '/mnt/munin2/Badea/ADdecode.01/Analysis/T1_transforms/'
+    temp_folder = '/mnt/munin2/Badea/ADdecode.01/Analysis/T1_transforms/'
 
 #root= '/Users/ali/Desktop/Mar23/mrtrixc_ad_decode/'
 
