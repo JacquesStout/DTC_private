@@ -159,8 +159,8 @@ else:
     #changng to mif format
 
     if coreg_T1:
-        T1_transform_cut_path = os.path.join(temp_folder, f'T1_to_dwi_')
-        T1_transform_path = os.path.join(temp_folder, f'T1_to_dwi_0GenericAffine.mat')
+        T1_transform_cut_path = os.path.join(temp_folder, f'{subj}_T1_to_dwi_')
+        T1_transform_path = os.path.join(temp_folder, f'{subj}_T1_to_dwi_0GenericAffine.mat')
         T1_reggedtodwi = os.path.join(orig_subj_path,f'{subj}_T1_registered.nii.gz')
         subjspace_T1 = T1
         if not os.path.exists(T1_transform_path) or overwrite:
