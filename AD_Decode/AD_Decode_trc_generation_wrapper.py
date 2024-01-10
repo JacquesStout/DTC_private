@@ -67,7 +67,10 @@ if os.path.isdir(conn_path):
     list_of_subjs = set(list_of_subjs) - set(done_subj)
 #list_fmri_folders.remove(".DS_Store")
 
-test_mode = True
+test_mode = False
+
+list_of_subjs.remove('S02686')
+print(list_of_subjs)
 
 for subj in list_of_subjs:
     #print(subj)
