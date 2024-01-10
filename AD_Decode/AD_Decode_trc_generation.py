@@ -26,7 +26,7 @@ subj = sys.argv[1] #reads subj number with s... from input of python file
 subj_ref = subj
 
 overwrite=False
-cleanup = True
+cleanup = False
 test = 'test'
 test = 'T1'
 
@@ -50,12 +50,12 @@ index_gz = ".gz"
 if 'santorini' in socket.gethostname().split('.')[0]:
     root = '/Volumes/Data/Badea/Lab/mouse/mrtrix_ad_decode/'
     orig_subj_path = '/Volumes/Data/Badea/ADdecode.01/Analysis/DWI/'
-    temp_folder = '/Volumes/Data/Badea/ADdecode.01/Analysis/DWI_temp/'
+    temp_folder = '/Volumes/Data/Badea/ADdecode.01/Analysis/T1_transforms/'
 
 if 'blade' in socket.gethostname().split('.')[0]:
     root= '/mnt/munin2/Badea/Lab/mouse/mrtrix_ad_decode/'
     orig_subj_path = '/mnt/munin2/Badea/ADdecode.01/Analysis/DWI/'
-    orig_subj_path = '/mnt/munin2/Badea/ADdecode.01/Analysis/DWI_temp/'
+    orig_subj_path = '/mnt/munin2/Badea/ADdecode.01/Analysis/T1_transforms/'
 
 #root= '/Users/ali/Desktop/Mar23/mrtrixc_ad_decode/'
 
@@ -163,19 +163,18 @@ else:
         T1_transform_path = os.path.join(temp_folder, f'T1_to_dwi_0GenericAffine.mat')
         T1_reggedtodwi = os.path.join(orig_subj_path,f'{subj}_T1_registered.nii.gz')
         subjspace_T1 = T1
-        if not os.path.exists(T1_transform_path):
+        if not os.path.exists(T1_transform_path) or overwrite:
             command = f'antsRegistration -v 1 -d 3 -m Mattes[{subjspace_dwi}, {subjspace_T1}] -t affine[0.1] -c [3000x3000x0x0, 1e-8, 20] -s 4x2x1x0.5vox -f 6x4x2x1 -u 1 -z 1 -l 1 -x {subjspace_mask} -o {T1_transform_cut_path}'
             os.system(command)
 
-        if not os.path.exists(T1_reggedtodwi):
+        if not os.path.exists(T1_reggedtodwi) or overwrite:
             command = f'antsApplyTransforms -d 3 -e 0 -i {subjspace_T1} -r {subjspace_dwi} -u float -o {T1_reggedtodwi} -t {T1_transform_path}'
             os.system(command)
         T1 = T1_reggedtodwi
+        if not os.path.exists(T1_reggedtodwi):
+            raise Exception('Could not create registered T1, investigate')
 
-    T1_mif = subj_path+subj+'_T1.mif'+index_gz
-    if not os.path.exists(T1_mif) or overwrite:
-        os.system('mrconvert ' +T1+ ' '+T1_mif + ' -force' )
-
+    #T1_mif = subj_path+subj+'_T1.mif'+index_gz
 
 
     out_mif = subj_path + subj+'_subjspace_dwi.mif'+index_gz
@@ -338,7 +337,7 @@ else:
 
         fivett_nocoreg_mif  = subj_path+subj+'5tt_nocoreg.mif'
         if not os.path.exists(fivett_nocoreg_mif) or overwrite:
-            os.system('5ttgen fsl '  +T1_mif+ ' '+fivett_nocoreg_mif + f' -mask {subjspace_mask_mif} -force')
+            os.system('5ttgen fsl '  +T1+ ' '+fivett_nocoreg_mif + f' -mask {subjspace_mask_mif} -force')
 
 
         #Extracting the b0 images: for Coregistering the anatomical and diffusion datasets:
@@ -349,18 +348,18 @@ else:
         #Converting the b0 and 5tt images bc we wanna use fsl this part and fsl does not accept mif:
         mean_b0_nii_gz = subj_path+subj+'_mean_b0.nii.gz'
         fivett_nocoreg_nii_gz = subj_path+subj+'_5tt_nocoreg.nii.gz'
-        if not os.path.exists(mean_b0_nii_gz):
+        if not os.path.exists(mean_b0_nii_gz) or overwrite:
             os.system('mrconvert ' +mean_b0_mif + ' '+ mean_b0_nii_gz + ' -force')
-        if not os.path.exists(fivett_nocoreg_nii_gz):
+        if not os.path.exists(fivett_nocoreg_nii_gz) or overwrite:
             os.system('mrconvert ' + fivett_nocoreg_mif + ' ' + fivett_nocoreg_nii_gz + ' -force')
 
         fivett_vol0_nii_gz = subj_path+subj+'_5tt_vol0.nii.gz'
-        if not os.path.exists(fivett_vol0_nii_gz):
+        if not os.path.exists(fivett_vol0_nii_gz) or overwrite:
             os.system('fslroi '+ fivett_nocoreg_nii_gz+ ' '+ fivett_vol0_nii_gz + ' 0 1')
 
         #Coregistering the anatomical and diffusion datasets: #skip
         diff2struct_fsl_mat =subj_path+subj+'_diff2struct_fsl.mat'
-        if not os.path.exists(diff2struct_fsl_mat):
+        if not os.path.exists(diff2struct_fsl_mat) or overwrite:
             os.system('flirt -in '+ mean_b0_nii_gz + ' -ref ' + fivett_vol0_nii_gz + ' -interp nearestneighbour -dof 6 -omat ' + diff2struct_fsl_mat)
 
 
