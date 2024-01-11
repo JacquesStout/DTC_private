@@ -51,11 +51,13 @@ if 'santorini' in socket.gethostname().split('.')[0]:
     root = '/Volumes/Data/Badea/Lab/mouse/mrtrix_ad_decode/'
     orig_subj_path = '/Volumes/Data/Badea/ADdecode.01/Analysis/DWI/'
     temp_folder = '/Volumes/Data/Badea/ADdecode.01/Analysis/T1_transforms/'
+    scratch_folder = '/Volumes/Data/Badea/Lab/jacques/temp/'
 
 if 'blade' in socket.gethostname().split('.')[0]:
     root= '/mnt/munin2/Badea/Lab/mouse/mrtrix_ad_decode/'
     orig_subj_path = '/mnt/munin2/Badea/ADdecode.01/Analysis/DWI/'
     temp_folder = '/mnt/munin2/Badea/ADdecode.01/Analysis/T1_transforms/'
+    scratch_folder = '/mnt/munin2/Badea/Lab/jacques/temp/'
 
 #root= '/Users/ali/Desktop/Mar23/mrtrixc_ad_decode/'
 
@@ -337,7 +339,7 @@ else:
 
         fivett_nocoreg_mif  = subj_path+subj+'5tt_nocoreg.mif'
         if not os.path.exists(fivett_nocoreg_mif) or overwrite:
-            os.system('5ttgen fsl '  +T1+ ' '+fivett_nocoreg_mif + f' -mask {subjspace_mask_mif} -force')
+            os.system('5ttgen fsl '  +T1+ ' '+fivett_nocoreg_mif + f' -mask {subjspace_mask_mif} -scratch {scratch_folder} -force')
 
 
         #Extracting the b0 images: for Coregistering the anatomical and diffusion datasets:
