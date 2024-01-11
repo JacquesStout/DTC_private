@@ -41,7 +41,7 @@ else:
 #list_folders_path ='/mnt/munin2/Badea/ADdecode.01/Analysis/DWI/'
 inputfiles_path = os.path.join(BD,'../../ADdecode.01/Analysis/DWI/')
 list_folders_path = os.listdir(inputfiles_path)
-list_of_subjs_long = [i for i in list_folders_path if contrast in i]
+list_of_subjs_long = [i for i in list_folders_path if f'{contrast}.nii.gz' in i]
 
 list_of_subjs = [i.partition(f'_{contrast}.nii.gz')[0] for i in list_of_subjs_long]
 
@@ -69,7 +69,6 @@ if os.path.isdir(conn_path):
 
 test_mode = False
 
-list_of_subjs.remove('S02686')
 print(list_of_subjs)
 
 for subj in list_of_subjs:
