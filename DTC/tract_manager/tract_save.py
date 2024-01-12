@@ -149,10 +149,10 @@ def convert_tck_to_trk(input_file, output_file, ref):
     nib.streamlines.save(tck.tractogram, output_file, header=header)
 
 
-def convert_trk_to_tck(input_file, output_file):
+def convert_trk_to_tck(input_file, output_file,reference_file):
     from dipy.io.streamline import load_tractogram, save_tractogram
 
-    cc_trk = load_tractogram(input_file, 'same', bbox_valid_check=False)
+    cc_trk = load_tractogram(input_file, reference_file, bbox_valid_check=False)
     save_tractogram(cc_trk, output_file, bbox_valid_check=False)
 
     return
