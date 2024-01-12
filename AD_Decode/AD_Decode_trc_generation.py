@@ -26,7 +26,7 @@ subj = sys.argv[1] #reads subj number with s... from input of python file
 subj_ref = subj
 
 overwrite=False
-cleanup = False
+cleanup = True
 test = 'test'
 test = 'T1'
 
