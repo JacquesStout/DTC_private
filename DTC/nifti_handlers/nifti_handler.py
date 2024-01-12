@@ -19,7 +19,7 @@ import numpy as np
 import nibabel as nib
 from DTC.file_manager.BIAC_tools import send_mail
 import pathlib
-from DTC.diff_handlers.bvec_handler import fix_bvals_bvecs, reorient_bvecs
+from DTC.diff_handlers.bvec_handler import fix_bvals_bvecs, reorient_bvecs, read_bval_file
 from dipy.core.gradients import gradient_table
 
 
@@ -34,6 +34,33 @@ def average_4dslices(path, new_path, split=1, slices=None, sftp=None):
     new_nii = nib.Nifti1Image(new_data, affine, hdr)
     nib.save(new_nii, new_path)
     return
+
+
+def cut_4D_img(nii_path,nii_path_cut,cutdirs,bval_path = None,b0_threshold=50,sftp=None):
+
+    if bval_path is not None:
+        bvals = read_bval_file(bval_path)
+        b0_mask = bvals < b0_threshold
+        dwi_mask = bvals > b0_threshold
+
+        first_false_index = list(b0_mask).index(False) if False in b0_mask else len(b0_mask)
+        result = all(b0_mask[:first_false_index]) and all(not x for x in b0_mask[first_false_index:])
+        if not result:
+            raise Exception('Need to change this code, the b0 values are not just all at the beginning of the nifti')
+
+        if type(cutdirs) != list:
+            cutdirs = np.sum(b0_mask) + cutdirs
+        else:
+            cutdirs = (list(np.where(b0_mask)[0])+[x + np.sum(b0_mask) for x in cutdirs])
+
+    data, affine, _, hdr, _ = load_nifti_remote(nii_path, sftp)
+    if type(cutdirs) != list:
+        data_cut = data[:,:,:,:cutdirs]
+    else:
+        data_cut = data[:,:,:,cutdirs]
+
+    new_nii = nib.Nifti1Image(data_cut, affine, hdr)
+    nib.save(new_nii, nii_path_cut)
 
 
 def getfa(mypath, subject, bvec_orient, verbose=None):
