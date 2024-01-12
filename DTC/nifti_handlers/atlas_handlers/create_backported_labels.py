@@ -60,6 +60,13 @@ def get_info_SAMBA_headfile(SAMBA_headfile, verbose=False):
     return orig_orientation, working_orientation, maxiteration
 
 
+def atlas_to_MDT_transfer(filepath, outpath, MDT_ref, MDT_to_atlas_affine, atlas_to_MDT):
+
+    [MDT_to_atlas_affine, atlas_to_MDT], exists = check_files([MDT_to_atlas_affine, atlas_to_MDT])
+    cmd = f"antsApplyTransforms -v 1 -d 3 -i {filepath} -o {outpath} -r {MDT_ref} -n MultiLabel -t [{MDT_to_atlas_affine},1] {atlas_to_MDT}"
+    # check_files([atlas_labels,preprocess_ref,trans,rigid,affine,MDT_to_subject,MDT_to_atlas_affine,atlas_to_MDT])
+    os.system(cmd)
+
 def create_MDT_labels(subject, mainpath, project_name, atlas_labels, reg_type = 'dwi', overwrite=False, myiteration = -1, identifier = '', verbose=True):
     out_dir_base = os.path.join(mainpath, f"{project_name}-results")
     out_dir = os.path.join(out_dir_base,'atlas_to_MDT')
