@@ -114,6 +114,84 @@ def reorient_bvecs(bvecs, bvec_orient=[1,2,3]):
                   bvec_sign[2]*bvecs[:, np.abs(bvec_orient[2])-1]]
     return bvecs
 
+def reorient_bvecs_files(bvec_file, bvec_file_reoriented, bvec_orig_orient = '', bvec_new_orient = ''):
+
+    orig_string = 'RLAPSI'
+    flip_string = 'LRPAIS'
+
+    flip_todo = [0,0,0]
+
+    current_vorder = bvec_orig_orient
+
+    val = 0
+    xpos = bvec_new_orient.find(current_vorder[val])
+    if xpos!=-1:
+        flip_todo[val] = xpos+1
+    else:
+        flip_todo[val] = -1 * (bvec_new_orient.find(orig_string[flip_string.find(current_vorder[val])])+1)
+
+    val = 1
+    ypos = bvec_new_orient.find(current_vorder[val])
+    if ypos!=-1:
+        flip_todo[val] = ypos+1
+    else:
+        flip_todo[val] = -1 * (bvec_new_orient.find(orig_string[flip_string.find(current_vorder[val])])+1)
+
+    val = 2
+    zpos = bvec_new_orient.find(current_vorder[val])
+    if zpos!=-1:
+        flip_todo[val] = zpos+1
+    else:
+        flip_todo[val] = -1 * (bvec_new_orient.find(orig_string[flip_string.find(current_vorder[val])])+1)
+
+    bvecs = read_bvecs(bvec_file)
+    reoriented_bvecs = reorient_bvecs(bvecs, bvec_orient = flip_todo)
+    writebvec(reoriented_bvecs,bvec_file_reoriented,writeformat='classic')
+
+    return(bvec_file)
+
+
+def read_bval_file(bval_path,sftp=None):
+    vals=[]
+    if sftp is not None:
+        temp_path_bval = f'{os.path.join(os.path.expanduser("~"), os.path.basename(bval_path))}'
+        temp_path_bvec = f'{os.path.join(os.path.expanduser("~"), os.path.basename(bval_path))}'
+        sftp.get(bval_path, temp_path_bval)
+        fbvals = temp_path_bval
+        fbvecs = temp_path_bvec
+
+    for this_fname in [bval_path]:
+        # If the input was None or empty string, we don't read anything and
+        # move on:
+        if this_fname is None or not this_fname:
+            vals.append(None)
+        else:
+            if isinstance(this_fname, str):
+                base, ext = splitext(this_fname)
+                if ext in ['.bvals', '.bval', '.bvecs', '.bvec', '.txt', '.eddy_rotated_bvecs', '']:
+                    with open(this_fname, 'r') as f:
+                        content = f.read()
+                    # We replace coma and tab delimiter by space
+                    with InTemporaryDirectory():
+                        tmp_fname = "tmp_bvals_bvecs.txt"
+                        with open(tmp_fname, 'w') as f:
+                            f.write(re.sub(r'(\t|,)', ' ', content))
+                        vals.append(np.squeeze(np.loadtxt(tmp_fname)))
+                elif ext == '.npy':
+                    vals.append(np.squeeze(np.load(this_fname)))
+                else:
+                    e_s = "File type %s is not recognized" % ext
+                    raise ValueError(e_s)
+            else:
+                raise ValueError('String with full path to file is required')
+
+    if sftp is not None:
+        os.remove(fbvals)
+    # Once out of the loop, unpack them:
+    bvals = vals[0]
+    return bvals
+
+
 def read_bvals(fbvals,fbvecs, sftp = None):
 
     vals=[]
@@ -180,6 +258,61 @@ def cut_bvals_bvecs(fbvals, fbvecs, tocut, format="classic"):
                 File_object.write(str(bval) + "\t")
 
     return(fbvals_new)
+
+
+def cut_bvecs_bvals(bval_path,bvec_path,bvec_checked_cut_path,bval_checked_cut_path,cutdirs,
+                    writeformat='mrtrix',sftp=None, b0_threshold=50):
+    bvals, bvecs = read_bvals(bval_path,bvec_path, sftp = sftp)
+    b0_mask = bvals < b0_threshold
+    dwi_mask = bvals > b0_threshold
+
+    num_bvals = np.size(bvals[b0_mask])
+
+    if type(cutdirs) != list:
+        bvals_cut = np.concatenate((bvals[b0_mask], bvals[dwi_mask][:cutdirs]))
+        bvecs_cut = np.concatenate((bvecs.T[b0_mask], bvecs.T[dwi_mask][:cutdirs]))
+    else:
+        bvals_cut = np.concatenate((bvals[b0_mask], bvals[dwi_mask][cutdirs]))
+        bvecs_cut = np.concatenate((bvecs.T[b0_mask], bvecs.T[dwi_mask][cutdirs]))
+
+    if writeformat == "classic":
+        if sftp is None:
+            np.savetxt(bval_checked_cut_path, bvals_cut)
+        else:
+            np.savetxt(make_temppath(bval_checked_cut_path),bvals_cut)
+            sftp.put(make_temppath(bval_checked_cut_path),bval_checked_cut_path)
+            os.remove(make_temppath(bval_checked_cut_path))
+
+        if sftp is None:
+            np.savetxt(bvec_checked_cut_path, bvecs_cut)
+        else:
+            np.savetxt(make_temppath(bvec_checked_cut_path),bvecs_cut)
+            sftp.put(make_temppath(bvec_checked_cut_path),bvec_checked_cut_path)
+            os.remove(make_temppath(bvec_checked_cut_path))
+
+    if writeformat=="dsi":
+        with open(bval_checked_cut_path, 'w') as File_object:
+            for bval in bvals_cut:
+                if bval>10:
+                    bval = int(round(bval))
+                else:
+                    bval=0
+                File_object.write(str(bval) + "\t")
+
+        with open(bvec_checked_cut_path, 'w') as File_object:
+            for i in [0,1,2]:
+                for j in np.arange(np.shape(bvecs_cut)[0]):
+                    if bvecs_cut[j,i]==0:
+                        bvec=0
+                    else:
+                        bvec=round(bvecs_cut[j,i],3)
+                    File_object.write(str(bvec)+"\t")
+                File_object.write("\n")
+            File_object.close()
+
+    if writeformat =='mrtrix':
+        np.savetxt(bval_checked_cut_path, bvals_cut.reshape(1, np.size(bvals_cut)), fmt='%.2f')
+        np.savetxt(bvec_checked_cut_path, bvecs_cut.T, fmt='%f')
 
 
 def fix_bvals_bvecs(fbvals, fbvecs, b0_threshold=50, atol=1e-2, outpath=None, identifier = "_fix",
@@ -316,8 +449,12 @@ def fix_bvals_bvecs(fbvals, fbvecs, b0_threshold=50, atol=1e-2, outpath=None, id
                 else:
                     bval=0
                 File_object.write(str(bval) + "\t")
+    if writeformat =='mrtrix':
+        np.savetxt(fbvals, bvals.reshape(1, np.size(bvals)), fmt='%.2f')
+
+
     #base, ext = splitext(fbvecs)
-    basevecs = base.replace("bvals","bvecs")
+    basevecs = base.replace("bval","bvec")
     if not writeover:
         fbvecs = basevecs + identifier + ext
     if writeformat=="classic":
@@ -340,6 +477,10 @@ def fix_bvals_bvecs(fbvals, fbvecs, b0_threshold=50, atol=1e-2, outpath=None, id
                     File_object.write(str(bvec)+"\t")
                 File_object.write("\n")
             File_object.close()
+
+    if writeformat=='mrtrix':
+        np.savetxt(fbvecs, bvecs.T, fmt='%f')
+
 
     return fbvals, fbvecs
 
@@ -468,14 +609,13 @@ def extractbvals_fromgrads(source_file,fileoutpath=None,tonorm=True,verbose=Fals
         return bval_file, bvecs_file, bvals, dsl, dpe, dro
 
 
-def extractbvals_from_method(source_file,fileoutpath=None,tonorm=True,verbose=False):
+def extractbvals_from_method(source_file,outpath=None,tonorm=True,verbose=False):
 
     bvals = bvecs = None
 
     filename = os.path.split(source_file)[1]
-    if fileoutpath is None:
-        basepath = os.path.split(source_file)[0]
-        fileoutpath = basepath + filename.split('.')[0] + "_"
+    if outpath is None:
+        outpath = os.path.join(os.path.split(source_file)[0],'diffusion')
     with open(source_file, 'rb') as source:
         if verbose: print('INFO    : Extracting acquisition parameters')
         bvals = []
@@ -534,24 +674,23 @@ def extractbvals_from_method(source_file,fileoutpath=None,tonorm=True,verbose=Fa
                     shape = str(shape).split(')')[0]
                     num_bvals = int(shape)
 
-    if fileoutpath is not None:
-        """
-        bval_file = fileoutpath + "_bvals.txt"
-        print(bval_file)
-        File_object = open(bval_file, "w")
+
+    while np.shape(bvecs)[0] < np.size(bvals):
+        bvecs = np.insert(bvecs, 0, 0, axis=0)
+    if 'bvecs' in locals() and np.size(bvecs) > 0:
+        bvecs_file = outpath+ "_bvec.txt"
+        File_object = open(bvecs_file, "w")
+        for bvec in bvecs:
+            File_object.write(str(bvec[0]) + " " + str(bvec[1]) + " " + str(bvec[2]) + "\n")
+        File_object.close()
+    if 'bvals' in locals() and np.size(bvals)>0:
+        bvals_file = outpath+ "_bval.txt"
+        bvals = '\n'.join(bvals)
+        File_object = open(bvals_file, "w")
         File_object.write(bvals)
         File_object.close()
-        """
-        while np.shape(bvecs)[0] < np.size(bvals):
-            bvecs = np.insert(bvecs, 0, 0, axis=0)
-        if 'bvecs' in locals() and np.size(bvecs) > 0:
-            bvecs_file = os.path.join(basepath, "methodJS_bvecs.txt")
-            File_object = open(bvecs_file, "w")
-            for bvec in bvecs:
-                File_object.write(str(bvec[0]) + " " + str(bvec[1]) + " " + str(bvec[2]) + "\n")
-            File_object.close()
 
-        return bvecs_file
+    return bvecs_file
 
 
 def extractbvals_fromheader(source_file,fileoutpath=None,save=None,writeformat= 'classic', verbose=True):
