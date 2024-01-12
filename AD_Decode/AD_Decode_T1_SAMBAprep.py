@@ -12,7 +12,7 @@ overwrite=False
 #input_folder = f'/Volumes/dusom_mousebrains/All_Staff/Nariman_mrtrix_ad_decode/{contrast}_nii_gz'
 input_folder = f'/Volumes/Data/Badea/ADdecode.01/Analysis/DWI/'
 SAMBA_folder = '/Volumes/Data/Badea/Lab/mouse/ADDeccode_symlink_pool2'
-temp_folder = f'/Volumes/Data/Badea/ADdecode.01/Analysis/DWI_temp/'
+temp_folder = f'/Volumes/Data/Badea/ADdecode.01/Analysis/T1_transforms/'
 
 subj_files_list = glob.glob(os.path.join(input_folder,f'*{contrast}.nii.gz'))
 subj_list = [os.path.basename(subj_file)[:6] for subj_file in subj_files_list]
@@ -34,12 +34,12 @@ for subj in subj_list:
 
     SAMBA_mask = os.path.join(base_image_folder,f'{subj}_mask.nii.gz')
 
-    T1_reggedtodwi = os.path.join(temp_folder,f'{subj}_T1_regged.nii.gz')
+    T1_reggedtodwi = os.path.join(input_folder,f'{subj}_T1_registered.nii.gz')
 
-    T1_transform_cut_path = os.path.join(temp_folder,f'T1_to_dwi_')
-    T1_transform_path = os.path.join(temp_folder,f'T1_to_dwi_0GenericAffine.mat')
+    T1_transform_cut_path = os.path.join(temp_folder, f'{subj}_T1_to_dwi_')
+    T1_transform_path = os.path.join(temp_folder, f'{subj}_T1_to_dwi_0GenericAffine.mat')
 
-    baseimage_T1unmasked_path = os.path.join(temp_folder, f'{subj}_T1.nii.gz')
+    baseimage_T1unmasked_path = os.path.join(temp_folder, f'{subj}_T1_baseimg_unmasked.nii.gz')
     baseimage_T1masked_path = os.path.join(base_image_folder, f'{subj}_T1_masked.nii.gz')
 
 
@@ -56,24 +56,27 @@ for subj in subj_list:
         except ValueError:
             print(f'Could not find subject {subj}, continue')
             continue
-        if not os.path.exists(T1_transform_path):
-            command = f'antsRegistration -v 1 -d 3 -m Mattes[{subjspace_dwi}, {subjspace_T1}] -t affine[0.1] -c [3000x3000x0x0, 1e-8, 20] -s 4x2x1x0.5vox -f 6x4x2x1 -u 1 -z 1 -l 1 -x {subjspace_mask} -o {T1_transform_cut_path}'
-            os.system(command)
+        if not os.path.exists(T1_reggedtodwi) or overwrite:
+            if not os.path.exists(T1_transform_path) or overwrite:
+                command = f'antsRegistration -v 1 -d 3 -m Mattes[{subjspace_dwi}, {subjspace_T1}] -t affine[0.1] -c [3000x3000x0x0, 1e-8, 20] -s 4x2x1x0.5vox -f 6x4x2x1 -u 1 -z 1 -l 1 -x {subjspace_mask} -o {T1_transform_cut_path}'
+                os.system(command)
 
-        if not os.path.exists(T1_reggedtodwi):
-            command = f'antsApplyTransforms -d 3 -e 0 -i {subjspace_T1} -r {subjspace_dwi} -u float -o {T1_reggedtodwi} -t {T1_transform_path}'
-            os.system(command)
+            if not os.path.exists(T1_reggedtodwi) or overwrite:
+                command = f'antsApplyTransforms -d 3 -e 0 -i {subjspace_T1} -r {subjspace_dwi} -u float -o {T1_reggedtodwi} -t {T1_transform_path}'
+                os.system(command)
 
         if not os.path.exists(baseimage_T1unmasked_path):
             # Perform trans registration
             transform_rigid = ants.registration(fixed=fixed_image, moving=moving_image, type_of_transform='Rigid')
 
+            """
             # Apply the transformation to the moving image
-            registered_image = ants.apply_transforms(fixed=fixed_image, moving=moving_image,
-                                                     transformlist=transform_rigid['fwdtransforms'])
+            #registered_image = ants.apply_transforms(fixed=fixed_image, moving=moving_image,
+            #                                         transformlist=transform_rigid['fwdtransforms'])
 
             # Save the registered image
             #ants.image_write(registered_image, fa_test_path)
+            """
 
             t1_image = ants.image_read(T1_reggedtodwi)
 
