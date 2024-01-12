@@ -4,8 +4,8 @@ from DTC.file_manager.computer_nav import make_temppath
 import os, glob
 import numpy as np
 
-
-contrast = 'rd'
+#contrasts  ['fa', 'rd', 'md', 'ad']
+contrast = 'ad'
 overwrite=False
 
 input_folder = f'/Volumes/dusom_mousebrains/All_Staff/Nariman_mrtrix_ad_decode/{contrast}_nii_gz'
