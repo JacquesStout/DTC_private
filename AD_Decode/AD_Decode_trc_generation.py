@@ -27,6 +27,8 @@ subj_ref = subj
 
 overwrite=False
 cleanup = True
+make_connectomes = True
+
 test = 'test'
 test = 'T1'
 
@@ -137,6 +139,7 @@ list_outputs_all = [distances_csv,mean_FA_connectome,parcels_csv,assignments_par
 alloutputs_found = checkfile_exists_all(list_outputs_all)
 
 coreg_T1 = True
+
 
 if alloutputs_found and not overwrite:
     print(f'All outputs found, subject {subj} is already done!')
@@ -264,8 +267,6 @@ else:
     #os.system("/Applications/Convert3DGUI.app/Contents/bin/c3d "+label_path_orig+" -orient RAS -o "+label_path)
 
     label_path = label_path_orig  #if not doing the rotation seen above
-
-    label_nii=nib.load(label_path)
 
     """
     #mask_output = subj_path +subj+'_mask_of_label.nii.gz'
@@ -426,87 +427,93 @@ else:
     #os.system('mrview ' + den_unbiased_mif + ' -tractography.load '+ smallerTracks)
     #os.system('mrview ' + den_unbiased_mif + ' -tractography.load '+ smallerTracks)
 
+    if make_connectomes:
+        try:
+            label_nii = nib.load(label_path)
+        except:
+            print(f'Could not find {label_nii}, skipping the connectomes creation')
+            make_connectomes = False
+
+    if make_connectomes:
+
+        #Sifting the tracks with tcksift2: bc some wm tracks are over or underfitted
+        sift_mu_txt = subj_path+subj+'_sift_mu.txt'
+        sift_coeffs_txt = subj_path+subj+'_sift_coeffs.txt'
+        sift_1M_txt = subj_path+subj+'_sift_1M.txt'
+
+        if not os.path.exists(sift_mu_txt) or overwrite:
+            os.system('echo tcksift2  -out_mu '+ sift_mu_txt + ' -out_coeffs ' + sift_coeffs_txt + ' ' + smallerTracks + ' ' + wmfod_norm_mif+ ' ' + sift_1M_txt  + ' -force')
+
+        if not os.path.exists(sift_coeffs_txt) or overwrite:
+            os.system('tcksift2  -out_mu '+ sift_mu_txt + ' -out_coeffs ' + sift_coeffs_txt + ' ' + smallerTracks + ' ' + wmfod_norm_mif+ ' ' + sift_1M_txt  + ' -force')
+
+
+        #convert subj labels to mif
+        parcels_mif = subj_path + subj + '_parcels.mif' + index_gz
+
+        if not os.path.exists(parcels_mif) or overwrite:
+            labels_data = label_nii.get_fdata()
+            labels = np.unique(labels_data)
+            labels=np.delete(labels, 0)
+            label_nii_order = labels_data*0.0
+
+            #sum(legend['index2'] == labels)
+            for i in labels:
+                leg_index =  np.where(legend['index2'] == i )
+                leg_index = leg_index [0][0]
+                ordered_num = legend['index'][leg_index]
+                label3d_index = np.where( labels_data == i )
+                label_nii_order [ label3d_index]  = ordered_num
+
+
+            file_result= nib.Nifti1Image(label_nii_order, label_nii.affine, label_nii.header)
+            new_label  = path_perm +subj+'_new_label.nii.gz'
+            nib.save(file_result, new_label)
+
+            #new_label = label_path
+            os.system('mrconvert '+new_label+ ' ' +parcels_mif + ' -force' )
+
+
+        #Creating the connectome without coregistration:
+        ### connectome folders :
+
+        mean_FA_per_streamline =  subj_path+subj+'_per_strmline_mean_FA.csv'
+
+        if not os.path.isdir(conn_folder) : os.mkdir(conn_folder)
+
+        if not os.path.exists(distances_csv) or overwrite:
+            os.system('tck2connectome ' + smallerTracks + ' ' + parcels_mif+ ' ' + distances_csv + ' -zero_diagonal -symmetric -scale_length -stat_edge  mean' + ' -force')
+
+        if not os.path.exists(mean_FA_per_streamline) or not os.path.exists(mean_FA_connectome) or overwrite:
+            os.system('tcksample '+ smallerTracks+ ' '+ fa_mif + ' ' + mean_FA_per_streamline + ' -stat_tck mean ' + ' -force')
+            os.system('tck2connectome '+ smallerTracks + ' ' + parcels_mif + ' '+ mean_FA_connectome + ' -zero_diagonal -symmetric -scale_file ' + mean_FA_per_streamline + ' -stat_edge mean '+ ' -force')
 
 
 
-    #Sifting the tracks with tcksift2: bc some wm tracks are over or underfitted
-    sift_mu_txt = subj_path+subj+'_sift_mu.txt'
-    sift_coeffs_txt = subj_path+subj+'_sift_coeffs.txt'
-    sift_1M_txt = subj_path+subj+'_sift_1M.txt'
-
-    if not os.path.exists(sift_mu_txt) or overwrite:
-        os.system('echo tcksift2  -out_mu '+ sift_mu_txt + ' -out_coeffs ' + sift_coeffs_txt + ' ' + smallerTracks + ' ' + wmfod_norm_mif+ ' ' + sift_1M_txt  + ' -force')
-
-    if not os.path.exists(sift_coeffs_txt) or overwrite:
-        os.system('tcksift2  -out_mu '+ sift_mu_txt + ' -out_coeffs ' + sift_coeffs_txt + ' ' + smallerTracks + ' ' + wmfod_norm_mif+ ' ' + sift_1M_txt  + ' -force')
-
-
-    #convert subj labels to mif
-    parcels_mif = subj_path + subj + '_parcels.mif' + index_gz
-
-    if not os.path.exists(parcels_mif) or overwrite:
-        labels_data = label_nii.get_fdata()
-        labels = np.unique(labels_data)
-        labels=np.delete(labels, 0)
-        label_nii_order = labels_data*0.0
-
-        #sum(legend['index2'] == labels)
-        for i in labels:
-            leg_index =  np.where(legend['index2'] == i )
-            leg_index = leg_index [0][0]
-            ordered_num = legend['index'][leg_index]
-            label3d_index = np.where( labels_data == i )
-            label_nii_order [ label3d_index]  = ordered_num
-
-
-        file_result= nib.Nifti1Image(label_nii_order, label_nii.affine, label_nii.header)
-        new_label  = path_perm +subj+'_new_label.nii.gz'
-        nib.save(file_result, new_label)
-
-        #new_label = label_path
-        os.system('mrconvert '+new_label+ ' ' +parcels_mif + ' -force' )
-
-
-    #Creating the connectome without coregistration:
-    ### connectome folders :
-
-    mean_FA_per_streamline =  subj_path+subj+'_per_strmline_mean_FA.csv'
-
-    if not os.path.isdir(conn_folder) : os.mkdir(conn_folder)
-
-    if not os.path.exists(distances_csv) or overwrite:
-        os.system('tck2connectome ' + smallerTracks + ' ' + parcels_mif+ ' ' + distances_csv + ' -zero_diagonal -symmetric -scale_length -stat_edge  mean' + ' -force')
-
-    if not os.path.exists(mean_FA_per_streamline) or not os.path.exists(mean_FA_connectome) or overwrite:
-        os.system('tcksample '+ smallerTracks+ ' '+ fa_mif + ' ' + mean_FA_per_streamline + ' -stat_tck mean ' + ' -force')
-        os.system('tck2connectome '+ smallerTracks + ' ' + parcels_mif + ' '+ mean_FA_connectome + ' -zero_diagonal -symmetric -scale_file ' + mean_FA_per_streamline + ' -stat_edge mean '+ ' -force')
+        if not os.path.exists(parcels_csv) or not os.path.exists(assignments_parcels_csv) or overwrite:
+            os.system('tck2connectome -symmetric -zero_diagonal -scale_invnodevol -tck_weights_in '+ sift_1M_txt+ ' '+ smallerTracks + ' '+ parcels_mif + ' '+ parcels_csv + ' -out_assignment ' + assignments_parcels_csv + ' -force')
 
 
 
-    if not os.path.exists(parcels_csv) or not os.path.exists(assignments_parcels_csv) or overwrite:
-        os.system('tck2connectome -symmetric -zero_diagonal -scale_invnodevol -tck_weights_in '+ sift_1M_txt+ ' '+ smallerTracks + ' '+ parcels_mif + ' '+ parcels_csv + ' -out_assignment ' + assignments_parcels_csv + ' -force')
+        if not os.path.exists(parcels_csv_2) or not os.path.exists(assignments_parcels_csv2) or overwrite:
+            os.system('tck2connectome -symmetric -zero_diagonal '+ smallerTracks + ' '+ parcels_mif + ' '+ parcels_csv_2 + ' -out_assignment ' + assignments_parcels_csv2 + ' -force')
 
 
+        if not os.path.exists(parcels_csv_3) or not os.path.exists(assignments_parcels_csv3) or overwrite:
+            os.system('tck2connectome -symmetric -zero_diagonal -tck_weights_in '+ sift_1M_txt+ ' '+ smallerTracks + ' '+ parcels_mif + ' '+ parcels_csv_3 + ' -out_assignment ' + assignments_parcels_csv3 + ' -force')
 
-    if not os.path.exists(parcels_csv_2) or not os.path.exists(assignments_parcels_csv2) or overwrite:
-        os.system('tck2connectome -symmetric -zero_diagonal '+ smallerTracks + ' '+ parcels_mif + ' '+ parcels_csv_2 + ' -out_assignment ' + assignments_parcels_csv2 + ' -force')
-
-
-    if not os.path.exists(parcels_csv_3) or not os.path.exists(assignments_parcels_csv3) or overwrite:
-        os.system('tck2connectome -symmetric -zero_diagonal -tck_weights_in '+ sift_1M_txt+ ' '+ smallerTracks + ' '+ parcels_mif + ' '+ parcels_csv_3 + ' -out_assignment ' + assignments_parcels_csv3 + ' -force')
-
-    if cleanup:
-        shutil.rmtree(subj_path)
+        if cleanup:
+            shutil.rmtree(subj_path)
 
 
-    #scale_invnodevol scale connectome by the inverse of size of each node
-    #tck_weights_in weight each connectivity by sift
-    #out assignment helo converting connectome to tracks
+        #scale_invnodevol scale connectome by the inverse of size of each node
+        #tck_weights_in weight each connectivity by sift
+        #out assignment helo converting connectome to tracks
 
-    #Viewing the connectome in Matlab:
+        #Viewing the connectome in Matlab:
 
-    #connectome = importdata('sub-CON02_parcels.csv');
-    #imagesc(connectome, [0 1])
+        #connectome = importdata('sub-CON02_parcels.csv');
+        #imagesc(connectome, [0 1])
 
-    #Viewing the lookup labels:
+        #Viewing the lookup labels:
 
