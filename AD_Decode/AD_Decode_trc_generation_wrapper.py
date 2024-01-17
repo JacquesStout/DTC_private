@@ -32,7 +32,7 @@ GD = '/mnt/clustertmp/common/rja20_dev/gunnies/'
 
 act = True
 if act:
-    contrast = 'T1'
+    contrast = 'subjspace_fa'
     act_string = '_act'
 else:
     contrast = 'dwi'
@@ -67,7 +67,7 @@ if os.path.isdir(conn_path):
     list_of_subjs = set(list_of_subjs) - set(done_subj)
 #list_fmri_folders.remove(".DS_Store")
 
-test_mode = False
+test_mode = True
 
 print(list_of_subjs)
 
