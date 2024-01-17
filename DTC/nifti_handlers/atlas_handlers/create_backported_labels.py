@@ -296,7 +296,7 @@ def create_backport_labels(subject, mainpath, project_name, prep_folder, atlas_l
     if np.size(abb18s) > 0:
         final_refs.append(abb18s[0])
     final_refs.append(os.path.join(prep_folder, f"{subject}_coreg_resampled.nii.gz"))
-    final_refs.append(os.path.join(prep_folder, f"{subject}_dwi.nii.gz"))
+    #final_refs.append(os.path.join(prep_folder, f"{subject}_dwi.nii.gz"))
     final_ref = None
     for pos_final_ref in final_refs:
         if isinstance(pos_final_ref, str) and os.path.exists(pos_final_ref):
