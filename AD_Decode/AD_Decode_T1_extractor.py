@@ -28,6 +28,7 @@ info_type = 'Show_methodinfo'
 method_tofind = '3D Ax T1 MPRAGE'
 
 list_toview = []
+list_notfound = []
 
 for subject in subjects:
     subject_path = os.path.join(data_path, subject)
@@ -67,5 +68,7 @@ for subject in subjects:
             print(f'Already copied the T1 for subject {subj}')
     if found==0:
         print(f'Did not find T1 for subject {subj}')
+        list_notfound.append(subj)
 
-print(','.join(list_toview))
+#print(','.join(list_toview))
+print(list_notfound)
