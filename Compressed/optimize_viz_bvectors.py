@@ -48,6 +48,8 @@ for i in np.arange(np.shape(bvectors)[0]):
 
 optimize = True
 
+full_sphere = True
+
 if optimize:
 
     """
@@ -148,6 +150,9 @@ if visualization:
 
         # Plot each vector
         bvectors_list_selected = [bvectors_list[indice] for indice in selected_indices]
+
+        if full_sphere:
+            bvectors_list_selected = bvectors_list_selected + [-bvector for bvector in bvectors_list_selected]
 
         for vector in bvectors_list_selected:
             ax.quiver(*center, *vector, color=np.random.rand(3, ), label='Vector')
