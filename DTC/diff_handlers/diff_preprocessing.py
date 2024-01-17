@@ -675,7 +675,6 @@ def launch_preprocessing(subj, raw_nii, outpath, cleanup=False, nominal_bval=400
                 print(f'build link from {inputspace} to {blinked_file}')
 
 
-
     if create_subj_space_files:
         for contrast in ['fa0', 'rd', 'ad', 'md']:
 
@@ -689,7 +688,7 @@ def launch_preprocessing(subj, raw_nii, outpath, cleanup=False, nominal_bval=400
                     if orientation_out != orientation_in:
                         print('TRYING TO REORIENT.ReineR..b0 and dwi and mask')
                         if os.path.exists(real_file) and (not os.path.exists(subj_file) or overwrite):
-                            img_transform_exec(real_file, orientation_out, orientation_out, subj_file_tmp)
+                            img_transform_exec(real_file, orientation_in, orientation_out, subj_file_tmp)
                     else:
                         shutil.copy(real_file,subj_file_tmp)
                 header_superpose(raw_dwi, subj_file_tmp, outpath=subj_file)
