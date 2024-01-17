@@ -158,7 +158,7 @@ list_outputs_all = [distances_csv,mean_FA_connectome,parcels_csv,assignments_par
 alloutputs_found = checkfile_exists_all(list_outputs_all)
 
 coreg_T1 = True
-
+skip_T1 = False
 
 if not os.path.exists(T1):
     fivett_nocoreg_nii_gz = orig_subj_path + subj + '_5tt_nocoreg.nii.gz'
