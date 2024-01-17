@@ -89,7 +89,8 @@ T1_orig_test =  orig_subj_path+subj+'_T1_test.nii.gz'
 #if not os.path.isfile(T1_orig_test) : print('where is original T1?')
 
 T1_orig =  orig_subj_path+subj+'_T1.nii.gz'
-if not os.path.isfile(T1_orig) : print('where is original T1?')
+#if not os.path.isfile(T1_orig) : print('where is original T1?')
+
 
 subjspace_dwi =  orig_subj_path+subj+'_subjspace_dwi.nii.gz'
 if not os.path.isfile(subjspace_dwi) : print('where is subjspace dwi?')
@@ -140,6 +141,23 @@ alloutputs_found = checkfile_exists_all(list_outputs_all)
 
 coreg_T1 = True
 
+
+if not os.path.exists(T1):
+    fivett_nocoreg_nii_gz = orig_subj_path + subj + '_5tt_nocoreg.nii.gz'
+    fivett_nocoreg_mif = subj_path + subj + '5tt_nocoreg.mif'
+    if os.path.exists(fivett_nocoreg_nii_gz):
+        coreg_T1 = False
+        skip_T1 = True
+        if not os.path.isdir(subj_path): os.mkdir(subj_path)
+        if not os.path.exists(fivett_nocoreg_mif) or overwrite:
+            cmd = f'mrconvert {fivett_nocoreg_nii_gz} {fivett_nocoreg_mif} -force'
+            os.system(cmd)
+    else:
+        txt = f'Could not find either T1 or 5tt for subject {subj}'
+        raise Exception(txt)
+else:
+    fivett_nocoreg_nii_gz = subj_path + subj + '_5tt_nocoreg.nii.gz'
+    fivett_nocoreg_mif = subj_path + subj + '5tt_nocoreg.mif'
 
 if alloutputs_found and not overwrite:
     print(f'All outputs found, subject {subj} is already done!')
@@ -338,10 +356,8 @@ else:
         if not os.path.exists(subjspace_mask_mif) or overwrite:
             os.system(f'mrconvert {subjspace_mask} {subjspace_mask_mif} -force')
 
-        fivett_nocoreg_mif  = subj_path+subj+'5tt_nocoreg.mif'
-        if not os.path.exists(fivett_nocoreg_mif) or overwrite:
+        if (not os.path.exists(fivett_nocoreg_mif) or overwrite) and not skip_T1:
             os.system('5ttgen fsl '  +T1+ ' '+fivett_nocoreg_mif + f' -mask {subjspace_mask_mif} -scratch {scratch_folder} -force')
-
 
         #Extracting the b0 images: for Coregistering the anatomical and diffusion datasets:
         mean_b0_mif = subj_path+subj+'_mean_b0.mif'
@@ -350,10 +366,9 @@ else:
 
         #Converting the b0 and 5tt images bc we wanna use fsl this part and fsl does not accept mif:
         mean_b0_nii_gz = subj_path+subj+'_mean_b0.nii.gz'
-        fivett_nocoreg_nii_gz = subj_path+subj+'_5tt_nocoreg.nii.gz'
         if not os.path.exists(mean_b0_nii_gz) or overwrite:
             os.system('mrconvert ' +mean_b0_mif + ' '+ mean_b0_nii_gz + ' -force')
-        if not os.path.exists(fivett_nocoreg_nii_gz) or overwrite:
+        if (not os.path.exists(fivett_nocoreg_nii_gz) or overwrite) and not skip_T1:
             os.system('mrconvert ' + fivett_nocoreg_mif + ' ' + fivett_nocoreg_nii_gz + ' -force')
 
         fivett_vol0_nii_gz = subj_path+subj+'_5tt_vol0.nii.gz'
@@ -434,6 +449,9 @@ else:
             print(f'Could not find {label_nii}, skipping the connectomes creation')
             make_connectomes = False
 
+    if cleanup and not make_connectomes:
+        os.remove(tracks_10M_tck)
+
     if make_connectomes:
 
         #Sifting the tracks with tcksift2: bc some wm tracks are over or underfitted
@@ -502,8 +520,8 @@ else:
         if not os.path.exists(parcels_csv_3) or not os.path.exists(assignments_parcels_csv3) or overwrite:
             os.system('tck2connectome -symmetric -zero_diagonal -tck_weights_in '+ sift_1M_txt+ ' '+ smallerTracks + ' '+ parcels_mif + ' '+ parcels_csv_3 + ' -out_assignment ' + assignments_parcels_csv3 + ' -force')
 
-        if cleanup:
-            shutil.rmtree(subj_path)
+    if cleanup:
+        shutil.rmtree(subj_path)
 
 
         #scale_invnodevol scale connectome by the inverse of size of each node
