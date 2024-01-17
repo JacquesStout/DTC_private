@@ -95,7 +95,8 @@ elif project == "AD_Decode":
     recenter = 0
     #SAMBA_prep_folder = os.path.join(SAMBA_mainpath, SAMBA_projectname+"-inputs")
     #SAMBA_prep_folder = os.path.join(mainpath, "human","ADDeccode_symlink_pool_allfiles")
-    SAMBA_prep_folder = os.path.join(mainpath, "mouse", "ADDeccode_symlink_pool2")
+    #SAMBA_prep_folder = os.path.join(mainpath, "mouse", "ADDeccode_symlink_pool2")
+    SAMBA_prep_folder = os.path.join(mainpath, "human", "ADDeccode_symlink_pool_allfiles")
     atlas_labels = os.path.join(mainpath, "atlas","IITmean_RPI","IITmean_RPI_labels.nii.gz")
     atlas_legends = os.path.join(mainpath, "atlases/IITmean_RPI/IITmean_RPI_index.xlsx")
     DTC_DWI_folder = os.path.join(mainpath, "..","ADdecode.01","Analysis","DWI")
