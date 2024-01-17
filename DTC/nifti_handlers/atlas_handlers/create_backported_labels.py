@@ -60,10 +60,10 @@ def get_info_SAMBA_headfile(SAMBA_headfile, verbose=False):
     return orig_orientation, working_orientation, maxiteration
 
 
-def atlas_to_MDT_transfer(filepath, outpath, MDT_ref, MDT_to_atlas_affine, atlas_to_MDT):
+def atlas_to_MDT_transfer(filepath, outpath, MDT_ref, MDT_to_atlas_affine, atlas_to_MDT, dimension = 3):
 
     [MDT_to_atlas_affine, atlas_to_MDT], exists = check_files([MDT_to_atlas_affine, atlas_to_MDT])
-    cmd = f"antsApplyTransforms -v 1 -d 3 -i {filepath} -o {outpath} -r {MDT_ref} -n MultiLabel -t [{MDT_to_atlas_affine},1] {atlas_to_MDT}"
+    cmd = f"antsApplyTransforms -v 1 -d {dimension} -i {filepath} -o {outpath} -r {MDT_ref} -n MultiLabel -t [{MDT_to_atlas_affine},1] {atlas_to_MDT}"
     # check_files([atlas_labels,preprocess_ref,trans,rigid,affine,MDT_to_subject,MDT_to_atlas_affine,atlas_to_MDT])
     os.system(cmd)
 
@@ -181,7 +181,7 @@ def port_to_MDT(img_toport, mainpath, project_name, atlas_labels, reg_type = 'dw
         print(f"Already calculated the label file for image {toport_MDT}")
 
 
-def create_backport_labels(subject, mainpath, project_name, prep_folder, atlas_labels, reg_type = 'dwi', headfile=None, overwrite=False, identifier = '', verbose=True):
+def create_backport_labels(subject, mainpath, project_name, prep_folder, atlas_labels, label_name = None, final_labels = None,reg_type = 'dwi', headfile=None, overwrite=False, identifier = '', shorten = True,verbose=True):
 
     out_dir_base = os.path.join(mainpath, f"{project_name}-results","connectomics")
     out_dir = os.path.join(out_dir_base,subject)
@@ -189,6 +189,8 @@ def create_backport_labels(subject, mainpath, project_name, prep_folder, atlas_l
     work_dir = os.path.join(mainpath, f"{project_name}-work")
     dirty_dir = os.path.join(mainpath,"burn_after_reading")
     mkcdir(dirty_dir)
+
+    file_name = os.path.basename(atlas_labels).split('.')[0]
 
     template_type_prefix = os.path.basename(os.path.dirname(glob.glob(os.path.join(work_dir,reg_type,"SyN*/"))[0]))
     template_runs = glob.glob((os.path.join(work_dir,reg_type,template_type_prefix,"*/")))
@@ -249,8 +251,9 @@ def create_backport_labels(subject, mainpath, project_name, prep_folder, atlas_l
     rigid =os.path.join(work_dir,"dwi",f"{subject}_rigid.mat")
     affine = os.path.join(work_dir,"dwi",f"{subject}_affine.mat")
     MDT_to_subject = os.path.join(final_template_run,"reg_diffeo",f"MDT_to_{subject}_warp.nii.gz")
-    label_name = os.path.basename(atlas_labels)
-    label_name = label_name.split("_labels")[0]
+    if label_name is None:
+        label_name = os.path.basename(atlas_labels)
+        label_name = label_name.split("_labels")[0]
     MDT_to_atlas_affine = os.path.join(final_template_run,"stats_by_region","labels","transforms",f"MDT_*_to_{label_name}_affine.mat")
     atlas_to_MDT = os.path.join(final_template_run,"stats_by_region","labels","transforms",f"{label_name}_to_MDT_warp.nii.gz")
 
@@ -275,10 +278,10 @@ def create_backport_labels(subject, mainpath, project_name, prep_folder, atlas_l
     ##########################################################################################################################################
 
     preprocess_ref = os.path.join(work_dir,"preprocess",f"{subject}_fa_masked.nii.gz")
-    preprocess_labels = os.path.join(dirty_dir,f"{subject}_preprocess_labels.nii.gz")
-    fixed_preprocess_labels = os.path.join(dirty_dir,f"{subject}_fixed_preprocess_labels.nii.gz")
-    coreg_labels = os.path.join(dirty_dir,f"{subject}_{SAMBA_orientation_in}_labels.nii.gz")
-    coreg_reorient_labels = os.path.join(dirty_dir,f"{subject}_{orientation_in}_labels.nii.gz")
+    preprocess_labels = os.path.join(dirty_dir,f"{subject}_{file_name}_preprocess_labels.nii.gz")
+    fixed_preprocess_labels = os.path.join(dirty_dir,f"{subject}_{file_name}_fixed_preprocess_labels.nii.gz")
+    coreg_labels = os.path.join(dirty_dir,f"{subject}_{file_name}_labels.nii.gz")
+    coreg_reorient_labels = os.path.join(dirty_dir,f"{subject}_{file_name}_{orientation_in}_labels.nii.gz")
 
     subjspace_coreg = os.path.join(prep_folder, f"{subject}_subjspace_coreg.nii.gz")
     final_refs = [subjspace_coreg]
@@ -310,7 +313,8 @@ def create_backport_labels(subject, mainpath, project_name, prep_folder, atlas_l
 
 
     symbolic_ref = os.path.join(out_dir,f"{subject}_Reg_LPCA_nii4D.nii.gz")
-    final_labels = os.path.join(out_dir,f"{subject}_{label_name}_labels.nii.gz")
+    if final_labels is None:
+        final_labels = os.path.join(out_dir,f"{subject}_{label_name}_labels.nii.gz")
     final_labels_backup = os.path.join(dirty_dir,f"{subject}_{label_name}_labels.nii.gz")
     superpose=True
 
@@ -365,7 +369,7 @@ def create_backport_labels(subject, mainpath, project_name, prep_folder, atlas_l
             #cmd = f"{os.path.join(gunniespath, 'nifti_header_splicer.bash')} {final_ref} {coreg_labels} {final_labels}"
             #os.system(cmd)
 
-        if os.path.exists(final_labels):
+        if os.path.exists(final_labels) and shorten:
             if verbose:
                 print(f"Applying fsl maths to {final_labels}")
             cmd = f"fslmaths {final_labels} -add 0 {final_labels} -odt short"
