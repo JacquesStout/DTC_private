@@ -218,7 +218,7 @@ def rigid_reg(static, static_grid2world,
     return transformed, rigid.affine
 
 
-def header_superpose(target_path, origin_path, outpath=None, verbose=False):
+def header_superpose(target_path, origin_path, outpath=None, verbose=False, keep_header = False):
 
     target_nii=nib.load(target_path)
     origin_nii=nib.load(origin_path)
@@ -228,7 +228,10 @@ def header_superpose(target_path, origin_path, outpath=None, verbose=False):
         target_affine=target_nii._affine
         target_header = target_nii._header
         if np.any(target_affine != origin_nii._affine) or np.any(target_header != origin_nii._header):
-            new_nii = nib.Nifti1Image(origin_nii.get_fdata(), target_affine, target_header)
+            if keep_header:
+                new_nii = nib.Nifti1Image(origin_nii.get_fdata(), target_affine, origin_nii._header)
+            else:
+                new_nii = nib.Nifti1Image(origin_nii.get_fdata(), target_affine, target_header)
             if outpath is None:
                 outpath = origin_path
                 txt= (f'Overwriting original file {origin_path}')
