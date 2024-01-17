@@ -17,6 +17,24 @@ import sys
 import socket
 from DTC.file_manager.computer_nav import checkfile_exists_all
 from DTC.diff_handlers.bvec_handler import fix_bvals_bvecs
+import subprocess, re
+
+def get_num_streamlines(tracks_path):
+    cmd = f'tckinfo {tracks_path} -count'
+    subprocess.run(cmd, shell=True, stdout=subprocess.PIPE)
+    result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    if result.returncode == 0:
+        # Split the output into lines and extract the last line
+        output_lines = result.stdout.split('\n')
+        last_line = output_lines[-2] if output_lines else ''
+        numbers = re.findall(r'\d+', last_line)
+        num_streamlines = max(map(int, numbers))
+        return num_streamlines
+    else:
+        # Handle the case where the command failed
+        print(f"Error: {result.stderr}")
+        return None
+
 
 #n_threds = str(multiprocessing.cpu_count())
 
@@ -144,7 +162,7 @@ coreg_T1 = True
 
 if not os.path.exists(T1):
     fivett_nocoreg_nii_gz = orig_subj_path + subj + '_5tt_nocoreg.nii.gz'
-    fivett_nocoreg_mif = subj_path + subj + '5tt_nocoreg.mif'
+    fivett_nocoreg_mif = subj_path + subj + '_5tt_nocoreg.mif'
     if os.path.exists(fivett_nocoreg_nii_gz):
         coreg_T1 = False
         skip_T1 = True
@@ -402,11 +420,25 @@ else:
         if not os.path.exists(tracks_10M_tck) or overwrite:
             os.system('tckgen -act ' + fivett_coreg_mif + '  -backtrack -seed_gmwmi '+ gmwmSeed_coreg_mif + ' -maxlength 250 -cutoff 0.06 -select 10000000 ' + wmfod_norm_mif + ' ' + tracks_10M_tck + ' -force')
 
+        cmd = 'tckgen -act ' + fivett_coreg_mif + '  -backtrack -seed_gmwmi ' + gmwmSeed_coreg_mif + ' -maxlength 250 -cutoff 0.06 -select 10000000 ' + wmfod_norm_mif + ' ' + tracks_10M_tck + ' -force'
+        if not os.path.exists(tracks_10M_tck) or overwrite:
+            os.system(cmd)
+        else:
+            num_streamlines = get_num_streamlines(tracks_10M_tck)
+            if num_streamlines < int(10000000):
+                print(f'Bad file at {tracks_10M_tck}, trying again')
+                os.system(cmd)
+
     else:
         gmwmSeed_coreg_mif = mask_mif
+        cmd = 'tckgen -backtrack -seed_image ' + gmwmSeed_coreg_mif + '  -maxlength 410 -cutoff 0.05 -select 10000000 ' + wmfod_norm_mif + ' ' + tracks_10M_tck + ' -force'
         if not os.path.exists(tracks_10M_tck) or overwrite:
-            os.system(
-                'tckgen -backtrack -seed_image ' + gmwmSeed_coreg_mif + '  -maxlength 410 -cutoff 0.05 -select 10000000 ' + wmfod_norm_mif + ' ' + tracks_10M_tck + ' -force')
+            os.system(cmd)
+        else:
+            num_streamlines = get_num_streamlines(tracks_10M_tck)
+            if num_streamlines < int(10000000):
+                print(f'Bad file at {tracks_10M_tck}, trying again')
+                os.system(cmd)
 
     ####read to creat streamlines
     #Creating streamlines with tckgen: be carefull about number of threads on server
@@ -434,11 +466,17 @@ else:
     else:
         smallerTracks = path_perm + subj + f'_smallerTracks2mill{act_string}.tck'
 
-
     #os.system('echo tckedit '+ tracks_10M_tck + ' -number 2000000 -minlength 0.1 ' + smallerTracks + ' -force')
 
     if not os.path.exists(smallerTracks) or overwrite:
         os.system('tckedit '+ tracks_10M_tck + ' -number 2000000 -minlength 2 ' + smallerTracks + ' -force')
+    else:
+        num_streamlines = get_num_streamlines(smallerTracks)
+        if num_streamlines<int(2000000):
+            print(f'Bad file at {smallerTracks}, trying again')
+            os.system('tckedit ' + tracks_10M_tck + ' -number 2000000 -minlength 2 ' + smallerTracks + ' -force')
+
+
     #os.system('mrview ' + den_unbiased_mif + ' -tractography.load '+ smallerTracks)
     #os.system('mrview ' + den_unbiased_mif + ' -tractography.load '+ smallerTracks)
 
@@ -460,7 +498,7 @@ else:
         sift_1M_txt = subj_path+subj+'_sift_1M.txt'
 
         if not os.path.exists(sift_mu_txt) or overwrite:
-            os.system('echo tcksift2  -out_mu '+ sift_mu_txt + ' -out_coeffs ' + sift_coeffs_txt + ' ' + smallerTracks + ' ' + wmfod_norm_mif+ ' ' + sift_1M_txt  + ' -force')
+            os.system('tcksift2  -out_mu '+ sift_mu_txt + ' -out_coeffs ' + sift_coeffs_txt + ' ' + smallerTracks + ' ' + wmfod_norm_mif+ ' ' + sift_1M_txt  + ' -force')
 
         if not os.path.exists(sift_coeffs_txt) or overwrite:
             os.system('tcksift2  -out_mu '+ sift_mu_txt + ' -out_coeffs ' + sift_coeffs_txt + ' ' + smallerTracks + ' ' + wmfod_norm_mif+ ' ' + sift_1M_txt  + ' -force')
@@ -477,15 +515,15 @@ else:
 
             #sum(legend['index2'] == labels)
             for i in labels:
-                leg_index =  np.where(legend['index2'] == i )
+                leg_index = np.where(legend['index2'] == i )
                 leg_index = leg_index [0][0]
                 ordered_num = legend['index'][leg_index]
                 label3d_index = np.where( labels_data == i )
-                label_nii_order [ label3d_index]  = ordered_num
+                label_nii_order[label3d_index] = ordered_num
 
 
             file_result= nib.Nifti1Image(label_nii_order, label_nii.affine, label_nii.header)
-            new_label  = path_perm +subj+'_new_label.nii.gz'
+            new_label = path_perm +subj+'_new_label.nii.gz'
             nib.save(file_result, new_label)
 
             #new_label = label_path
