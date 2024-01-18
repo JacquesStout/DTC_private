@@ -90,11 +90,11 @@ project = 'AD_Decode'
 
 test_mode = False
 
-if test_mode and np.size(sys.argv)<2:
-    subj = 'S02670'
-else:
-    subj = sys.argv[1]
+    #subj = 'S02670'
+subj = sys.argv[1]
 
+if np.size(sys.argv)>2:
+    subj_trk = sys.argv[2]
 
 if test_mode:
     erase=True
@@ -330,7 +330,10 @@ if trk_to_MDT and (not final_img_exists or overwrite):
     """
     prune = False
 
-    subj_trk, trkexists = gettrkpath(path_TRK, subj, str_identifier, pruned=prune, verbose=False, sftp=sftp)
+    if 'subj_trk' not in locals():
+        subj_trk, trkexists = gettrkpath(path_TRK, subj, str_identifier, pruned=prune, verbose=False, sftp=sftp)
+    else:
+        trkexists = os.path.exists(subj_trk)
 
     print('point 1')
     print(subj_trk)
