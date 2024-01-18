@@ -46,6 +46,8 @@ output_folder = ('/mnt/munin2/Badea/Lab/human/AD_Decode_trk_transfer/TRK_MDT')
 list_of_subjs = []
 
 pre_erase_unfinished = True
+test_mode = True
+
 #print(subj_files)
 for subj_file in subj_files:
     subj = os.path.basename(subj_file)[:6]
@@ -55,7 +57,10 @@ if pre_erase_unfinished:
     for subj in list_of_subjs:
         list_files_unfinished = glob.glob(os.path.join(output_folder,f'{subj}*'))
         for file in list_files_unfinished:
-            os.remove(file)
+            if test_mode:
+                print(f'meant to erase file {file}')
+            else:
+                os.remove(file)
     
 print(list_of_subjs)
 
@@ -67,6 +72,9 @@ for subj in list_of_subjs:
     #python_command = "python3 ~/DTC_private/AMD//AMD_subj_to_MDT_clustered.py " + subj
     job_name = job_descrp + "_" + subj
     command = GD + "submit_sge_cluster_job.bash " + sbatch_folder_path + " " + job_name + " 0 0 '" + python_command + "'"
-    os.system(command)
+    if test_mode:
+        print(command)
+    else:
+        os.system(command)
     #print(command)
 
