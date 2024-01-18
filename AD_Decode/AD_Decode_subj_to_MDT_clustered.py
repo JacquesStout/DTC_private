@@ -95,7 +95,7 @@ test_mode = False
 if len(sys.argv[1])>6:
     subj_trk = sys.argv[1]
     subj = os.path.basename(subj_trk).split('_')[0]
-    if os.path.exists(subj_trk):
+    if not os.path.exists(subj_trk):
         txt = f'Could not find {subj_trk}'
         raise Exception(txt)
 else:
