@@ -90,11 +90,16 @@ project = 'AD_Decode'
 
 test_mode = False
 
-    #subj = 'S02670'
-subj = sys.argv[1]
+#subj = 'S02670'
 
-if np.size(sys.argv)>2:
-    subj_trk = sys.argv[2]
+if len(sys.argv[1])>6:
+    subj_trk = sys.argv[1]
+    subj = os.path.basename(subj_trk).split('_')[0]
+    if os.path.exists(subj_trk):
+        txt = f'Could not find {subj_trk}'
+        raise Exception(txt)
+else:
+    subj = sys.argv[1]
 
 if test_mode:
     erase=True
