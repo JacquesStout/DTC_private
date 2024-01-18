@@ -20,11 +20,13 @@ def get_num_streamlines(tracks_path):
 tck_file = sys.argv[1]
 trk_file = sys.argv[2]
 reference_file = sys.argv[3]
-check = sys.argv[4]
-num_min = sys.argv[5]
+num_min = sys.argv[4]
 
 num_streamlines = get_num_streamlines(tck_file)
-if num_streamlines<num_min:
+print(num_streamlines)
+
+if int(num_streamlines)<int(num_min):
     raise Exception('Tck file did not have minimum number of streamlines')
 else:
     convert_tck_to_trk(tck_file, trk_file,reference_file)
+
