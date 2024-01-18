@@ -46,7 +46,7 @@ output_folder = ('/mnt/munin2/Badea/Lab/human/AD_Decode_trk_transfer/TRK_MDT')
 list_of_subjs = []
 
 pre_erase_unfinished = True
-test_mode = True
+test_mode = False
 
 #print(subj_files)
 for subj_file in subj_files:
@@ -64,6 +64,22 @@ if pre_erase_unfinished:
     
 print(list_of_subjs)
 
+for subj_trk in subj_files:
+    # print(subj)
+    # fmri_file = list_fmir_folders_path +subj + "/ses-1/func/" + subj +"_ses-1_bold.nii.gz"
+    # nib.load(fmri_file)
+    python_command = "python3 ~/DTC_private/AD_Decode/AD_Decode_subj_to_MDT_clustered.py " + subj_trk
+    #python_command = "python3 ~/DTC_private/AMD//AMD_subj_to_MDT_clustered.py " + subj
+    subj = os.path.basename(subj_trk).split('_')[0]
+    job_name = job_descrp + "_" + subj
+    command = GD + "submit_sge_cluster_job.bash " + sbatch_folder_path + " " + job_name + " 0 0 '" + python_command + "'"
+    if test_mode:
+        print(command)
+    else:
+        os.system(command)
+    #print(command)
+
+"""
 for subj in list_of_subjs:
     # print(subj)
     # fmri_file = list_fmir_folders_path +subj + "/ses-1/func/" + subj +"_ses-1_bold.nii.gz"
@@ -77,4 +93,4 @@ for subj in list_of_subjs:
     else:
         os.system(command)
     #print(command)
-
+"""
