@@ -38,7 +38,7 @@ else:
     raise Exception('No other computer name yet')
 
 #Setting identification parameters for ratio, labeling type, etc
-ratio = 100
+ratio = 1
 ratio_str = ratio_to_str(ratio,spec_all=False)
 
 print(ratio_str)
@@ -78,7 +78,7 @@ else:
     trkroi = ["wholebrain"]
 
 str_identifier = get_str_identifier(stepsize, ratio, trkroi, type=streamline_type)
-
+str_identifier = '_MDT'+ str_identifier
 labeltype = 'lrordered'
 verbose=True
 picklesave=True
@@ -88,10 +88,11 @@ print(f'there are {function_processes} function processes')
 
 mainpath = '/Volumes/Shared Folder/newJetStor/paros/paros_WORK/jacques/AD_Decode/'
 TRK_folder = os.path.join(mainpath, 'TRK_MDT'+ratio_str)
+TRK_folder = '/Volumes/Data/Badea/Lab/human/AD_Decode_trk_transfer/TRK_MDT/'
 
 label_folder = os.path.join(mainpath, 'DWI')
 trkpaths = glob.glob(os.path.join(TRK_folder, '*trk'))
-excel_folder = os.path.join(mainpath, f'Excels_MDT{inclusive_str}{symmetric_str}{folder_ratio_str}')
+excel_folder = os.path.join(mainpath, f'Excels_MDT_act{inclusive_str}{symmetric_str}{folder_ratio_str}')
 
 print(excel_folder)
 mkcdir(excel_folder)
@@ -110,23 +111,13 @@ group_qb = {}
 group_clusters = {}
 groups_subjects = {}
 
-subjects = ['S01912', 'S02110', 'S02224', 'S02227', 'S02230', 'S02231', 'S02266', 'S02289', 'S02320', 'S02361', 'S02363',
-        'S02373', 'S02386', 'S02390', 'S02402', 'S02410', 'S02421', 'S02424', 'S02446', 'S02451', 'S02469', 'S02473',
-        'S02485', 'S02491', 'S02490', 'S02506', 'S02523', 'S02524', 'S02535', 'S02654', 'S02666', 'S02670', 'S02686',
-        'S02690', 'S02695', 'S02715', 'S02720', 'S02737', 'S02745', 'S02753', 'S02765', 'S02771', 'S02781', 'S02802',
-        'S02804', 'S02813', 'S02812', 'S02817', 'S02840', 'S02842', 'S02871', 'S02877', 'S02898', 'S02926', 'S02938',
-        'S02939', 'S02954', 'S02967', 'S02987', 'S03010', 'S03017', 'S03028', 'S03033', 'S03034', 'S03045', 'S03048',
-        'S03069', 'S03225', 'S03265', 'S03293', 'S03308', 'S03321', 'S03343', 'S03350', 'S03378', 'S03391', 'S03394']
-removed_list = ['S02745', 'S02230', 'S02490', 'S02523', 'S02654']
+trk_files = glob.glob(os.path.join(TRK_folder,'*trk'))
+subjects = [os.path.basename(trk_file).split('_')[0] for trk_file in trk_files]
 
 atlas_folder = '/Volumes/Data/Badea/Lab/atlases'
 
 if project=='AMD' or project=='AD_Decode':
     atlas_legends = get_atlas(atlas_folder, 'IIT')
-
-for remove in removed_list:
-    if remove in subjects:
-        subjects.remove(remove)
 
 sftp=None
 _, _, index_to_struct, _ = atlas_converter(atlas_legends, sftp=sftp)
@@ -149,7 +140,8 @@ for subject in subjects:
     _, exists = check_files([M_xlsxpath, grouping_xlsxpath], sftp=sftp)
     if np.all(exists) and not overwrite:
         if verbose:
-            print(f'Found written file for subject {subject} at {M_xlsxpath} and {grouping_xlsxpath}')
+            #print(f'Found written file for subject {subject} at {M_xlsxpath} and {grouping_xlsxpath}')
+            print(f'Already finished for {subject}')
         continue
     else:
         t1 = time()
