@@ -37,9 +37,11 @@ def mkcdir(folderpaths, sftp=None):
 
 if socket.gethostname().split('.')[0] == 'santorini':
     root = '/Volumes/Data/Badea/Lab/'
-    root_proj = '/Volumes/Data/Badea/Lab/mouse/Jasien_mrtrix_pipeline/'
+    #root_proj = '/Volumes/Data/Badea/Lab/mouse/Jasien_mrtrix_pipeline/'
+    root_proj = '/Volumes/Shared Folder/newJetStor/paros/paros_DB/Projects/Jasien/'
     data_path = '/Volumes/Data/Jasien/ADSB.01/Data/Anat/'
-    data_path_output = '/Volumes/Data/Badea/Lab/mouse/Jasien_mrtrix_pipeline/'
+    #data_path_output = '/Volumes/Data/Badea/Lab/mouse/Jasien_mrtrix_pipeline/'
+    data_path_output = '/Volumes/Shared Folder/newJetStor/paros/paros_DB/Projects/Jasien/'
 else:
     root = '/mnt/munin2/Badea/Lab/'
     root_proj = '/mnt/munin2/Badea/Lab/mouse/Jasien_mrtrix_pipeline/'
