@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from numpy import ravel_multi_index
 #from dipy.tracking._utils import (_mapping_to_voxel, _to_voxel_coordinates)
 from collections import defaultdict, OrderedDict
@@ -105,6 +106,12 @@ def label_weights_matrix(label_volume):
 
     return(matrix)
 
+
+def mrtrixcsv_addatlas(connectome_path,index_to_struct,outpath):
+    connectome = np.array(pd.read_csv(connectome_path,header=None))
+    df = pd.DataFrame(connectome, index=[index_to_struct[i+1] for i in range(len(connectome))],
+                      columns=[index_to_struct[j+1] for j in range(len(connectome[0]))])
+    df.to_csv(outpath)
 
 
 def connectivity_matrix_test(streamlines, affine, label_volume, inclusive=False,
