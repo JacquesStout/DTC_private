@@ -18,7 +18,10 @@ def atlas_converter(ROI_excel,sftp=None):
     df['Structure'] = df['Structure'].str.lower()
     index1=df['index']
     index2=df['index2']
-    index3=df['index3']
+    try:
+        index3=df['index3']
+    except KeyError:
+        print('Cannot get combined index')
     structures=df['Structure']
     hemispheres=df['Hemisphere']
     hemispheres_new = []
@@ -34,9 +37,10 @@ def atlas_converter(ROI_excel,sftp=None):
     for i in np.arange(np.size(hemispheres_new)):
         if hemispheres_new[i] in ['_left','_right']:
             converter_lr[index2[i]] = index1[i]
-            converter_comb[index2[i]] = index3[i]
+            if 'index3' in locals():
+                converter_comb[index2[i]] = index3[i]
+                index_to_struct_comb[index3[i]] = structures[i]
             index_to_struct_lr[index1[i]] = structures[i] + hemispheres_new[i]
-            index_to_struct_comb[index3[i]] = structures[i]
     if 0 not in converter_lr:
         converter_lr[0] = 0
     if 0 not in converter_comb:
