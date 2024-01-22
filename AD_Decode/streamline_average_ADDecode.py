@@ -2,7 +2,8 @@
 import numpy as np
 from dipy.segment.clustering import QuickBundles
 from dipy.io.streamline import load_trk, save_trk
-from dipy.segment.metric import ResampleFeature, AveragePointwiseEuclideanMetric,mdf
+from dipy.segment.metric import AveragePointwiseEuclideanMetric
+from dipy.segment.featurespeed import ResampleFeature
 from dipy.io.image import load_nifti
 import warnings
 
@@ -12,7 +13,7 @@ import os, glob
 import pickle
 from DTC.nifti_handlers.nifti_handler import getlabeltypemask
 from DTC.file_manager.file_tools import mkcdir, check_files
-from DTC.tract_manager.tract_manager.tract_handler import ratio_to_str, gettrkpath
+from DTC.tract_manager.tract_handler import ratio_to_str, gettrkpath
 from DTC.nifti_handlers.atlas_handlers.convert_atlas_mask import atlas_converter
 import errno
 import socket
@@ -26,12 +27,12 @@ from dipy.viz import window, actor
 from time import sleep
 from dipy.segment.clustering import ClusterCentroid
 from dipy.tracking.streamline import Streamlines
-from visualization_tools.visualization_tools.tract_visualize import show_bundles, setup_view
 from dipy.tracking.utils import connectivity_matrix
-from tract_manager.tract_save import unload_trk
+
 
 def get_grouping(grouping_xlsx):
     print('not done yet')
+
 
 def get_diff_ref(label_folder, subject, ref):
     diff_path = os.path.join(label_folder,f'{subject}_{ref}_to_MDT.nii.gz')
@@ -64,7 +65,7 @@ distance1 = 1
 num_points2 = 50
 distance2 = 2
 
-ratio = 1
+ratio = 100
 project = 'AD_Decode'
 skip_subjects = True
 write_streamlines = True
@@ -121,8 +122,8 @@ if 'samos' in computer_name:
     mainpath = '/mnt/paros_MRI/jacques/'
     ROI_legends = "/mnt/paros_MRI/jacques/atlases/IITmean_RPI/IITmean_RPI_index.xlsx"
 elif 'santorini' in computer_name or 'hydra' in computer_name:
-    #mainpath = '/Users/alex/jacques/'
-    mainpath = '/Volumes/Data/Badea/Lab/human/'
+    #mainpath = '/Volumes/Data/Badea/Lab/human/'
+    mainpath = '/Volumes/Shared Folder/newJetStor/paros/paros_WORK/jacques/AD_Decode/'
     ROI_legends = "/Volumes/Data/Badea/ADdecode.01/Analysis/atlases/IITmean_RPI/IITmean_RPI_index.xlsx"
     ref_MDT_folder = '/Volumes/Data/Badea/Lab/mouse/VBM_21ADDecode03_IITmean_RPI_fullrun-work/dwi/SyN_0p5_3_0p5_fa/faMDT_NoNameYet_n37_i6/reg_images/'
 elif 'blade' in computer_name:
@@ -132,8 +133,9 @@ elif 'blade' in computer_name:
 else:
     raise Exception('No other computer name yet')
 
+
 # Setting identification parameters for ratio, labeling type, etc
-ratio_str = ratio_to_str(ratio)
+ratio_str = ratio_to_str(ratio,spec_all=False)
 print(ratio_str)
 if ratio_str == '_all':
     folder_ratio_str = ''
@@ -150,7 +152,10 @@ if project=='AD_Decode':
     mainpath=os.path.join(mainpath,project,'Analysis')
 else:
     mainpath = os.path.join(mainpath, project)
-TRK_folder = os.path.join(mainpath, f'TRK_MPCA_MDT_fixed{folder_ratio_str}')
+
+mainpath = '/Volumes/Shared Folder/newJetStor/paros/paros_WORK/jacques/AD_Decode/'
+#TRK_folder = os.path.join(mainpath, f'TRK_MPCA_MDT_fixed{folder_ratio_str}')
+TRK_folder = os.path.join(mainpath, 'TRK_MDT'+ratio_str)
 
 label_folder = os.path.join(mainpath, 'DWI')
 if symmetric:
