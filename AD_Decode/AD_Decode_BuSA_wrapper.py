@@ -71,7 +71,7 @@ mkcdir(sbatch_folder_path)
 GD = '/mnt/clustertmp/common/rja20_dev/gunnies/'
 
 if 'santorini' in socket.gethostname().split('.')[0]:
-    project_headfile_folder = '/Users/jas/bass/gitfolder/DTC_private/BuSA_headfiles'
+    project_headfile_folder = '/Volumes/Data/Badea/Lab/jacques/BuSA_headfiles'
 if 'blade' in socket.gethostname().split('.')[0]:
     project_headfile_folder = '/mnt/munin2/Badea/Lab/jacques/BuSA_headfiles'
 import sys
