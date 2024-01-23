@@ -32,7 +32,8 @@ remote = False
 
 if len(sys.argv) < 2:
     #project = 'V0_9_10template_100_6_interhe_majority'
-    project = 'V0_9_reg_superiorfrontalleft_precentralleft_6'
+    #project = 'V0_9_reg_superiorfrontalleft_precentralleft_6'
+    project = 'V0_9_reg_precuneusleft_hippocampusleft_3'
 else:
     project = sys.argv[1]
 
