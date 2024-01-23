@@ -79,7 +79,7 @@ if bundle_split is None:
 overwrite=False
 verbose = False
 
-if remote_output:
+if remote_input or remote_output:
     username, passwd = getfromfile(os.path.join(os.environ['HOME'],'remote_connect.rtf'))
 else:
     username = None
@@ -156,12 +156,12 @@ if not checkfile_exists_remote(trktemplate_paths, sftp_out) \
             raise Exception('txt')
 
         if 'header' not in locals():
-            streamlines_temp_data = load_trk_remote(subj_trk, 'same', sftp_out)
+            streamlines_temp_data = load_trk_remote(subj_trk, 'same', sftp_in)
             header = streamlines_temp_data.space_attributes
             streamlines_temp = streamlines_temp_data.streamlines
             del streamlines_temp_data
         else:
-            streamlines_temp = load_trk_remote(subj_trk, 'same', sftp_out).streamlines
+            streamlines_temp = load_trk_remote(subj_trk, 'same', sftp_in).streamlines
 
         if setpoints:
             streamlines_template.extend(set_number_of_points(streamlines_temp, points_resample))

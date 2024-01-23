@@ -130,7 +130,7 @@ bundle_id_looping = False
 
 overwrite = False
 
-qsub = False
+qsub = True
 
 testmode = False
 code_specific_folder = os.path.join(code_folder,'AD_Decode','BuSA_split_regions_into_bundles')
