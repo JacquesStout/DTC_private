@@ -83,7 +83,8 @@ constrain_groups = True
 
 target_tuples = [(9, 1), (79, 9), (43, 39), (44, 1), (44, 9), (77, 43), (78,64), (51,9), (74,64), (64,9)]
 target_tuples = [(9, 1), (79, 9), (43, 39)] #superiorfrontal left to precentral left
-target_tuples = [(77,73)]
+target_tuples = [(40,25),(44,40),(40,6)]
+target_tuples = [(78, 74),(74,40)]
 #target_tuples = [(77, 43)] #superior frontal right to superior frontal left
 
 
