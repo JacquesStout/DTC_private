@@ -217,12 +217,12 @@ for subject in full_subjects_list:
     streamlines_side = {}
 
     if 'header' not in locals():
-        streamlines_data = load_trk_remote(trkpath_subj, 'same', sftp_out)
+        streamlines_data = load_trk_remote(trkpath_subj, 'same', sftp_in)
         header = streamlines_data.space_attributes
         streamlines = streamlines_data.streamlines
         del streamlines_data
     else:
-        streamlines = load_trk_remote(trkpath_subj, 'same', sftp_out).streamlines
+        streamlines = load_trk_remote(trkpath_subj, 'same', sftp_in).streamlines
 
     for streamline in streamlines:
         dist_min = 1000000
