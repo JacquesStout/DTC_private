@@ -224,6 +224,9 @@ for subject in full_subjects_list:
     else:
         streamlines = load_trk_remote(trkpath_subj, 'same', sftp_in).streamlines
 
+    if setpoints:
+        streamlines = set_number_of_points(streamlines, points_resample)
+
     for streamline in streamlines:
         dist_min = 1000000
         new_bundle_id = -1
@@ -235,6 +238,8 @@ for subject in full_subjects_list:
         if new_bundle_id!=-1:
             streamline = set_number_of_points(streamline, points_resample)
             streamline_bundle[new_bundle_id].append(streamline)
+        else:
+            print(dist)
     if verbose:
         print(f'Finished streamline prep')
     for new_bundle_id in streamline_bundle.keys():
@@ -254,7 +259,7 @@ for subject in full_subjects_list:
         colorbar = False
         plane = 'z'
         streamlines_bundled = []
-        for new_bundle_id in np.arange(num_bundles):
+        for new_bundle_id in np.arange(bundle_split):
             new_bundle = qb_test.cluster(streamline_bundle[new_bundle_id])[0]
             streamlines_bundled.append(new_bundle)
         record_path = os.path.join(figures_proj_path,

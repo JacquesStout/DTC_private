@@ -17,6 +17,11 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import socket
 from DTC.file_manager.file_tools import mkcdir, check_files
+from statsmodels.formula.api import ols
+from scipy.stats import ttest_ind
+from statsmodels.stats.api import anova_lm
+
+
 from DTC.file_manager.computer_nav import checkfile_exists_remote, get_mainpaths, load_nifti_remote, load_trk_remote, \
     loadmat_remote, pickledump_remote, remote_pickle, checkfile_exists_all, write_parameters_to_ini, \
     read_parameters_from_ini
@@ -28,14 +33,114 @@ def outlier_removal(values, qsep=3):
     return new_values
 
 
+def models_pvalue(df, model = None,order=1):
+    if model == 'anova_n':
+        # model1 = f'average{ref} ~ np.power(age, 2) + age'
+        # formula_age_gen = f'average{ref} ~ genotype + np.power(age, 2) + age'
+
+        bundle_df_used_2 = pd.get_dummies(bundle_df_used, columns=['genotype'], drop_first=True)
+        bundle_df_used_2['genotype_APOE4'] = bundle_df_used_2['genotype_APOE4'].replace({False: 0, True: 1})
+        if order==2:
+            bundle_df_used_2['age2'] = bundle_df_used_2.age * bundle_df_used_2.age
+            X1 = bundle_df_used_2[['age', 'age2']]  # Independent variables for func1
+            X2 = bundle_df_used_2[['age', 'age2', 'genotype_APOE4']]
+        if order==1:
+            X1 = bundle_df_used_2[['age']]  # Independent variables for func1
+            X2 = bundle_df_used_2[['age','genotype_APOE4']]
+
+        y = bundle_df_used_2[f'average{ref}']  # Dependent variable
+
+        # Add a constant term to the independent variables (similar to intercept in lm)
+        X1 = sm.add_constant(X1)
+        X2 = sm.add_constant(X2)
+
+        # Fit the linear regression models
+        model1 = sm.OLS(y, X1).fit()
+        model2 = sm.OLS(y, X2).fit()
+        anova_results = anova_lm(model1, model2)
+
+        # Extract p-value from ANOVA table
+        p_value = anova_results.iloc[1, 5]
+        return(p_value)
+
+    if model == 'anova':
+        if order == 2:
+            formula1 = f'average{ref} ~ genotype + age + np.power(age, 2)'
+            formula2 = f'average{ref} ~ genotype + age + np.power(age, 2) + np.power(age, 2):genotype +age:genotype'
+        if order == 1:
+            formula1 = f'average{ref} ~ genotype + age'
+            formula2 = f'average{ref} ~ genotype + age + age:genotype'
+
+        model1 = ols(formula1, data=bundle_df_used).fit()
+        model2 = ols(formula2, data=bundle_df_used).fit()
+
+        # Perform ANOVA test
+        anova_table = sm.stats.anova_lm(model1, model2)
+
+        # Extract p-value from ANOVA table
+        p_value = anova_table.iloc[1, 5]
+        return(p_value)
+
+
+    if model == 'anova_mixed':
+        if order == 2:
+            formula1 = f'average{ref} ~ genotype + age + np.power(age, 2)'
+            formula2 = f'average{ref} ~ genotype + age + np.power(age, 2) + np.power(age, 2):genotype +age:genotype'
+        if order == 1:
+            formula1 = f'average{ref} ~ genotype + age'
+            formula2 = f'average{ref} ~ genotype + age + age:genotype'
+
+        model1 = smf.mixedlm(formula1, data=bundle_df_used, groups=bundle_df_used['Subject']).fit(method='powell')
+        model2 = smf.mixedlm(formula2, data=bundle_df_used, groups=bundle_df_used['Subject']).fit(method='powell')
+
+        residuals = model1.resid
+        squared_residuals = residuals ** 2
+        #model1.ssr = np.sum(squared_residuals)
+        model1.ssr = np.sum(np.power(model1.fittedvalues - np.mean(bundle_df_used['averagemrtrixfa']), 2))
+
+        residuals = model2.resid
+        squared_residuals = residuals ** 2
+        #model2.ssr = np.sum(squared_residuals)
+        model2.ssr = np.sum(np.power(model2.fittedvalues - np.mean(bundle_df_used['averagemrtrixfa']), 2))
+
+        # Perform ANOVA test
+        anova_table = sm.stats.anova_lm(model1, model2)
+
+        # Extract p-value from ANOVA table
+        p_value = anova_table.iloc[1, 5]
+        return(p_value)
+
+    if model == 'anova_backup':
+        formula = f'average{ref} ~ genotype + age + np.power(age, 2) + np.power(age, 2):genotype +age:genotype'
+
+        model = ols(formula, data=bundle_df_used).fit()
+
+        # Perform ANOVA test
+        anova_table = sm.stats.anova_lm(model, typ=2)
+
+        # Extract p-value from ANOVA table
+        p_value = anova_table.loc['genotype', 'PR(>F)']
+        return(p_value)
+
+    if model == 't-test':
+        gen_group1 = bundle_df_used[bundle_df_used['genotype'] == 'APOE3'][f'average{ref}']
+        gen_group2 = bundle_df_used[bundle_df_used['genotype'] == 'APOE4'][f'average{ref}']
+        t_stat, p_value = ttest_ind(gen_group1, gen_group2)
+        return(p_value)
+
+
 remote = False
 
 if len(sys.argv) < 2:
     #project = 'V0_9_10template_100_6_interhe_majority'
     #project = 'V0_9_reg_superiorfrontalleft_precentralleft_6'
-    project = 'V0_9_reg_precuneusleft_hippocampusleft_3'
+    #project = 'V0_9_reg_precuneusright_thalamusproper_left_split_1.ini'
+    project = 'V0_9_reg_precuneusleft_precuneus_right_split_3'
 else:
     project = sys.argv[1]
+    if os.path.exists(project):
+        project_summary_file = project
+        project = os.path.basename(project).split('.ini')[0]
 
 loc = 'munin'
 
@@ -63,7 +168,8 @@ else:
     sftp = None
 
 project_headfile_folder = '/Volumes/Data/Badea/Lab/jacques/BuSA_headfiles/'
-project_summary_file = os.path.join(project_headfile_folder,project+'.ini')
+if 'project_summary_file' not in locals():
+    project_summary_file = os.path.join(project_headfile_folder,project+'.ini')
 
 if not os.path.exists(project_summary_file):
     txt = f'Could not find configuration file at {project_summary_file}'
@@ -145,6 +251,16 @@ testmode = False
 verbose = True
 geno_simplify = True
 
+#models = ['anova','anova_mixed'] #['anova','t-test']
+models = ['anova']
+
+if testmode:
+    save_fig = False
+else:
+    save_fig = True
+
+order=1
+
 for bundle in bundles:
 
     print(f'Beginning for bundle {bundle}')
@@ -162,6 +278,10 @@ for bundle in bundles:
     bundle_num = bundle.split('bundle_')[1].split('.')[0]
 
     fig_bundle_path = os.path.join(figures_box_path, f'bundle{side_str}_{bundle_num}_boxsquaremodel.png')
+
+    if testmode:
+        full_subjects_list = full_subjects_list[:10]
+
     """
     this_bundle_subjs = [i for i in all_subj_bundles if bundle in i]
     this_bundle_subjs = sorted(this_bundle_subjs)
@@ -179,6 +299,7 @@ for bundle in bundles:
                 temp = pd.read_excel(subj_bundle_path)
         except:
             print(f'Not including subject {subj}')
+            continue
 
         # temp = pd.DataFrame()
         temp['Subject'] = subj[2:6]
@@ -206,8 +327,8 @@ for bundle in bundles:
         column_names.append("point_" + str(i) + f"_{ref}")
     bundle_df[f'average{ref}'] = np.mean(bundle_df[column_names], 1)
 
-    bundle_df_reduced = bundle_df[[f"average{ref}", "age","genotype"]]
-    #    bundle_df_reduced = bundle_df_reduced.iloc[ 0:2000]
+    bundle_df_reduced = bundle_df[[f"average{ref}", "age","genotype","Subject"]]
+    bundle_df_tiny = bundle_df.groupby('Subject').agg({'age': 'first', 'genotype': 'first', f'average{ref}': 'mean'}).reset_index()
 
     # bundle_df_reduced.boxplot(column='averageFA',by='age')
     # sns.boxplot(x="age", y="averageFA", data=bundle_df_reduced)
@@ -215,12 +336,38 @@ for bundle in bundles:
         bundle_df_reduced = bundle_df_reduced.replace(
             {'APOE23': 'APOE3', 'APOE34': 'APOE4', 'APOE33': 'APOE3','APOE44':'APOE4'}, regex=True)
 
-    sns.lmplot(x="age", y=f"average{ref}", data=bundle_df_reduced, x_estimator=np.mean, order=2, hue='genotype')
-    plt.title(f'Boxplot for bundle {int(bundle_num) + 1}', y=0.9)
+        bundle_df_tiny = bundle_df_tiny.replace(
+            {'APOE23': 'APOE3', 'APOE34': 'APOE4', 'APOE33': 'APOE3', 'APOE44': 'APOE4'}, regex=True)
 
-    plt.savefig(fig_bundle_path)
-    if verbose:
-        print(f'Saved figure of bundles at {fig_bundle_path}')
+    snsgraph = sns.lmplot(x="age", y=f"average{ref}", data=bundle_df_reduced, x_estimator=np.mean, order=2, hue='genotype')
+    snsgraph.set_axis_labels('Age (years)', 'Average FA')
+
+    x_loc = 0.18
+    y_loc = 0.20
+
+    for model in models:
+
+        bundle_df_used = bundle_df_reduced
+
+        p_value = models_pvalue(bundle_df_used,model=model,order=2)
+        #plt.text(x_loc, y_loc, f'quadratic {model} p-value: {"{:.3g}".format(p_value)}', transform=plt.gcf().transFigure,
+        #         bbox=dict(facecolor='white', edgecolor='black', boxstyle='round,pad=0.5'),size=8)
+        plt.text(x_loc, y_loc, f'quadratic p-value: {"{:.3g}".format(p_value)}', transform=plt.gcf().transFigure,size=8)
+        y_loc += 0.06
+
+    for model in models:
+        bundle_df_used = bundle_df_reduced
+
+        p_value = models_pvalue(bundle_df_used,model=model,order=1)
+        plt.text(x_loc, y_loc, f'Linear p-value: {"{:.3g}".format(p_value)}', transform=plt.gcf().transFigure,size=8)
+        y_loc += 0.06
+
+    plt.title(f'Boxplot for bundle {int(bundle_num) + 1}', y=0.95,size= 10)
+
+    if save_fig:
+        plt.savefig(fig_bundle_path)
+        if verbose:
+            print(f'Saved figure of bundles at {fig_bundle_path}')
 
     list_df = []
     for i in np.arange(num_groups):

@@ -108,7 +108,7 @@ for remove in removed_list:
 
 new_bundle_ids = np.arange(bundle_split)
 
-overwrite = True
+overwrite = False
 verbose = False
 
 if remote_output:
@@ -265,8 +265,12 @@ for subject in full_subjects_list:
                 column_indices = dataf_subj.columns.get_loc('CCI')
                 # print(tract_length(bundle_streamlines))
                 # print([[i] for i in tract_length(bundle_streamlines)])
-                cci = cluster_confidence(bundle_streamlines, override=True)
-                dataf_subj.iloc[:, column_indices] = cci
+                try:
+                    cci = cluster_confidence(bundle_streamlines, override=True)
+                    dataf_subj.iloc[:, column_indices] = cci
+                except TypeError:
+                    warningstxt = f'Could not work for subject {subject} at bundle_id {new_bundle_id}'
+                    warnings.warn(warningstxt)
 
                 """
                 length_streamlines = list(tract_length(bundle_streamlines))

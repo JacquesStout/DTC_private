@@ -112,7 +112,11 @@ if parts is None:
     parts = ['1','2','3']
 
 subjects = []
-project_summary_file = os.path.join(project_headfile_folder, project_run_identifier + '.ini')
+if os.path.exists(project_run_identifier):
+    project_summary_file = project_run_identifier
+    project = os.path.basename(project_run_identifier).split('.ini')[0]
+else:
+    project_summary_file = os.path.join(project_headfile_folder, project_run_identifier + '.ini')
 if not os.path.exists(project_summary_file):
     raise Exception('Could not find project file')
 params = read_parameters_from_ini(project_summary_file)
@@ -130,9 +134,9 @@ bundle_id_looping = False
 
 overwrite = False
 
-qsub = True
+qsub = False
 
-testmode = False
+testmode = True
 code_specific_folder = os.path.join(code_folder,'AD_Decode','BuSA_split_regions_into_bundles')
 
 if '1' in parts:
@@ -162,7 +166,12 @@ if '2' in parts:
         command = os.path.join(GD,
                                "submit_sge_cluster_job.bash") + " " + sbatch_folder_path + " " + job_name + " 0 0 '" + python_command + "'"
         if testmode:
-            print(python_command)
+            if qsub:
+                print(python_command)
+            else:
+                print(python_command.split('--subj')[0])
+                break
+
         else:
             if qsub:
                 os.system(command)
@@ -182,7 +191,11 @@ if '3' in parts:
         command = os.path.join(GD,
                                "submit_sge_cluster_job.bash") + " " + sbatch_folder_path + " " + job_name + " 0 0 '" + python_command + "'"
         if testmode:
-            print(python_command)
+            if qsub:
+                print(python_command)
+            else:
+                print(python_command.split('--subj')[0])
+                break
         else:
             if qsub:
                 os.system(command)
