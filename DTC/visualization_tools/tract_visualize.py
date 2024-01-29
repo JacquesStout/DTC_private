@@ -372,9 +372,7 @@ def setup_view(trk_object, colors=None, world_coords=False, show=True, fname=Non
             data, affine = load_nifti(ref)
             shape = data.shape
             warnings.warn('changed data')
-            if addedmask is not None:
-                addedmask_data = nib.load(addedmask).get_fdata()
-                data[addedmask_data==0] = 0
+
             """
             valsurround = 50
             valincrease = 1000
@@ -402,6 +400,17 @@ def setup_view(trk_object, colors=None, world_coords=False, show=True, fname=Non
     #value_range = (0,2000)
     #value_range = None
     if data is not None:
+        if addedmask is not None:
+            addedmask_data = nib.load(addedmask).get_fdata()
+            addedmask_data = addedmask_data.astype(bool)
+            data_new = np.zeros(list(np.shape(data))+[3])
+            data_new[:,:,:,0] = ((data-value_range[0])/value_range[1])*255
+            data_new[:,:,:,1] = ((data-value_range[0])/value_range[1])*255
+            data_new[:,:,:,2] = ((data-value_range[0])/value_range[1])*255
+            data_new[addedmask_data,0] = 0
+            data_new[addedmask_data,1] = 188
+            data_new[addedmask_data,2] = 227
+            data = data_new
         if not world_coords:
             image_actor_z = actor.slicer(data, affine=np.eye(4),value_range = value_range)
         else:
@@ -492,7 +501,12 @@ def setup_view(trk_object, colors=None, world_coords=False, show=True, fname=Non
                                          y_midpoint,
                                          0,
                                          shape[1])
-
+            """
+            if addedmask is not None:
+                image_actor_z.display_extent(*addedmask_data, color=(1, 0, 0))
+                image_actor_y.display_extent(*addedmask_data, color=(1, 0, 0))
+                image_actor_x.display_extent(*addedmask_data, color=(1, 0, 0))
+            """
 
             if show_z:
                 scene.add(image_actor_z)
@@ -780,6 +794,7 @@ def setup_view(trk_object, colors=None, world_coords=False, show=True, fname=Non
     for object_actor in object_actors_toremove:
         scene.rm(object_actor)
     return scene
+
 
 
 def setup_view_colortest(trk_object, colors=None, world_coords=False, show=True, fname=None, str_tube=False, ref=None,
