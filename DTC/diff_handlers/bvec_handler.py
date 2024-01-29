@@ -267,13 +267,14 @@ def cut_bvecs_bvals(bval_path,bvec_path,bvec_checked_cut_path,bval_checked_cut_p
     dwi_mask = bvals > b0_threshold
 
     num_bvals = np.size(bvals[b0_mask])
-
+    if np.shape(bvecs)[1]!=3:
+        bvecs = bvecs.T
     if type(cutdirs) != list:
         bvals_cut = np.concatenate((bvals[b0_mask], bvals[dwi_mask][:cutdirs]))
-        bvecs_cut = np.concatenate((bvecs.T[b0_mask], bvecs.T[dwi_mask][:cutdirs]))
+        bvecs_cut = np.concatenate((bvecs[b0_mask], bvecs[dwi_mask][:cutdirs]))
     else:
         bvals_cut = np.concatenate((bvals[b0_mask], bvals[dwi_mask][cutdirs]))
-        bvecs_cut = np.concatenate((bvecs.T[b0_mask], bvecs.T[dwi_mask][cutdirs]))
+        bvecs_cut = np.concatenate((bvecs[b0_mask], bvecs[dwi_mask][cutdirs]))
 
     if writeformat == "classic":
         if sftp is None:
