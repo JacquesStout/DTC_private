@@ -29,6 +29,7 @@ from dipy.segment.clustering import ClusterCentroid
 from dipy.tracking.streamline import Streamlines
 from dipy.tracking.utils import connectivity_matrix
 from DTC.tract_manager.DTC_manager import get_str_identifier, check_dif_ratio
+from DTC.tract_manager.tract_save import convert_trk_to_tck,convert_tck_to_trk
 
 
 def get_grouping(grouping_xlsx):
@@ -81,13 +82,14 @@ write_txt = True
 constrain_groups = True
 
 
-target_tuples = [(9, 1), (79, 9), (43, 39), (44, 1), (44, 9), (77, 43), (78,64), (51,9), (74,64), (64,9)]
-target_tuples = [(9, 1), (79, 9), (43, 39)] #superiorfrontal left to precentral left
+#target_tuples = [(9, 1), (79, 9), (43, 39), (44, 1), (44, 9), (77, 43), (78,64), (51,9), (74,64), (64,9)]
+#target_tuples = [(9, 1), (79, 9), (43, 39)] #superiorfrontal left to precentral left
 target_tuples = [(40,25),(44,40),(40,6)]
-target_tuples = [(78, 74),(74,40)]
+target_tuples = [(74, 2),(74,40)]
+#target_tuples = [(74, 40),(74, 2),(74, 44),(74, 25),(74, 50),(40,6)]
+target_tuples = [(78,74),(74,40),(44,40),(40,2),(74,2)]
 #target_tuples = [(77, 43)] #superior frontal right to superior frontal left
-
-
+target_tuples = [(74,2)]
 
 labeltype = 'lrordered'
 #reference_img refers to statistical values that we want to compare to the streamlines, say fa, rd, etc
@@ -110,15 +112,17 @@ elif 'santorini' in computer_name or 'hydra' in computer_name:
     #mainpath = '/Volumes/Data/Badea/Lab/human/'
     mainpath = '/Volumes/Shared Folder/newJetStor/paros/paros_WORK/jacques/AD_Decode/'
     ROI_legends = "/Volumes/Data/Badea/ADdecode.01/Analysis/atlases/IITmean_RPI/IITmean_RPI_index.xlsx"
-    ref_MDT_folder = '/Volumes/Data/Badea/Lab/mouse/VBM_21ADDecode03_IITmean_RPI_fullrun-work/dwi/SyN_0p5_3_0p5_fa/faMDT_NoNameYet_n37_i6/reg_images/'
+    #ref_MDT_folder = '/Volumes/Data/Badea/Lab/mouse/VBM_21ADDecode03_IITmean_RPI_fullrun-work/dwi/SyN_0p5_3_0p5_fa/faMDT_NoNameYet_n37_i6/reg_images/'
+    ref_MDT_folder = '/Volumes/Data/Badea/Lab/mouse/VBM_21ADDecode03_IITmean_RPI_fullrun-work/dwi/SyN_0p5_3_0p5_fa/faMDT_NoNameYet_n37_i6/median_images/'
 elif 'blade' in computer_name:
     mainpath = '/mnt/munin6/Badea/Lab/human/'
     ROI_legends = "/mnt/munin6/Badea/Lab/atlases/IITmean_RPI/IITmean_RPI_index.xlsx"
-    ref_MDT_folder = '/mnt/munin6/Badea/Lab/mouse/VBM_21ADDecode03_IITmean_RPI_fullrun-work/dwi/SyN_0p5_3_0p5_fa/faMDT_NoNameYet_n37_i6/reg_images/'
+    #ref_MDT_folder = '/mnt/munin6/Badea/Lab/mouse/VBM_21ADDecode03_IITmean_RPI_fullrun-work/dwi/SyN_0p5_3_0p5_fa/faMDT_NoNameYet_n37_i6/reg_images/'
+    ref_MDT_folder = '/mnt/munin6/Badea/Lab/mouse/VBM_21ADDecode03_IITmean_RPI_fullrun-work/dwi/SyN_0p5_3_0p5_fa/faMDT_NoNameYet_n37_i6/median_images/'
 else:
     raise Exception('No other computer name yet')
 
-
+ref_img_path = os.path.join(ref_MDT_folder,'MDT_fa.nii.gz')
 # Setting identification parameters for ratio, labeling type, etc
 ratio_str = ratio_to_str(ratio,spec_all=False)
 print(ratio_str)
@@ -152,7 +156,8 @@ else:
 mainpath = '/Volumes/Shared Folder/newJetStor/paros/paros_WORK/jacques/AD_Decode/'
 #TRK_folder = os.path.join(mainpath, f'TRK_MPCA_MDT_fixed{folder_ratio_str}')
 TRK_folder = os.path.join(mainpath, 'TRK_MDT'+ratio_str)
-TRK_folder = '/Volumes/Data/Badea/Lab/human/AD_Decode_trk_transfer/TRK_MDT/'
+TRK_folder = '/Volumes/Shared Folder/newJetStor/paros/paros_WORK/jacques/AD_Decode/TRK_MDT_act/'
+TCK_folder = '/Volumes/Shared Folder/newJetStor/paros/paros_WORK/jacques/AD_Decode/TCK_MDT_act/'
 
 label_folder = os.path.join(mainpath, 'DWI')
 if symmetric:
@@ -163,10 +168,12 @@ else:
 
 trkpaths = glob.glob(os.path.join(TRK_folder, '*trk'))
 streamline_tupled_folders = os.path.join(mainpath, f'Streamlines_tupled_MDT_act{inclusive_str}{symmetric_str}{folder_ratio_str}')
-#excel_folder = os.path.join(mainpath, f'Excels_MDT{inclusive_str}{symmetric_str}{folder_ratio_str}')
-excel_folder = os.path.join(mainpath, f'Excels_MDT_act{inclusive_str}{symmetric_str}{folder_ratio_str}')
+streamline_tupled_folders = os.path.join(mainpath, f'Streamlines_tupled_MDT_mrtrix_act{inclusive_str}{symmetric_str}{folder_ratio_str}')
 
-mkcdir([streamline_tupled_folders, excel_folder])
+#excel_folder = os.path.join(mainpath, f'Excels_MDT{inclusive_str}{symmetric_str}{folder_ratio_str}')
+excel_folder = os.path.join('/Volumes/Data/Badea/Lab/mouse/mrtrix_ad_decode/perm_files/')
+
+mkcdir([streamline_tupled_folders, excel_folder,TCK_folder])
 
 trk_files = glob.glob(os.path.join(TRK_folder,'*trk'))
 subjects = [os.path.basename(trk_file).split('_')[0] for trk_file in trk_files]
@@ -198,6 +205,8 @@ metric2 = AveragePointwiseEuclideanMetric(feature=feature2)
 
 overwrite=False
 
+mrtrix_connectomes = True
+
 for subject in subjects:
 
     #print(f'Starting the run for {index_to_struct[target_tuple[0]]} to {index_to_struct[target_tuple[1]]}')
@@ -219,25 +228,38 @@ for subject in subjects:
             print(f'Already did {subject} for tuple {index_to_struct[target_tuple[0]]} to {index_to_struct[target_tuple[1]]}')
             continue
 
-        if trkdata is None:
-            trkdata = load_trk(trkpath, 'same',bbox_valid_check=False)
-        header = trkdata.space_attributes
-        M_xlsxpath = os.path.join(excel_folder, subject + str_identifier + "_connectomes.xlsx")
-        grouping_xlsxpath = os.path.join(excel_folder, subject + "_grouping.xlsx")
+        if not mrtrix_connectomes:
+            if trkdata is None:
+                trkdata = load_trk(trkpath, 'same',bbox_valid_check=False)
+            header = trkdata.space_attributes
+            M_xlsxpath = os.path.join(excel_folder, subject + str_identifier + "_connectomes.xlsx")
+            grouping_xlsxpath = os.path.join(excel_folder, subject + "_grouping.xlsx")
 
-        if os.path.exists(grouping_xlsxpath):
-            grouping = extract_grouping(grouping_xlsxpath, index_to_struct, None, verbose=verbose)
+            if os.path.exists(grouping_xlsxpath):
+                grouping = extract_grouping(grouping_xlsxpath, index_to_struct, None, verbose=verbose)
+            else:
+                txt = f'Run streamline_average_prep first for this subject {subject}'
+                raise Exception(txt)
+
+            target_streamlines_list = grouping[target_tuple[0], target_tuple[1]]
+
+            if np.size(target_streamlines_list) == 0:
+                txt = f'Did not have any streamlines for {index_to_struct[target_tuple[0]]} to {index_to_struct[target_tuple[1]]} for subject {subject}'
+                warnings.warn(txt)
+                continue
+            target_streamlines = trkdata.streamlines[np.array(target_streamlines_list)]
+            save_trk_header(filepath=streamline_tupled_path, streamlines=target_streamlines, header=header,
+                            affine=np.eye(4), verbose=verbose)
         else:
-            txt = f'Run streamline_average_prep first for this subject {subject}'
-            raise Exception(txt)
+            tck_path = os.path.join(TCK_folder,os.path.basename(trkpath).replace('.trk','.tck'))
+            assignments_parcels_csv2 = os.path.join(excel_folder, subject+f'_assignments_con_plain_act.csv')
+            streamline_tupled_tck_path = streamline_tupled_path.replace('.trk','.tck')
+            if not os.path.exists(tck_path):
+                convert_trk_to_tck(trkpath, tck_path)
 
-        target_streamlines_list = grouping[target_tuple[0], target_tuple[1]]
-
-        if np.size(target_streamlines_list) == 0:
-            txt = f'Did not have any streamlines for {index_to_struct[target_tuple[0]]} to {index_to_struct[target_tuple[1]]} for subject {subject}'
-            warnings.warn(txt)
-            continue
-        target_streamlines = trkdata.streamlines[np.array(target_streamlines_list)]
-        save_trk_header(filepath=streamline_tupled_path, streamlines=target_streamlines, header=header,
-                        affine=np.eye(4), verbose=verbose)
-
+            cmd = f'connectome2tck {tck_path} {assignments_parcels_csv2} {streamline_tupled_tck_path} -nodes {target_tuple[0]},{target_tuple[1]} -exclusive -files single'.replace(
+                "Shared ", "Shared\\ ")
+            if not os.path.exists(streamline_tupled_tck_path):
+                os.system(cmd)
+            convert_tck_to_trk(streamline_tupled_tck_path,streamline_tupled_path,ref_img_path)
+            os.remove(streamline_tupled_tck_path)
