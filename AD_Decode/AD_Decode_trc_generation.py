@@ -204,11 +204,11 @@ else:
         T1_transform_path = os.path.join(temp_folder, f'{subj}_T1_to_dwi_0GenericAffine.mat')
         T1_reggedtodwi = os.path.join(orig_subj_path,f'{subj}_T1_registered.nii.gz')
         subjspace_T1 = T1
-        if not os.path.exists(T1_transform_path) or overwrite:
-            command = f'antsRegistration -v 1 -d 3 -m Mattes[{subjspace_dwi}, {subjspace_T1}] -t affine[0.1] -c [3000x3000x0x0, 1e-8, 20] -s 4x2x1x0.5vox -f 6x4x2x1 -u 1 -z 1 -l 1 -x {subjspace_mask} -o {T1_transform_cut_path}'
-            os.system(command)
 
         if not os.path.exists(T1_reggedtodwi) or overwrite:
+            if not os.path.exists(T1_transform_path) or overwrite:
+                command = f'antsRegistration -v 1 -d 3 -m Mattes[{subjspace_dwi}, {subjspace_T1}] -t affine[0.1] -c [3000x3000x0x0, 1e-8, 20] -s 4x2x1x0.5vox -f 6x4x2x1 -u 1 -z 1 -l 1 -x {subjspace_mask} -o {    T1_transform_cut_path}'
+                os.system(command)
             command = f'antsApplyTransforms -d 3 -e 0 -i {subjspace_T1} -r {subjspace_dwi} -u float -o {T1_reggedtodwi} -t {T1_transform_path}'
             os.system(command)
         T1 = T1_reggedtodwi
@@ -506,7 +506,6 @@ else:
 
         #convert subj labels to mif
         parcels_mif = subj_path + subj + '_parcels.mif' + index_gz
-
         if not os.path.exists(parcels_mif) or overwrite:
             labels_data = label_nii.get_fdata()
             labels = np.unique(labels_data)
@@ -528,6 +527,7 @@ else:
 
             #new_label = label_path
             os.system('mrconvert '+new_label+ ' ' +parcels_mif + ' -force' )
+
 
 
         #Creating the connectome without coregistration:
