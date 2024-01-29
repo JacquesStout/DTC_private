@@ -27,6 +27,8 @@ target_atlas_path = os.path.join(atlas_folder,f'{label_name}_{orient_init}/{labe
 
 label_orient_name = '_'.join([label_name,orient_init])
 
+input_files_IIT = ['/Volumes/Data/Badea/Lab/atlases/IITmean_RPI/bundle_atlas/atlas_f_whitematter_LPI_to_RPI_decemberver.nii.gz']
+
 for input_file_path in input_files_IIT:
 
     output_file_path = os.path.join(output_folder_MDT,os.path.basename(input_file_path))
