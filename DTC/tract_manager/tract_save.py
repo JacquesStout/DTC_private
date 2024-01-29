@@ -149,10 +149,31 @@ def convert_tck_to_trk(input_file, output_file, ref):
     nib.streamlines.save(tck.tractogram, output_file, header=header)
 
 
-def convert_trk_to_tck(input_file, output_file,reference_file):
+def convert_trk_to_tck(input_file, output_file):
     from dipy.io.streamline import load_tractogram, save_tractogram
 
-    cc_trk = load_tractogram(input_file, reference_file, bbox_valid_check=False)
-    save_tractogram(cc_trk, output_file, bbox_valid_check=False)
+    #cc_trk = load_tractogram(input_file, reference_file, bbox_valid_check=False)
+    #save_tractogram(cc_trk, output_file, bbox_valid_check=False)
+    """
+    try:
+        tractogram = load_trk(trk_path, 'same')
+    except:
+        tractogram = load_trk_spe(trk_path, 'same')
+
+    import warnings
+
+    if nib.streamlines.detect_format(trk_path) is not nib.streamlines.TrkFile:
+        warnings.warn("Skipping non TRK file: '{}'".format(tractogram))
+
+    if output_filename is None:
+        output_filename = trk_path[:-4] + '.tck'
+
+    if os.path.isfile(output_filename) and not overwrite:
+        warnings.warn("Skipping existing file: '{}'. Set overwrite to true".format(output_filename))
+
+    """
+
+    trk = nib.streamlines.load(input_file)
+    nib.streamlines.save(trk.tractogram, output_file)
 
     return

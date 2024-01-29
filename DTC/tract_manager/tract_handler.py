@@ -1132,24 +1132,6 @@ def build_argparser():
     return p
 """
 
-def trktotck(trk_path, overwrite=False):
-
-    import warnings
-    try:
-        tractogram = load_trk(trk_path, 'same')
-    except:
-        tractogram = load_trk_spe(trk_path, 'same')
-
-    if nib.streamlines.detect_format(tractogram) is not nib.streamlines.TrkFile:
-        warnings.warn("Skipping non TRK file: '{}'".format(tractogram))
-
-    output_filename = tractogram[:-4] + '.tck'
-    if os.path.isfile(output_filename) and not overwrite:
-        warnings.warn("Skipping existing file: '{}'. Set overwrite to true".format(output_filename))
-
-    trk = nib.streamlines.load(tractogram)
-    nib.streamlines.save(trk.tractogram, output_filename)
-
 
 def reducetractnumber_all(trkpath, str_identifier1, str_identifier2,  subject, ratio, verbose):
 
