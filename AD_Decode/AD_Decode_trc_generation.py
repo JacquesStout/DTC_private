@@ -44,8 +44,9 @@ subj = sys.argv[1] #reads subj number with s... from input of python file
 subj_ref = subj
 
 overwrite=False
-cleanup = True
+cleanup = False
 make_connectomes = True
+make_wmconnectomes = True
 
 test = 'test'
 test = 'T1'
@@ -117,6 +118,10 @@ subjspace_mask = orig_subj_path+subj+'_subjspace_mask.nii.gz'
 if not os.path.isfile(subjspace_mask) : print('where is original mask?')
 
 path_perm = root + 'perm_files/'
+
+#path_trk = path_perm
+path_trk = '/Volumes/Data/Badea/Lab/human/AD_Decode_trk_transfer/TRK'
+
 if not os.path.isdir(path_perm) : os.mkdir(path_perm)
 bval_path = path_perm  + subj + '_bvals_RAS.txt'
 old_bval = np.loadtxt(bval_path_orig)
@@ -150,15 +155,28 @@ assignments_parcels_csv = path_perm +subj+f'_assignments_con_sift_node{act_strin
 parcels_csv_2 = conn_folder+subj+'_conn_plain.csv'
 assignments_parcels_csv2 = path_perm +subj+f'_assignments_con_plain{act_string}.csv'
 
+parcels_csv_wm_2 = conn_folder+subj+'_whitematter_conn_plain.csv'
+assignments_parcels_wm_csv2 = path_perm +subj+f'_assignments_wm_con_plain{act_string}.csv'
+
 parcels_csv_3 = conn_folder+subj+'_conn_sift.csv'
 assignments_parcels_csv3 = path_perm +subj+f'_assignments_con_sift{act_string}.csv'
 
 list_outputs_all = [distances_csv,mean_FA_connectome,parcels_csv,assignments_parcels_csv,parcels_csv_2,
                     assignments_parcels_csv2,parcels_csv_3,assignments_parcels_csv3]
+if make_wmconnectomes:
+    list_outputs_all.append(parcels_csv_wm_2)
+    list_outputs_all.append(assignments_parcels_wm_csv2)
+
 alloutputs_found = checkfile_exists_all(list_outputs_all)
 
 coreg_T1 = True
 skip_T1 = False
+
+label_whitematter_path = os.path.join(orig_subj_path, f'{subj}_labels_whitematter.nii.gz')
+
+if make_wmconnectomes and not os.path.exists(label_whitematter_path):
+    txt = f'For subject {subj}, could not find {label_whitematter_path}'
+    raise Exception(txt)
 
 if not os.path.exists(T1):
     fivett_nocoreg_nii_gz = orig_subj_path + subj + '_5tt_nocoreg.nii.gz'
@@ -177,10 +195,12 @@ else:
     fivett_nocoreg_nii_gz = subj_path + subj + '_5tt_nocoreg.nii.gz'
     fivett_nocoreg_mif = subj_path + subj + '5tt_nocoreg.mif'
 
+overwrite=True
 if alloutputs_found and not overwrite:
     print(f'All outputs found, subject {subj} is already done!')
 
 else:
+    overwrite=False
     if not os.path.isdir(subj_path) : os.mkdir(subj_path)
 
     nii_gz_path = nii_gz_path_orig
@@ -303,7 +323,6 @@ else:
     #os.system("/Applications/Convert3DGUI.app/Contents/bin/c3d "+label_path_orig+" -orient RAS -o "+label_path)
 
     label_path = label_path_orig  #if not doing the rotation seen above
-
     """
     #mask_output = subj_path +subj+'_mask_of_label.nii.gz'
     #mask_labels_data = label_nii.get_fdata()
@@ -368,113 +387,105 @@ else:
 
     tracks_10M_tck  = subj_path +subj+'_tracks_10M.tck'
 
-    if act:
-
-        subjspace_mask_mif = os.path.join(subj_path,f'{subj}_subjspace_mask.mif')
-        if not os.path.exists(subjspace_mask_mif) or overwrite:
-            os.system(f'mrconvert {subjspace_mask} {subjspace_mask_mif} -force')
-
-        if (not os.path.exists(fivett_nocoreg_mif) or overwrite) and not skip_T1:
-            os.system('5ttgen fsl '  +T1+ ' '+fivett_nocoreg_mif + f' -mask {subjspace_mask_mif} -scratch {scratch_folder} -force')
-
-        #Extracting the b0 images: for Coregistering the anatomical and diffusion datasets:
-        mean_b0_mif = subj_path+subj+'_mean_b0.mif'
-        if not os.path.exists(mean_b0_mif):
-            os.system('dwiextract '+ den_unbiased_mif+' - -bzero | mrmath - mean '+ mean_b0_mif +' -axis 3 -force')
-
-        #Converting the b0 and 5tt images bc we wanna use fsl this part and fsl does not accept mif:
-        mean_b0_nii_gz = subj_path+subj+'_mean_b0.nii.gz'
-        if not os.path.exists(mean_b0_nii_gz) or overwrite:
-            os.system('mrconvert ' +mean_b0_mif + ' '+ mean_b0_nii_gz + ' -force')
-        if (not os.path.exists(fivett_nocoreg_nii_gz) or overwrite) and not skip_T1:
-            os.system('mrconvert ' + fivett_nocoreg_mif + ' ' + fivett_nocoreg_nii_gz + ' -force')
-
-        fivett_vol0_nii_gz = subj_path+subj+'_5tt_vol0.nii.gz'
-        if not os.path.exists(fivett_vol0_nii_gz) or overwrite:
-            os.system('fslroi '+ fivett_nocoreg_nii_gz+ ' '+ fivett_vol0_nii_gz + ' 0 1')
-
-        #Coregistering the anatomical and diffusion datasets: #skip
-        diff2struct_fsl_mat =subj_path+subj+'_diff2struct_fsl.mat'
-        if not os.path.exists(diff2struct_fsl_mat) or overwrite:
-            os.system('flirt -in '+ mean_b0_nii_gz + ' -ref ' + fivett_vol0_nii_gz + ' -interp nearestneighbour -dof 6 -omat ' + diff2struct_fsl_mat)
-
-
-        #Converting the transformation matrix to MRtrix format:
-        diff2struct_mrtrix_txt = subj_path+subj+'_diff2struct_mrtrix.txt'
-        if not os.path.exists(diff2struct_mrtrix_txt) or overwrite:
-            os.system('transformconvert ' + diff2struct_fsl_mat + ' '+ mean_b0_nii_gz+ ' '+ fivett_nocoreg_nii_gz + ' flirt_import '+ diff2struct_mrtrix_txt + ' -force' )
-
-        #Applying the transformation matrix to the non-coregistered segmentation data:
-        #using the inverse transfomration coregsiter anatomiacl to dwi
-        fivett_coreg_mif = subj_path+subj+'_fivett_coreg.mif'
-        if not os.path.exists(fivett_coreg_mif) or overwrite:
-            os.system('mrtransform ' + fivett_nocoreg_mif + ' -linear ' + diff2struct_mrtrix_txt + ' -inverse '+ fivett_coreg_mif + ' -force')
-
-        #os.system( 'mrview '+ den_unbiased_mif +' -overlay.load ' + fivett_nocoreg_mif + ' -overlay.colourmap 2 -overlay.load ' + fivett_coreg_mif + ' -overlay.colourmap 1 ')
-
-        #Creating the grey matter / white matter boundary: seed boundery bc they're used to create seeds for streamlines
-        gmwmSeed_coreg_mif = subj_path+subj+'_gmwmSeed_coreg.mif'
-        if not os.path.exists(gmwmSeed_coreg_mif) or overwrite:
-            os.system( '5tt2gmwmi ' +  fivett_coreg_mif+ ' '+ gmwmSeed_coreg_mif + ' -force')
-
-        if not os.path.exists(tracks_10M_tck) or overwrite:
-            os.system('tckgen -act ' + fivett_coreg_mif + '  -backtrack -seed_gmwmi '+ gmwmSeed_coreg_mif + ' -maxlength 250 -cutoff 0.06 -select 10000000 ' + wmfod_norm_mif + ' ' + tracks_10M_tck + ' -force')
-
-        cmd = 'tckgen -act ' + fivett_coreg_mif + '  -backtrack -seed_gmwmi ' + gmwmSeed_coreg_mif + ' -maxlength 250 -cutoff 0.06 -select 10000000 ' + wmfod_norm_mif + ' ' + tracks_10M_tck + ' -force'
-        if not os.path.exists(tracks_10M_tck) or overwrite:
-            os.system(cmd)
-        else:
-            num_streamlines = get_num_streamlines(tracks_10M_tck)
-            if num_streamlines < int(10000000):
-                print(f'Bad file at {tracks_10M_tck}, trying again')
-                os.system(cmd)
-
-    else:
-        gmwmSeed_coreg_mif = mask_mif
-        cmd = 'tckgen -backtrack -seed_image ' + gmwmSeed_coreg_mif + '  -maxlength 410 -cutoff 0.05 -select 10000000 ' + wmfod_norm_mif + ' ' + tracks_10M_tck + ' -force'
-        if not os.path.exists(tracks_10M_tck) or overwrite:
-            os.system(cmd)
-        else:
-            num_streamlines = get_num_streamlines(tracks_10M_tck)
-            if num_streamlines < int(10000000):
-                print(f'Bad file at {tracks_10M_tck}, trying again')
-                os.system(cmd)
-
-    ####read to creat streamlines
-    #Creating streamlines with tckgen: be carefull about number of threads on server
-
-
-
-    #tckgen -act /Volumes/Data/Badea/Lab/mouse/mrtrix_ad_decode/temp/S01912/S01912_fivett_coreg.mif  -backtrack -seed_gmwmi /Volumes/Data/Badea/Lab/mouse/mrtrix_ad_decode/temp/S01912/S01912_gmwmSeed_coreg.mif -maxlength 250 -cutoff 0.06 -select 1000000 /Volumes/Data/Badea/Lab/mouse/mrtrix_ad_decode/temp/S01912/S01912_wmfod_norm.mif.gz /Volumes/Data/Badea/Lab/mouse/mrtrix_ad_decode/temp/S01912/S01912_tracks_1000000.tck -force
-
-
-    #os.system('echo tckgen -backtrack -seed_image '+ gmwmSeed_coreg_mif + ' -maxlength 250 -cutoff 0.06 -select 10000000 ' + wmfod_norm_mif + ' ' + tracks_10M_tck + ' -force')
-
-    #os.system('tckgen -backtrack -seed_image '+ gmwmSeed_coreg_mif + '  -maxlength 410 -cutoff 0.05 -select 10000000 ' + wmfod_norm_mif + ' ' + tracks_10M_tck + ' -force')
-
-    #os.system('tckgen -backtrack -seed_image '+ gmwmSeed_coreg_mif + ' -maxlength 1000 -cutoff 0.3 -select 50k ' + wmfod_norm_mif + ' ' + tracks_10M_tck + ' -force')
-    #seconds2 = time.time()
-    #(seconds2 - seconds1)/360 # a million track in hippo takes 12.6 mins
-
-
-    #Extracting a subset of tracks:
-
-    if test=='test':
-        smallerTracks = path_perm+subj+f'_smallerTracks2mill_test{act_string}.tck'
+    if test == 'test':
+        #smallerTracks = path_trk + subj + f'_smallerTracks2mill_test{act_string}.tck'
+        smallerTracks = os.path.join(path_trk, f'{subj}_smallerTracks2mill_test{act_string}.tck')
     elif test == 'dwi':
-        smallerTracks = path_perm + subj + f'_smallerTracks2mill_dwi{act_string}.tck'
+        #smallerTracks = path_trk + subj + f'_smallerTracks2mill_dwi{act_string}.tck'
+        smallerTracks = os.path.join(path_trk, f'{subj}_smallerTracks2mill_dwi{act_string}.tck')
     else:
-        smallerTracks = path_perm + subj + f'_smallerTracks2mill{act_string}.tck'
+        smallerTracks = os.path.join(path_trk, f'{subj}_smallerTracks2mill.tck')
 
-    #os.system('echo tckedit '+ tracks_10M_tck + ' -number 2000000 -minlength 0.1 ' + smallerTracks + ' -force')
-
-    if not os.path.exists(smallerTracks) or overwrite:
-        os.system('tckedit '+ tracks_10M_tck + ' -number 2000000 -minlength 2 ' + smallerTracks + ' -force')
-    else:
+    if os.path.exists(smallerTracks) and not overwrite:
         num_streamlines = get_num_streamlines(smallerTracks)
-        if num_streamlines<int(2000000):
+        if num_streamlines < int(2000000):
             print(f'Bad file at {smallerTracks}, trying again')
-            os.system('tckedit ' + tracks_10M_tck + ' -number 2000000 -minlength 2 ' + smallerTracks + ' -force')
+        else:
+            trk_already_made = True
+
+    if not trk_already_made:
+        if act:
+            subjspace_mask_mif = os.path.join(subj_path,f'{subj}_subjspace_mask.mif')
+            if not os.path.exists(subjspace_mask_mif) or overwrite:
+                os.system(f'mrconvert {subjspace_mask} {subjspace_mask_mif} -force')
+
+            if (not os.path.exists(fivett_nocoreg_mif) or overwrite) and not skip_T1:
+                os.system('5ttgen fsl '  +T1+ ' '+fivett_nocoreg_mif + f' -mask {subjspace_mask_mif} -scratch {scratch_folder} -force')
+
+            #Extracting the b0 images: for Coregistering the anatomical and diffusion datasets:
+            mean_b0_mif = subj_path+subj+'_mean_b0.mif'
+            if not os.path.exists(mean_b0_mif):
+                os.system('dwiextract '+ den_unbiased_mif+' - -bzero | mrmath - mean '+ mean_b0_mif +' -axis 3 -force')
+
+            #Converting the b0 and 5tt images bc we wanna use fsl this part and fsl does not accept mif:
+            mean_b0_nii_gz = subj_path+subj+'_mean_b0.nii.gz'
+            if not os.path.exists(mean_b0_nii_gz) or overwrite:
+                os.system('mrconvert ' +mean_b0_mif + ' '+ mean_b0_nii_gz + ' -force')
+            if (not os.path.exists(fivett_nocoreg_nii_gz) or overwrite) and not skip_T1:
+                os.system('mrconvert ' + fivett_nocoreg_mif + ' ' + fivett_nocoreg_nii_gz + ' -force')
+
+            fivett_vol0_nii_gz = subj_path+subj+'_5tt_vol0.nii.gz'
+            if not os.path.exists(fivett_vol0_nii_gz) or overwrite:
+                os.system('fslroi '+ fivett_nocoreg_nii_gz+ ' '+ fivett_vol0_nii_gz + ' 0 1')
+
+            #Coregistering the anatomical and diffusion datasets: #skip
+            diff2struct_fsl_mat =subj_path+subj+'_diff2struct_fsl.mat'
+            if not os.path.exists(diff2struct_fsl_mat) or overwrite:
+                os.system('flirt -in '+ mean_b0_nii_gz + ' -ref ' + fivett_vol0_nii_gz + ' -interp nearestneighbour -dof 6 -omat ' + diff2struct_fsl_mat)
+
+
+            #Converting the transformation matrix to MRtrix format:
+            diff2struct_mrtrix_txt = subj_path+subj+'_diff2struct_mrtrix.txt'
+            if not os.path.exists(diff2struct_mrtrix_txt) or overwrite:
+                os.system('transformconvert ' + diff2struct_fsl_mat + ' '+ mean_b0_nii_gz+ ' '+ fivett_nocoreg_nii_gz + ' flirt_import '+ diff2struct_mrtrix_txt + ' -force' )
+
+            #Applying the transformation matrix to the non-coregistered segmentation data:
+            #using the inverse transfomration coregsiter anatomiacl to dwi
+            fivett_coreg_mif = subj_path+subj+'_fivett_coreg.mif'
+            if not os.path.exists(fivett_coreg_mif) or overwrite:
+                os.system('mrtransform ' + fivett_nocoreg_mif + ' -linear ' + diff2struct_mrtrix_txt + ' -inverse '+ fivett_coreg_mif + ' -force')
+
+            #os.system( 'mrview '+ den_unbiased_mif +' -overlay.load ' + fivett_nocoreg_mif + ' -overlay.colourmap 2 -overlay.load ' + fivett_coreg_mif + ' -overlay.colourmap 1 ')
+
+            #Creating the grey matter / white matter boundary: seed boundery bc they're used to create seeds for streamlines
+            gmwmSeed_coreg_mif = subj_path+subj+'_gmwmSeed_coreg.mif'
+            if not os.path.exists(gmwmSeed_coreg_mif) or overwrite:
+                os.system( '5tt2gmwmi ' +  fivett_coreg_mif+ ' '+ gmwmSeed_coreg_mif + ' -force')
+
+            if not os.path.exists(tracks_10M_tck) or overwrite:
+                os.system('tckgen -act ' + fivett_coreg_mif + '  -backtrack -seed_gmwmi '+ gmwmSeed_coreg_mif + ' -maxlength 250 -cutoff 0.06 -select 10000000 ' + wmfod_norm_mif + ' ' + tracks_10M_tck + ' -force')
+
+            cmd = 'tckgen -act ' + fivett_coreg_mif + '  -backtrack -seed_gmwmi ' + gmwmSeed_coreg_mif + ' -maxlength 250 -cutoff 0.06 -select 10000000 ' + wmfod_norm_mif + ' ' + tracks_10M_tck + ' -force'
+            if not os.path.exists(tracks_10M_tck) or overwrite:
+                os.system(cmd)
+            else:
+                num_streamlines = get_num_streamlines(tracks_10M_tck)
+                if num_streamlines < int(10000000):
+                    print(f'Bad file at {tracks_10M_tck}, trying again')
+                    os.system(cmd)
+
+        else:
+            gmwmSeed_coreg_mif = mask_mif
+            cmd = 'tckgen -backtrack -seed_image ' + gmwmSeed_coreg_mif + '  -maxlength 410 -cutoff 0.05 -select 10000000 ' + wmfod_norm_mif + ' ' + tracks_10M_tck + ' -force'
+            if not os.path.exists(tracks_10M_tck) or overwrite:
+                os.system(cmd)
+            else:
+                num_streamlines = get_num_streamlines(tracks_10M_tck)
+                if num_streamlines < int(10000000):
+                    print(f'Bad file at {tracks_10M_tck}, trying again')
+                    os.system(cmd)
+
+        #Extracting a subset of tracks:
+
+        #os.system('echo tckedit '+ tracks_10M_tck + ' -number 2000000 -minlength 0.1 ' + smallerTracks + ' -force')
+
+        if not os.path.exists(smallerTracks) or overwrite:
+            os.system('tckedit '+ tracks_10M_tck + ' -number 2000000 -minlength 2 ' + smallerTracks + ' -force')
+        else:
+            num_streamlines = get_num_streamlines(smallerTracks)
+            if num_streamlines<int(2000000):
+                print(f'Bad file at {smallerTracks}, trying again')
+                os.system('tckedit ' + tracks_10M_tck + ' -number 2000000 -minlength 2 ' + smallerTracks + ' -force')
 
 
     #os.system('mrview ' + den_unbiased_mif + ' -tractography.load '+ smallerTracks)
@@ -490,7 +501,8 @@ else:
     if cleanup and not make_connectomes:
         os.remove(tracks_10M_tck)
 
-    if make_connectomes:
+    if make_connectomes or make_wmconnectomes:
+        mean_FA_per_streamline = subj_path + subj + '_per_strmline_mean_FA.csv'
 
         #Sifting the tracks with tcksift2: bc some wm tracks are over or underfitted
         sift_mu_txt = subj_path+subj+'_sift_mu.txt'
@@ -503,7 +515,11 @@ else:
         if not os.path.exists(sift_coeffs_txt) or overwrite:
             os.system('tcksift2  -out_mu '+ sift_mu_txt + ' -out_coeffs ' + sift_coeffs_txt + ' ' + smallerTracks + ' ' + wmfod_norm_mif+ ' ' + sift_1M_txt  + ' -force')
 
+        if not os.path.exists(mean_FA_per_streamline):
+            os.system(
+                'tcksample ' + smallerTracks + ' ' + fa_mif + ' ' + mean_FA_per_streamline + ' -stat_tck mean ' + ' -force')
 
+    if make_connectomes:
         #convert subj labels to mif
         parcels_mif = subj_path + subj + '_parcels.mif' + index_gz
         if not os.path.exists(parcels_mif) or overwrite:
@@ -557,6 +573,26 @@ else:
 
         if not os.path.exists(parcels_csv_3) or not os.path.exists(assignments_parcels_csv3) or overwrite:
             os.system('tck2connectome -symmetric -zero_diagonal -tck_weights_in '+ sift_1M_txt+ ' '+ smallerTracks + ' '+ parcels_mif + ' '+ parcels_csv_3 + ' -out_assignment ' + assignments_parcels_csv3 + ' -force')
+
+    if make_wmconnectomes:
+        # convert subj labels to mif
+        parcels_wm_mif = subj_path + subj + '_wm_parcels.mif' + index_gz
+        if not os.path.exists(parcels_wm_mif) or overwrite:
+
+            os.system('mrconvert ' + label_whitematter_path + ' ' + parcels_wm_mif + ' -force')
+
+        # Creating the connectome without coregistration:
+        ### connectome folders :
+
+
+        if not os.path.isdir(conn_folder): os.mkdir(conn_folder)
+
+        #assignments_parcels_wm_csv2 = path_perm + subj + f'_assignments_wm_con_plain{act_string}.csv'
+
+        if not os.path.exists(parcels_csv_wm_2) or not os.path.exists(assignments_parcels_wm_csv2) or overwrite:
+            cmd = f'tck2connectome -symmetric -assignment_forward_search 50 -zero_diagonal {smallerTracks} {parcels_wm_mif} {parcels_csv_wm_2} -out_assignment {assignments_parcels_wm_csv2} -force'
+            os.system(cmd)
+
 
     if cleanup:
         shutil.rmtree(subj_path)
