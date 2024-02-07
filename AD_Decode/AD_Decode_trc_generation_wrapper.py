@@ -55,12 +55,14 @@ for subj in list_of_subjs:
 
 #list_of_coregs = [i.partition(f'_subjspace_coreg.nii.gz')[0] for i in list_of_subjs_long]
 
-#print(list_of_subjs)
+print(list_of_subjs)
 #print(list_of_coregs)
 
 #conn_path = f'/mnt/munin2/Badea/Lab/mouse/mrtrix_ad_decode/connectome{act_string}/'
 conn_path = os.path.join(BD, f'mrtrix_ad_decode/connectome{act_string}/')
-if os.path.isdir(conn_path):
+check_con = False
+
+if check_con and os.path.isdir(conn_path):
     done_subj = os.listdir(conn_path)
     done_subj = [i for i in done_subj if 'conn_plain' in i]
     done_subj = [i.partition('_conn_plain.csv')[0] for i in done_subj]
@@ -70,7 +72,7 @@ if os.path.isdir(conn_path):
 test_mode = True
 
 print(list_of_subjs)
-
+#list_of_subjs.remove('S02765')
 for subj in list_of_subjs:
     #print(subj)
     #fmri_file = list_fmir_folders_path +subj + "/ses-1/func/" + subj +"_ses-1_bold.nii.gz" 
