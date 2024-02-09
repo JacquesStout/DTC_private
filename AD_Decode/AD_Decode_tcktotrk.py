@@ -17,6 +17,11 @@ def get_num_streamlines(tracks_path):
         print(f"Error: {result.stderr}")
         return None
 
+#/Volumes/Data/Badea/Lab/human/AD_Decode_trk_transfer/TRK/S00775_smallerTracks2mill_act.tck /Volumes/Data/Badea/Lab/human/AD_Decode_trk_transfer/TRK/S00775_smallerTracks2mill_act.trk
+#reference_folder = '/mnt/munin2/Badea/ADdecode.01/Analysis/DWI/'
+#reference_file = os.path.join(reference_folder,f'{subj}_subjspace_fa.nii.gz')
+#
+
 tck_file = sys.argv[1]
 trk_file = sys.argv[2]
 reference_file = sys.argv[3]
