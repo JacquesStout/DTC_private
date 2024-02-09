@@ -30,12 +30,15 @@ def atlas_converter(ROI_excel,sftp=None):
             hemispheres_new.append('_left')
         if hemispheres[i] == "Right":
             hemispheres_new.append('_right')
+        if hemispheres[i] == 'Both':
+            hemispheres_new.append('')
+
     converter_lr = {}
     converter_comb = {}
     index_to_struct_lr = {}
     index_to_struct_comb = {}
     for i in np.arange(np.size(hemispheres_new)):
-        if hemispheres_new[i] in ['_left','_right']:
+        if hemispheres_new[i] in ['_left','_right','']:
             converter_lr[index2[i]] = index1[i]
             if 'index3' in locals():
                 converter_comb[index2[i]] = index3[i]
