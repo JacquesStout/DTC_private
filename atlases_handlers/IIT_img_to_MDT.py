@@ -1,5 +1,5 @@
 import os,glob
-from DTC.nifti_handlers.transform_handler import img_transform_exec, header_superpose
+from DTC.nifti_handlers.transform_handler import img_transform_exec, header_superpose, label_rounder
 from DTC.file_manager.file_tools import buildlink, mkcdir
 from DTC.nifti_handlers.atlas_handlers.create_backported_labels import create_backport_labels, create_MDT_labels, atlas_to_MDT_transfer
 
@@ -27,7 +27,7 @@ target_atlas_path = os.path.join(atlas_folder,f'{label_name}_{orient_init}/{labe
 
 label_orient_name = '_'.join([label_name,orient_init])
 
-input_files_IIT = ['/Volumes/Data/Badea/Lab/atlases/IITmean_RPI/bundle_atlas/atlas_f_whitematter_LPI_to_RPI_decemberver.nii.gz']
+label=True
 
 for input_file_path in input_files_IIT:
 
@@ -42,7 +42,7 @@ for input_file_path in input_files_IIT:
             init_orient_prehead = os.path.join(transition_folder,basename.replace('.nii.gz',f'_{orient_init}_preheadermod.nii.gz'))
             init_orient = os.path.join(transition_folder,basename.replace('.nii.gz',f'_{orient_init}.nii.gz'))
             if not os.path.exists(init_orient):
-                if not os.path.exists(init_orient):
+                if not os.path.exists(init_orient_prehead):
                     img_transform_exec(input_file_path, orient_orig, orient_init, output_path=init_orient_prehead, recenter_test=False)
                 header_superpose(target_atlas_path, init_orient_prehead, outpath=init_orient, verbose=False)
 
@@ -52,3 +52,6 @@ for input_file_path in input_files_IIT:
         atlas_to_MDT = os.path.join(final_template_run,"stats_by_region","labels","transforms",f"{label_orient_name}_to_MDT_warp.nii.gz")
 
         atlas_to_MDT_transfer(init_orient, output_file_path, MDT_ref, MDT_to_atlas_affine, atlas_to_MDT)
+
+        if label:
+            label_rounder(output_file_path,output_file_path)
