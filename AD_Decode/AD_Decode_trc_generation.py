@@ -376,7 +376,7 @@ else:
 
     #os.system('dwi2fod msmt_csd ' +den_unbiased_mif+ ' -mask '+mask_mif+ ' ' +wm_txt+ ' ' + wmfod_mif+ ' ' +gm_txt+ ' ' + gmfod_mif+ ' ' +csf_txt+ ' ' + csffod_mif + ' -force' )
     if not os.path.exists(wmfod_mif):
-        os.system('dwi2fod msmt_csd ' +den_unbiased_mif+ ' -mask '+mask_mif+ ' ' +wm_txt+ ' ' + wmfod_mif+ ' -force' )
+        os.system(f'dwi2fod msmt_csd ' +den_unbiased_mif+ ' -mask '+mask_mif+ ' ' +wm_txt+ ' ' + wmfod_mif+ f' -scratch {scratch_folder} -force' )
 
     #combine to single image to view them
     #Concatenating the FODs:
@@ -430,7 +430,7 @@ else:
             #Extracting the b0 images: for Coregistering the anatomical and diffusion datasets:
             mean_b0_mif = subj_path+subj+'_mean_b0.mif'
             if not os.path.exists(mean_b0_mif):
-                os.system('dwiextract '+ den_unbiased_mif+' - -bzero | mrmath - mean '+ mean_b0_mif +' -axis 3 -force')
+                os.system('dwiextract '+ den_unbiased_mif+' - -bzero | mrmath - mean '+ mean_b0_mif + f'-scratch {scratch_folder} -axis 3 -force')
 
             #Converting the b0 and 5tt images bc we wanna use fsl this part and fsl does not accept mif:
             mean_b0_nii_gz = subj_path+subj+'_mean_b0.nii.gz'
