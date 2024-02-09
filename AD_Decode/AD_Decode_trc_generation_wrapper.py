@@ -8,6 +8,7 @@ Created on Tue Jan 17 13:30:59 2023
 
 import os , glob
 import sys, subprocess
+from DTC.file_manager.qstat_tools import limit_jobs
 #import nibabel as nib
 
 try :
@@ -70,6 +71,7 @@ if check_con and os.path.isdir(conn_path):
 #list_fmri_folders.remove(".DS_Store")
 
 test_mode = True
+limit = 10
 
 print(list_of_subjs)
 #list_of_subjs.remove('S02765')
@@ -87,5 +89,7 @@ for subj in list_of_subjs:
     if test_mode:
         print(command)
     else:
+        if limit is not None:
+            limit_jobs(limit=limit)
         os.system(command)
 
