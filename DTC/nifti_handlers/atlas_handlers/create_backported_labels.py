@@ -181,6 +181,70 @@ def port_to_MDT(img_toport, mainpath, project_name, atlas_labels, reg_type = 'dw
         print(f"Already calculated the label file for image {toport_MDT}")
 
 
+def port_to_subj(subject, out_dir):
+
+    final_labels = os.path.join(out_dir, f"{subject}_{label_name}_labels.nii.gz")
+
+    if not os.path.exists(final_labels) or overwrite:
+        if verbose:
+            print(f"Backporting labels to raw space for subject: {subject} to {final_labels}")
+        if not os.path.exists(preprocess_labels) or overwrite:
+            #Note, it used to be MultiLabel[1.0x1.0x1.0,2] but it seems like the default parameters tend to be based on the image themselves and work fine,
+            #so be careful but I removed it for now so it would work on different image sets
+            cmd = f"antsApplyTransforms -v 1 -d 3 -i {atlas_labels} -o {preprocess_labels} -r {preprocess_ref} -n MultiLabel -t [{trans},1] [{rigid},1] [{affine},1] {MDT_to_subject} [{MDT_to_atlas_affine},1] {atlas_to_MDT}"
+            if verbose:
+                print(f"Runnings the Ants apply transforms to {atlas_labels}")
+                print(cmd)
+            check_files([atlas_labels,preprocess_ref,trans,rigid,affine,MDT_to_subject,MDT_to_atlas_affine,atlas_to_MDT])
+            os.system(cmd)
+        #if os.path.exists(preprocess_labels) and ((not os.path.exists(fixed_preprocess_labels)) or overwrite):
+        #    header_superpose(final_ref, preprocess_labels, outpath=fixed_preprocess_labels)
+        if os.path.exists(preprocess_labels) and ((not os.path.exists(fixed_preprocess_labels)) or overwrite):
+            shutil.copy(preprocess_labels,fixed_preprocess_labels) #must find a temp reference if we want the header superpose to work before rotation!!!!
+
+        if os.path.exists(fixed_preprocess_labels) and (not os.path.exists(coreg_labels) or overwrite):
+
+            if SAMBA_orientation_out != SAMBA_orientation_in:
+                if verbose:
+                    print(f"Reorientation from {SAMBA_orientation_out} back to {SAMBA_orientation_in}")
+                img_transform_exec(fixed_preprocess_labels, SAMBA_orientation_out, SAMBA_orientation_in,
+                                   output_path=coreg_labels)
+            else:
+                if verbose:
+                    print(f"Orientations are the same, skipping reorientation")
+                    shutil.copy(fixed_preprocess_labels, coreg_labels)
+                #if coreg_labels != coreg_reorient_labels:
+                #    warnings.warn('There is a discrepancy between the stated input orientation in headfile and the '
+                #                  'one found by find_relative_orientation_by_CoM.bash, beware')
+                #    coreg_reorient_labels = coreg_labels
+
+        if os.path.exists(coreg_labels) and (not os.path.exists(coreg_reorient_labels) or overwrite):
+
+            if orientation_out != orientation_in:
+                if verbose:
+                    print(f"Reorientation from {orientation_out} back to {orientation_in}")
+                img_transform_exec(coreg_labels, orientation_out, orientation_in, coreg_reorient_labels)
+            else:
+                if verbose:
+                    print(f"Orientations are the same, skipping reorientation")
+                shutil.copy(coreg_labels, coreg_reorient_labels)
+
+
+        if os.path.exists(coreg_reorient_labels):
+            header_superpose(final_ref, coreg_reorient_labels, outpath=final_labels)
+            #cmd = f"{os.path.join(gunniespath, 'nifti_header_splicer.bash')} {final_ref} {coreg_labels} {final_labels}"
+            #os.system(cmd)
+
+        if os.path.exists(final_labels) and shorten:
+            if verbose:
+                print(f"Applying fsl maths to {final_labels}")
+            cmd = f"fslmaths {final_labels} -add 0 {final_labels} -odt short"
+            os.system(cmd)
+            shutil.copy(final_labels, final_labels_backup)
+    elif verbose:
+        print(f"Already calculated the label file for subject {subject} at {final_labels}")
+
+
 def create_backport_labels(subject, mainpath, project_name, prep_folder, atlas_labels, label_name = None, final_labels = None,reg_type = 'dwi', headfile=None, overwrite=False, identifier = '', shorten = True,verbose=True):
 
     out_dir_base = os.path.join(mainpath, f"{project_name}-results","connectomics")
@@ -314,8 +378,8 @@ def create_backport_labels(subject, mainpath, project_name, prep_folder, atlas_l
 
     symbolic_ref = os.path.join(out_dir,f"{subject}_Reg_LPCA_nii4D.nii.gz")
     if final_labels is None:
-        final_labels = os.path.join(out_dir,f"{subject}_{label_name}_labels.nii.gz")
-    final_labels_backup = os.path.join(dirty_dir,f"{subject}_{label_name}_labels.nii.gz")
+        final_labels = os.path.join(out_dir,f"{subject}_{file_name}_labels.nii.gz")
+    final_labels_backup = os.path.join(dirty_dir,f"{subject}_{file_name}_labels.nii.gz")
     superpose=True
 
 
