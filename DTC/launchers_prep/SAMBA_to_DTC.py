@@ -147,6 +147,15 @@ elif project == "AD_Decode":
     subjects = ['T04129']
     subjects = ['S00775', 'S04491', 'S04493', 'S01412', 'S04526', 'S01470', 'S01619', 'S01620',
                 'S01621', 'S04696', 'S04738','S02842']
+    subjects = ['S01912', 'S02110', 'S02224', 'S02227', 'S02230', 'S02231', 'S02266', 'S02289', 'S02320', 'S02361', 'S02363',
+                'S02373', 'S02386', 'S02390', 'S02402', 'S02410', 'S02421', 'S02424', 'S02446', 'S02451', 'S02469', 'S02473',
+                'S02485', 'S02491', 'S02490', 'S02506', 'S02523', 'S02524', 'S02535', 'S02654', 'S02666', 'S02670', 'S02686',
+                'S02690', 'S02695', 'S02715', 'S02720', 'S02737', 'S02745', 'S02753', 'S02765', 'S02771', 'S02781', 'S02802',
+                'S02804', 'S02813', 'S02812', 'S02817', 'S02840', 'S02842', 'S02871', 'S02877', 'S02898', 'S02926', 'S02938',
+                'S02939', 'S02954', 'S02967', 'S02987', 'S03010', 'S03017', 'S03028', 'S03033', 'S03034', 'S03045', 'S03048',
+                'S03069', 'S03225', 'S03265', 'S03293', 'S03308', 'S03321', 'S03343', 'S03350', 'S03378', 'S03391', 'S03394',
+                'S03847', 'S03866', 'S03867', 'S03889', 'S03890', 'S03896','S00775', 'S04491', 'S04493', 'S01412', 'S04526',
+                'S01470', 'S01619', 'S01620', 'S01621', 'S04696', 'S04738']
     identifier_SAMBA_folder = 'faMDT_NoName'
 
     removed_list = ['S02230', 'S02490', 'S02745']
@@ -327,14 +336,23 @@ _, _, myiteration = get_info_SAMBA_headfile(SAMBA_headfile)
 ##### for ADRC for some reason????
 ################################
 
+#subjects = ['S03394']
 subjects_notdone = []
 for subject in subjects:
     create_MDT_labels(subject, SAMBA_mainpath, SAMBA_projectname, atlas_labels, myiteration=myiteration,
                       overwrite=overwrite, verbose=verbose)
     labelspath_remote = os.path.join(DTC_labels_folder, f'{subject}_labels.nii.gz')
+    """
+    atlas_spe_labels = '/Volumes/Data/Badea/Lab/atlases/IITmean_RPI/bundle_atlas/IIT_whitematter_RPI.nii.gz'
+    label_name = 'IITmean_RPI'
+    subject_notdone = create_backport_labels(subject, SAMBA_mainpath, SAMBA_projectname, SAMBA_prep_folder, atlas_spe_labels,
+                                             headfile = SAMBA_headfile, overwrite=overwrite, verbose=verbose,
+                                             identifier = identifier_SAMBA_folder,label_name = label_name)
+    """
     subject_notdone = create_backport_labels(subject, SAMBA_mainpath, SAMBA_projectname, SAMBA_prep_folder, atlas_labels,
                                              headfile = SAMBA_headfile, overwrite=overwrite, verbose=verbose,
                                              identifier = identifier_SAMBA_folder)
+
     if subject_notdone is not None:
         subjects_notdone.append(subject_notdone)
 
