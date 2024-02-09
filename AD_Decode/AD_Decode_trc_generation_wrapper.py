@@ -8,7 +8,7 @@ Created on Tue Jan 17 13:30:59 2023
 
 import os , glob
 import sys, subprocess
-from DTC.file_manager.qstat_tools import limit_jobs
+from DTC.file_manager.qstat_tools import limit_jobs, check_job_name
 #import nibabel as nib
 
 try :
@@ -85,11 +85,16 @@ for subj in list_of_subjs:
         python_command = f"python ~/DTC_private/AD_Decode/AD_Decode_trc_generation.py {subj}"
 
     job_name = job_descrp + "_"+ subj
-    command = GD + "submit_sge_cluster_job.bash " + sbatch_folder_path + " "+ job_name + " 0 0 '"+ python_command+"'"   
+    command = GD + "submit_sge_cluster_job.bash " + sbatch_folder_path + " "+ job_name + " 0 0 '"+ python_command+"'"
+
+    job_name_running = check_job_name(job_name)
+    if job_name_running:
+        print(f'{job_name} is already running')
     if test_mode:
         print(command)
     else:
         if limit is not None:
             limit_jobs(limit=limit)
-        os.system(command)
+        if not job_name_running:
+            os.system(command)
 

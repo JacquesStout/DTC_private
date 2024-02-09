@@ -57,6 +57,15 @@ def limit_jobs(limit = 10, verbose=False):
             print(txt)
 
 
+def check_job_name(jobname):
+    running_jobs = get_running_jobs()
+    non_interact_jobs = [job for job in running_jobs if job != 'interact']
+    if jobname in non_interact_jobs:
+        return True
+    else:
+        return False
+
+
 def check_for_errors(start_time ,folder_path):
 
     # Get a list of files starting with 'sl' in the specified folder
