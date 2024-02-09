@@ -171,6 +171,7 @@ alloutputs_found = checkfile_exists_all(list_outputs_all)
 
 coreg_T1 = True
 skip_T1 = False
+dwigradchecking = True
 
 label_whitematter_path = os.path.join(orig_subj_path, f'{subj}_labels_whitematter.nii.gz')
 
@@ -241,6 +242,19 @@ else:
     out_mif = subj_path + subj+'_subjspace_dwi.mif'+index_gz
     if not os.path.exists(out_mif) or overwrite:
         os.system('mrconvert '+nii_gz_path+ ' ' +out_mif+' -fslgrad '+bvec_path+ ' '+ bval_path+' -bvalue_scaling 0 -force') #turn off the scaling otherwise bvals becomes 0 4000 1000 instead of 2000
+
+
+    if dwigradchecking:
+        bvec_checked_path = path_perm + subj + '_bvecs_checked_RAS.txt'
+        bval_checked_path = path_perm + subj + '_bvals_checked_RAS.txt'
+        if not os.path.exists(bvec_checked_path) or not os.path.exists(bval_checked_path):
+            cmd = os.system(f'dwigradcheck {out_mif} -fslgrad {bvec_path} {bval_path} -number 100000 -export_grad_fsl {bvec_checked_path} {bval_checked_path}')
+        bvec_checked = np.loadtxt(bvec_checked_path)
+        if not np.all((bvec_checked-new_bvec)<0.01):
+            bvec_path = bvec_checked_path
+            bval_path = bval_checked_path
+            os.system(
+                'mrconvert ' + nii_gz_path + ' ' + out_mif + ' -fslgrad ' + bvec_path + ' ' + bval_path + ' -bvalue_scaling 0 -force')  # turn off the scaling otherwise bvals becomes 0 4000 1000 instead of 2000
 
     """
     #preprocessing
