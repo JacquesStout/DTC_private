@@ -9,17 +9,14 @@ import warnings
 
 from dipy.tracking.streamline import set_number_of_points
 from dipy.tracking.streamline import transform_streamlines
-import os, glob
+import os, glob, shutil, sys, socket, errno
 import pickle
 from DTC.nifti_handlers.nifti_handler import getlabeltypemask
 from DTC.file_manager.file_tools import mkcdir, check_files
 from DTC.tract_manager.tract_handler import ratio_to_str, gettrkpath
 from DTC.nifti_handlers.atlas_handlers.convert_atlas_mask import atlas_converter
-import errno
-import socket
 from DTC.tract_manager.tract_save import save_trk_header
 from DTC.diff_handlers.connectome_handlers.excel_management import M_grouping_excel_save, extract_grouping
-import sys
 from DTC.file_manager.argument_tools import parse_arguments_function
 from DTC.diff_handlers.connectome_handlers.connectome_handler import connectivity_matrix_func
 from dipy.tracking.utils import length
@@ -90,6 +87,10 @@ target_tuples = [(74, 2),(74,40)]
 target_tuples = [(78,74),(74,40),(44,40),(40,2),(74,2)]
 #target_tuples = [(77, 43)] #superior frontal right to superior frontal left
 target_tuples = [(74,2)]
+target_tuples = np.arange(85,127)
+
+extraction = 'node' #either 'edge' or 'node', defaults to 'edge' (two region connection), node extracts only the single region
+csv = 'wm' #'wm' or 'gm' so far
 
 labeltype = 'lrordered'
 #reference_img refers to statistical values that we want to compare to the streamlines, say fa, rd, etc
@@ -153,11 +154,18 @@ if project=='AD_Decode':
 else:
     mainpath = os.path.join(mainpath, project)
 
+kos=False
+
 mainpath = '/Volumes/Shared Folder/newJetStor/paros/paros_WORK/jacques/AD_Decode/'
 #TRK_folder = os.path.join(mainpath, f'TRK_MPCA_MDT_fixed{folder_ratio_str}')
 TRK_folder = os.path.join(mainpath, 'TRK_MDT'+ratio_str)
 TRK_folder = '/Volumes/Shared Folder/newJetStor/paros/paros_WORK/jacques/AD_Decode/TRK_MDT_act/'
 TCK_folder = '/Volumes/Shared Folder/newJetStor/paros/paros_WORK/jacques/AD_Decode/TCK_MDT_act/'
+
+if not kos:
+    mainpath = '/Volumes/Data/Badea/Lab/human/AD_Decode/'
+    TCK_folder = '/Volumes/Data/Badea/Lab/human/AD_Decode_trk_transfer/TCK_MDT'
+    TRK_folder = '/Volumes/Data/Badea/Lab/human/AD_Decode_trk_transfer/TRK_MDT'
 
 label_folder = os.path.join(mainpath, 'DWI')
 if symmetric:
@@ -169,11 +177,13 @@ else:
 trkpaths = glob.glob(os.path.join(TRK_folder, '*trk'))
 streamline_tupled_folders = os.path.join(mainpath, f'Streamlines_tupled_MDT_act{inclusive_str}{symmetric_str}{folder_ratio_str}')
 streamline_tupled_folders = os.path.join(mainpath, f'Streamlines_tupled_MDT_mrtrix_act{inclusive_str}{symmetric_str}{folder_ratio_str}')
+streamline_tupled_folders = os.path.join(mainpath, f'Streamlines_tupled_MDT_mrtrix_act{inclusive_str}{symmetric_str}{folder_ratio_str}')
+
 
 #excel_folder = os.path.join(mainpath, f'Excels_MDT{inclusive_str}{symmetric_str}{folder_ratio_str}')
 excel_folder = os.path.join('/Volumes/Data/Badea/Lab/mouse/mrtrix_ad_decode/perm_files/')
 
-mkcdir([streamline_tupled_folders, excel_folder,TCK_folder])
+mkcdir([streamline_tupled_folders,TCK_folder])
 
 trk_files = glob.glob(os.path.join(TRK_folder,'*trk'))
 subjects = [os.path.basename(trk_file).split('_')[0] for trk_file in trk_files]
@@ -219,13 +229,20 @@ for subject in subjects:
         trkpath, exists = gettrkpath(TRK_folder, subject, str_identifier, pruned=False, verbose=True)
         _, _, index_to_struct, _ = atlas_converter(ROI_legends)
 
-        streamline_tuple_folder_name = f'{index_to_struct[target_tuple[0]]}_to_{index_to_struct[target_tuple[1]]}_MDT{ratio_str}'
+        if extraction == 'edge':
+            streamline_tuple_folder_name = f'{index_to_struct[target_tuple[0]]}_to_{index_to_struct[target_tuple[1]]}_MDT{ratio_str}'
+        if extraction == 'node':
+            streamline_tuple_folder_name = f'{index_to_struct[target_tuple]}_MDT{ratio_str}'
+
         streamline_tuple_folder_path = os.path.join(streamline_tupled_folders,streamline_tuple_folder_name)
         mkcdir(streamline_tuple_folder_path)
         streamline_tupled_path = os.path.join(streamline_tupled_folders, streamline_tuple_folder_name, f'{subject}_streamlines.trk')
 
         if os.path.exists(streamline_tupled_path) and not overwrite:
-            print(f'Already did {subject} for tuple {index_to_struct[target_tuple[0]]} to {index_to_struct[target_tuple[1]]}')
+            if extraction == 'edge':
+                print(f'Already did {subject} for tuple {index_to_struct[target_tuple[0]]} to {index_to_struct[target_tuple[1]]}')
+            if extraction == 'node':
+                print(f'Already did {subject} for tuple {index_to_struct[target_tuple]}')
             continue
 
         if not mrtrix_connectomes:
@@ -252,14 +269,35 @@ for subject in subjects:
                             affine=np.eye(4), verbose=verbose)
         else:
             tck_path = os.path.join(TCK_folder,os.path.basename(trkpath).replace('.trk','.tck'))
-            assignments_parcels_csv2 = os.path.join(excel_folder, subject+f'_assignments_con_plain_act.csv')
+            if csv == 'gm':
+                assignments_parcels_csv2 = os.path.join(excel_folder, subject+f'_assignments_con_plain_act.csv')
+            elif csv == 'wm':
+                assignments_parcels_csv2 = os.path.join(excel_folder, subject+f'_assignments_wm_con_plain_act.csv')
+
             streamline_tupled_tck_path = streamline_tupled_path.replace('.trk','.tck')
             if not os.path.exists(tck_path):
                 convert_trk_to_tck(trkpath, tck_path)
 
-            cmd = f'connectome2tck {tck_path} {assignments_parcels_csv2} {streamline_tupled_tck_path} -nodes {target_tuple[0]},{target_tuple[1]} -exclusive -files single'.replace(
-                "Shared ", "Shared\\ ")
-            if not os.path.exists(streamline_tupled_tck_path):
-                os.system(cmd)
-            convert_tck_to_trk(streamline_tupled_tck_path,streamline_tupled_path,ref_img_path)
-            os.remove(streamline_tupled_tck_path)
+            if extraction == 'edge':
+                cmd = f'connectome2tck {tck_path} {assignments_parcels_csv2} {streamline_tupled_tck_path} -nodes ' \
+                    f'{target_tuple[0]},{target_tuple[1]} -exclusive -files single'.replace("Shared ", "Shared\\ ")
+
+            if extraction == 'node':
+                cmd = f'connectome2tck {tck_path} {assignments_parcels_csv2} ' \
+                    f'{os.path.join(streamline_tupled_folders,f"{subject}_node")} ' \
+                    f'-files per_node'.replace("Shared ", "Shared\\ ")
+                if not os.path.exists(streamline_tupled_tck_path):
+                    os.system(cmd)
+                node_files = glob.glob(os.path.join(streamline_tupled_folders,f'{subject}_node*'))
+                for node_file in node_files:
+                    node = int(node_file.split('_node')[1].split('.tck')[0]) + 84
+                    streamline_tuple_folder_name = f'{index_to_struct[node]}_MDT{ratio_str}'
+                    streamline_tuple_folder_path = os.path.join(streamline_tupled_folders, streamline_tuple_folder_name)
+                    mkcdir(streamline_tuple_folder_path)
+                    streamline_tupled_path = os.path.join(streamline_tupled_folders, streamline_tuple_folder_name,
+                                                          f'{subject}_streamlines.trk')
+                    #shutil.move(node_file,streamline_tupled_path)
+                    shutil.copy(node_file,streamline_tupled_path)
+
+                (streamline_tupled_tck_path,streamline_tupled_path,ref_img_path)
+                os.remove(streamline_tupled_tck_path)
