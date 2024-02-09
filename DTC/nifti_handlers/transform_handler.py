@@ -245,6 +245,16 @@ def header_superpose(target_path, origin_path, outpath=None, verbose=False, keep
             print('Same header for target_path and origin_path, skipping')
 
 
+def label_rounder(origin_path,output_path):
+    origin_nii=nib.load(origin_path)
+    origin_affine = origin_nii._affine
+    origin_header = origin_nii._header
+    data = origin_nii.get_fdata()
+    newdata = np.round(data).astype(int)
+    new_nii = nib.Nifti1Image(newdata, origin_affine, origin_header)
+    nib.save(new_nii, output_path)
+
+
 def affine_superpose(target_path, origin_path, outpath=None, verbose=False):
     target_nii=nib.load(target_path)
     origin_nii=nib.load(origin_path)
