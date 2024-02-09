@@ -10,6 +10,7 @@ import pandas as pd
 import configparser
 from DTC.tract_manager.tract_save import save_trk_heavy_duty
 from dipy.io.utils import create_tractogram_header
+from scipy.io import loadmat
 
 
 def write_parameters_to_ini(file_path, parameters):
@@ -297,7 +298,7 @@ def remote_pickle(picklepath, sftp=None,erase_temp=True):
     return M
 
 
-def load_trk_remote(trkpath,reference,sftp=None):
+def load_trk_remote(trkpath,reference,sftp=None,trk_header_check=True):
     #from dipy.io.streamline import load_trk
     from DTC.tract_manager.streamline_nocheck import load_trk as load_trk_spe
     if sftp is not None:
@@ -305,7 +306,7 @@ def load_trk_remote(trkpath,reference,sftp=None):
         temp_path=make_temppath(trkpath)
         sftp.get(trkpath, temp_path)
         try:
-            trkdata = load_trk_spe(temp_path, reference)
+            trkdata = load_trk_spe(temp_path, reference,trk_header_check=trk_header_check)
             #trkdata = load_trk(temp_path, reference)
             os.remove(temp_path)
         except Exception as e:
@@ -314,7 +315,7 @@ def load_trk_remote(trkpath,reference,sftp=None):
             raise Exception(e)
     else:
         print(trkpath)
-        trkdata = load_trk_spe(trkpath, reference)
+        trkdata = load_trk_spe(trkpath, reference, trk_header_check=trk_header_check)
     return trkdata
 
 
@@ -348,7 +349,6 @@ def save_fig_remote(figpath, sftp=None):
 
 
 def loadmat_remote(matpath, sftp=None):
-    from scipy.io import loadmat
     if sftp is not None:
         temp_path = f'{os.path.join(os.path.expanduser("~"), os.path.basename(matpath))}'
         sftp.get(matpath, temp_path)
@@ -520,3 +520,28 @@ def checkallfiles(paths, sftp=None):
         if not match_files:
             existing= False
     return existing
+
+
+def load_matrix_in_any_format(filepath):
+    _, ext = os.path.splitext(filepath)
+    if ext == '.txt':
+        data = np.loadtxt(filepath)
+    elif ext == '.npy':
+        data = np.load(filepath)
+    elif ext == '.mat':
+        # .mat are actually dictionnary. This function support .mat from
+        # antsRegistration that encode a 4x4 transformation matrix.
+        transfo_dict = loadmat(filepath)
+        lps2ras = np.diag([-1, -1, 1])
+
+        rot = transfo_dict['AffineTransform_float_3_3'][0:9].reshape((3, 3))
+        trans = transfo_dict['AffineTransform_float_3_3'][9:12]
+        offset = transfo_dict['fixed']
+        r_trans = (np.dot(rot, offset) - offset - trans).T * [1, 1, -1]
+
+        data = np.eye(4)
+        data[0:3, 3] = r_trans
+        data[:3, :3] = np.dot(np.dot(lps2ras, rot), lps2ras)
+    else:
+        raise ValueError('Extension {} is not supported'.format(ext))
+    return data
