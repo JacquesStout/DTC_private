@@ -410,6 +410,7 @@ else:
     else:
         smallerTracks = os.path.join(path_trk, f'{subj}_smallerTracks2mill.tck')
 
+    trk_already_made = False
     if os.path.exists(smallerTracks) and not overwrite:
         num_streamlines = get_num_streamlines(smallerTracks)
         if num_streamlines < int(2000000):
