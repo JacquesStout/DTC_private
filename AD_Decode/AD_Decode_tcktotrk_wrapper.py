@@ -10,7 +10,7 @@ sbatch_folder_path = BD +"/tcktotrk_pipeline/" +job_descrp + '_sbatch/'
 if not os.path.exists(sbatch_folder_path): os.mkdir(sbatch_folder_path)
 
 tck_folder = os.path.join(BD,'mrtrix_ad_decode/perm_files')
-tck_folder = '/mnt/munin2/Badea/Lab/human/AD_Decode_trk_transfer/TRK'
+#tck_folder = '/mnt/munin2/Badea/Lab/human/AD_Decode_trk_transfer/TRK'
 tck_files = glob.glob(os.path.join(tck_folder,'*.tck'))
 trk_folder = '/mnt/munin2/Badea/Lab/human/AD_Decode_trk_transfer/TRK'
 reference_folder = '/mnt/munin2/Badea/ADdecode.01/Analysis/DWI/'
@@ -27,7 +27,7 @@ for tck_file in tck_files:
     reference_file = os.path.join(reference_folder,f'{subj}_subjspace_fa.nii.gz')
     trk_file = os.path.join(trk_folder,os.path.basename(tck_file).replace('.tck','.trk'))
     trk_MDT_file = os.path.join(trk_MDT_folder,f'{subj}*')
-    if check_MDT and np.size(glob.glob(trk_MDT_file))>0:
+    if (check_MDT and np.size(glob.glob(trk_MDT_file))>0):
         found=1
     if found:
         #print(f'found {subj}')
