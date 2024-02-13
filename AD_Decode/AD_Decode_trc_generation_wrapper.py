@@ -56,12 +56,13 @@ for subj in list_of_subjs:
 
 #list_of_coregs = [i.partition(f'_subjspace_coreg.nii.gz')[0] for i in list_of_subjs_long]
 
+print('total list')
 print(list_of_subjs)
 #print(list_of_coregs)
 
 #conn_path = f'/mnt/munin2/Badea/Lab/mouse/mrtrix_ad_decode/connectome{act_string}/'
 conn_path = os.path.join(BD, f'mrtrix_ad_decode/connectome{act_string}/')
-check_con = False
+check_con = True
 
 if check_con and os.path.isdir(conn_path):
     done_subj = os.listdir(conn_path)
@@ -70,9 +71,11 @@ if check_con and os.path.isdir(conn_path):
     list_of_subjs = set(list_of_subjs) - set(done_subj)
 #list_fmri_folders.remove(".DS_Store")
 
-test_mode = True
-limit = 10
+test_mode = True 
+limit = 20
 
+#list_of_subjs = ['S01912']
+print('remaining list')
 print(list_of_subjs)
 #list_of_subjs.remove('S02765')
 for subj in list_of_subjs:
@@ -97,4 +100,3 @@ for subj in list_of_subjs:
             limit_jobs(limit=limit)
         if not job_name_running:
             os.system(command)
-
