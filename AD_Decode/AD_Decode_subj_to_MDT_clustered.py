@@ -343,8 +343,6 @@ if trk_to_MDT and (not final_img_exists or overwrite):
     print('point 1')
     print(subj_trk)
 
-    num_streamlines_orig = get_num_streamlines(subj_trk)
-
     if not trkexists:
         subj_trk, trkexists = gettrkpath(path_TRK, subj, '_smallerTracks2mill', pruned=prune, verbose=False, sftp=sftp)
         smallertrkpath = os.path.join(path_TRK, subj + str_identifier + '.trk')
@@ -365,6 +363,9 @@ if trk_to_MDT and (not final_img_exists or overwrite):
     streamlines_subj = streamlines_data.streamlines
     header = streamlines_data.space_attributes
     affine_subj_trk = streamlines_data.affine
+
+    num_streamlines_orig = len(streamlines_data.streamlines)
+
     """
     affine_reorient[3, 3] = 1
     streamlines_postreorient = transform_streamlines(streamlines_subj, affine_reorient)
@@ -500,7 +501,7 @@ if trk_to_MDT and (not final_img_exists or overwrite):
         convert_tck_to_trk(tck_MDT_space, trk_MDT_space, MDT_median_img)
     else:
         raise Exception('Fault in conversion, insufficient streamlines')
-    
+
     os.remove(tck_MDT_space)
     """
     vox_size = nib.load(f'/mnt/munin2/Badea/Lab/human/AD_Decode_trk_transfer/DWI_MDT/{subj}_fa_to_MDT.nii.gz').header.get_zooms()[0]
