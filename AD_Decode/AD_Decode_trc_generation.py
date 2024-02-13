@@ -44,7 +44,7 @@ subj = sys.argv[1] #reads subj number with s... from input of python file
 subj_ref = subj
 
 overwrite=False
-cleanup = False
+cleanup = True
 make_connectomes = True
 make_wmconnectomes = True
 
@@ -119,8 +119,8 @@ if not os.path.isfile(subjspace_mask) : print('where is original mask?')
 
 path_perm = root + 'perm_files/'
 
-#path_trk = path_perm
-path_trk = '/Volumes/Data/Badea/Lab/human/AD_Decode_trk_transfer/TRK'
+path_trk = path_perm
+#path_trk = '/Volumes/Data/Badea/Lab/human/AD_Decode_trk_transfer/TRK'
 
 if not os.path.isdir(path_perm) : os.mkdir(path_perm)
 bval_path = path_perm  + subj + '_bvals_RAS.txt'
@@ -196,7 +196,7 @@ else:
     fivett_nocoreg_nii_gz = subj_path + subj + '_5tt_nocoreg.nii.gz'
     fivett_nocoreg_mif = subj_path + subj + '5tt_nocoreg.mif'
 
-overwrite=True
+overwrite=False
 if alloutputs_found and not overwrite:
     print(f'All outputs found, subject {subj} is already done!')
 
@@ -376,7 +376,7 @@ else:
 
     #os.system('dwi2fod msmt_csd ' +den_unbiased_mif+ ' -mask '+mask_mif+ ' ' +wm_txt+ ' ' + wmfod_mif+ ' ' +gm_txt+ ' ' + gmfod_mif+ ' ' +csf_txt+ ' ' + csffod_mif + ' -force' )
     if not os.path.exists(wmfod_mif):
-        os.system(f'dwi2fod msmt_csd ' +den_unbiased_mif+ ' -mask '+mask_mif+ ' ' +wm_txt+ ' ' + wmfod_mif+ f' -scratch {scratch_folder} -force' )
+        os.system(f'dwi2fod msmt_csd ' +den_unbiased_mif+ ' -mask '+mask_mif+ ' ' +wm_txt+ ' ' + wmfod_mif+ f' -force' )
 
     #combine to single image to view them
     #Concatenating the FODs:
@@ -430,7 +430,7 @@ else:
             #Extracting the b0 images: for Coregistering the anatomical and diffusion datasets:
             mean_b0_mif = subj_path+subj+'_mean_b0.mif'
             if not os.path.exists(mean_b0_mif):
-                os.system('dwiextract '+ den_unbiased_mif+' - -bzero | mrmath - mean '+ mean_b0_mif + f'-scratch {scratch_folder} -axis 3 -force')
+                os.system('dwiextract '+ den_unbiased_mif+' - -bzero | mrmath - mean '+ mean_b0_mif + f' -axis 3 -force')
 
             #Converting the b0 and 5tt images bc we wanna use fsl this part and fsl does not accept mif:
             mean_b0_nii_gz = subj_path+subj+'_mean_b0.nii.gz'
