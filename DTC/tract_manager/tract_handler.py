@@ -28,7 +28,7 @@ from DTC.tract_manager.tract_save import save_trk_heavy_duty
 from dipy.io.streamline import load_trk
 from dipy.tracking.utils import length
 import glob
-import os, shutil, copy
+import os, shutil, copy, subprocess, re
 from DTC.tract_manager.tract_save import save_trk_header
 from DTC.tract_manager.streamline_nocheck import load_trk as load_trk_spe
 import nibabel as nib
@@ -40,6 +40,23 @@ from dipy.io.stateful_tractogram import StatefulTractogram, Space
 from scipy.ndimage import map_coordinates
 from nibabel.streamlines import Field
 from DTC.diff_handlers.connectome_handlers.connectome_handler import _to_voxel_coordinates_warning, retweak_points
+
+
+def get_num_streamlines(tracks_path):
+    cmd = f'tckinfo {tracks_path} -count'
+    subprocess.run(cmd, shell=True, stdout=subprocess.PIPE)
+    result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    if result.returncode == 0:
+        # Split the output into lines and extract the last line
+        output_lines = result.stdout.split('\n')
+        last_line = output_lines[-2] if output_lines else ''
+        numbers = re.findall(r'\d+', last_line)
+        num_streamlines = max(map(int, numbers))
+        return num_streamlines
+    else:
+        # Handle the case where the command failed
+        print(f"Error: {result.stderr}")
+        return None
 
 
 def cut_invalid_streamlines(sft):

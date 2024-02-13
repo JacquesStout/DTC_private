@@ -23,7 +23,7 @@ from DTC.file_manager.argument_tools import parse_arguments
 import sys, shutil
 from ants.core.ants_transform_io import create_ants_transform, write_transform, read_transform
 from DTC.nifti_handlers.transform_handler import rigid_reg, translation_reg
-from DTC.tract_manager.tract_handler import reducetractnumber
+from DTC.tract_manager.tract_handler import reducetractnumber, get_num_streamlines
 from DTC.nifti_handlers.transform_handler import img_transform_exec
 from dipy.io.streamline import load_tractogram, save_tractogram
 from scipy.io import loadmat
@@ -343,6 +343,8 @@ if trk_to_MDT and (not final_img_exists or overwrite):
     print('point 1')
     print(subj_trk)
 
+    num_streamlines_orig = get_num_streamlines(subj_trk)
+
     if not trkexists:
         subj_trk, trkexists = gettrkpath(path_TRK, subj, '_smallerTracks2mill', pruned=prune, verbose=False, sftp=sftp)
         smallertrkpath = os.path.join(path_TRK, subj + str_identifier + '.trk')
@@ -491,8 +493,14 @@ if trk_to_MDT and (not final_img_exists or overwrite):
     os.system(command)
 
     os.remove(tck_preprocess_postrigid_affine)
-    convert_tck_to_trk(tck_MDT_space, trk_MDT_space, MDT_median_img)
 
+    num_streamlines_MDT = get_num_streamlines(tck_MDT_space)
+
+    if num_streamlines_MDT==num_streamlines_orig:
+        convert_tck_to_trk(tck_MDT_space, trk_MDT_space, MDT_median_img)
+    else:
+        raise Exception('Fault in conversion, insufficient streamlines')
+    
     os.remove(tck_MDT_space)
     """
     vox_size = nib.load(f'/mnt/munin2/Badea/Lab/human/AD_Decode_trk_transfer/DWI_MDT/{subj}_fa_to_MDT.nii.gz').header.get_zooms()[0]
