@@ -8,6 +8,8 @@ Created on Tue Jan 17 13:30:59 2023
 
 import os , glob
 import sys
+from DTC.file_manager.qstat_tools import limit_jobs, check_job_name
+
 
 # import nibabel as nib
 
@@ -45,8 +47,9 @@ subj_files = glob.glob('/mnt/munin2/Badea/Lab/human/AD_Decode_trk_transfer/TRK/*
 output_folder = ('/mnt/munin2/Badea/Lab/human/AD_Decode_trk_transfer/TRK_MDT')
 list_of_subjs = []
 
-pre_erase_unfinished = True
-test_mode = False
+pre_erase_unfinished = False
+test_mode = True
+limit=6
 
 #print(subj_files)
 for subj_file in subj_files:
@@ -73,10 +76,19 @@ for subj_trk in subj_files:
     subj = os.path.basename(subj_trk).split('_')[0]
     job_name = job_descrp + "_" + subj
     command = GD + "submit_sge_cluster_job.bash " + sbatch_folder_path + " " + job_name + " 0 0 '" + python_command + "'"
+    
+    job_name_running = check_job_name(job_name)
+    if job_name_running:
+        print(f'{job_name} is already running')
+
     if test_mode:
         print(command)
     else:
-        os.system(command)
+        if limit is not None:
+            limit_jobs(limit=limit)
+        if not job_name_running:
+            os.system(command)
+        #os.system(command)
     #print(command)
 
 """
