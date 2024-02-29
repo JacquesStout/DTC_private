@@ -1,0 +1,45 @@
+"""
+Spyder Editor
+
+This is a temporary script file.
+"""
+
+#Location of reference atlas
+#~/anaconda3/lib/python3.11/site-packages/tractseg/resources/MNI_FA_template.nii.gz
+
+#Calculate the FA
+#calc_FA -i '/home/alex/braindata/tractseg_input/S00775_subjspace/Reg_MPCA_S00775_nii4D.nii.gz' -o '/home/alex/braindata/tractseg_output/S00755/S00775_FA.nii.gz' --bvals '/home/alex/braindata/tractseg_input/S00775_subjspace/S00775_bvals_fix.txt' --bvecs '/home/alex/braindata/tractseg_input/S00775_subjspace/S00775_bvecs_fix.txt' --brain_mask '/home/alex/braindata/tractseg_output/S00755/nodif_brain_mask.nii.gz'
+
+#Registering FA of subject to MNI FA
+#flirt -ref ~/anaconda3/lib/python3.11/site-packages/tractseg/resources/MNI_FA_template.nii.gz -in /home/alex/braindata/tractseg_output/S00755/S00775_FA.nii.gz -out /home/alex/braindata/tractseg_output/S00755/S00775_FA_MNI.nii.gz -omat /home/alex/braindata/tractseg_output/S00755/S00775_FA_2_MNI.mat -dof 6 -cost mutualinfo -searchcost mutualinfo
+
+#Applying the transform onto the 4D diffusion image
+#flirt -ref ~/anaconda3/lib/python3.11/site-packages/tractseg/resources/MNI_FA_template.nii.gz -in /home/alex/braindata/tractseg_input/S00775_subjspace/Reg_MPCA_S00775_nii4D.nii.gz -out /home/alex/braindata/tractseg_output/S00755/Reg_MPCA_S00775_nii4D_MNI.nii.gz -applyxfm -init /home/alex/braindata/tractseg_output/S00755/S00775_FA_2_MNI.mat -dof 6
+
+#Copying the bvals onto the new location
+#cp /home/alex/braindata/tractseg_input/S00775_subjspace/S00775_bvals_fix.txt ~/braindata/tractseg_output/S00755/S00775_bvals_MNI.txt
+
+#Rotating the old bvecs into MNI space
+#rotate_bvecs -i /home/alex/braindata/tractseg_input/S00775_subjspace/S00775_bvecs_fix.txt -t /home/alex/braindata/tractseg_output/S00755/S00775_FA_2_MNI.mat -o ~/braindata/tractseg_output/S00755/S00775_bvecs_MNI.txt
+#rotate_bvecs -i /home/alex/braindata/tractseg_input/S00775_subjspace/S00775_mrtrix_checked.txt -t /home/alex/braindata/tractseg_output/S00755/S00775_FA_2_MNI.mat -o ~/braindata/tractseg_output/S00755/S00775_bvecs_checked_MNI.txt
+
+#This code was done on the subjspace, should not be used anymore
+#TractSeg -i '/home/alex/braindata/tractseg_input/S00775_subjspace/Reg_MPCA_S00775_nii4D.nii.gz' -o '/home/alex/braindata/tractseg_output/S00755' --bvals '/home/alex/braindata/tractseg_input/S00775_subjspace/S00775_bvals_fix.txt' --bvecs '/home/alex/braindata/tractseg_input/S00775_subjspace/S00775_bvecs_fix.txt' ----raw_diffusion_input 
+
+#Calculating the peaks of subject in MNI space
+#This code is the TractSeg on the previously created MNI image and txt files
+#TractSeg -i ~/braindata/tractseg_output/S00755/Reg_MPCA_S00775_nii4D_MNI.nii.gz -o ~/braindata/tractseg_output/S00755 --bvals ~/braindata/tractseg_output/S00755/S00775_bvals_MNI.txt --bvecs ~/braindata/tractseg_output/S00755/S00775_bvecs_MNI.txt --raw_diffusion_input
+#TractSeg -i ~/braindata/tractseg_output/S00755/Reg_MPCA_S00775_nii4D_MNI.nii.gz -o ~/braindata/tractseg_output/S00755 --bvals ~/braindata/tractseg_output/S00755/S00775_bvals_MNI.txt --bvecs ~/braindata/tractseg_output/S00755/S00775_bvecs_checked_MNI.txt --raw_diffusion_input
+
+#Endings segmentation
+#TractSeg -i ~/braindata/tractseg_output/S00755/peaks.nii.gz -o ~/braindata/tractseg_output/S00755/ --output_type endings_segmentation
+
+#fsleyes /home/alex/braindata/tractseg_output/S00755/bundle_segmentations/CC.nii.gz /home/alex/braindata/tractseg_input/S00775_subjspace/Reg_MPCA_S00775_nii4D.nii.gz
+
+#Creating the TOM
+#TractSeg -i ~/braindata/tractseg_output/S00755/peaks.nii.gz -o ~/braindata/tractseg_output/S00755/ --output_type TOM
+
+#Creating the fibers
+#Tracking -i ~/braindata/tractseg_output/S00755/peaks.nii.gz -o ~/braindata/tractseg_output/S00755/ --nr_fibers 5000
+
+#Tractometry -i TOM_trackings/ -o Tractometry_00775.csv -e endings_segmentations/ -s S00775_FA_MNI.nii.gz
