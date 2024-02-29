@@ -88,7 +88,7 @@ target_tuples = [(78,74),(74,40),(44,40),(40,2),(74,2)]
 #target_tuples = [(77, 43)] #superior frontal right to superior frontal left
 target_tuples = [(74,2)]
 target_tuples = [(40,2),(74,10),(44,40),(78,74),(74,40)]
-target_tuples = [(40,2)]
+target_tuples = [(74,10)]
 #target_tuples = np.arange(85,127)
 
 extraction = 'edge' #either 'edge' or 'node', defaults to 'edge' (two region connection), node extracts only the single region
@@ -191,6 +191,12 @@ trk_files = glob.glob(os.path.join(TRK_folder,'*trk'))
 subjects = [os.path.basename(trk_file).split('_')[0] for trk_file in trk_files]
 subjects = sorted(subjects)
 
+#removed_list = ['S02230', 'S02654', 'S02490', 'S02523', 'S02745']
+removed_list = ['S02390','S02765']
+for remove in removed_list:
+    if remove in subjects:
+        subjects.remove(remove)
+
 if not os.path.exists(TRK_folder):
     raise Exception(f'cannot find TRK folder at {TRK_folder}')
 
@@ -272,6 +278,11 @@ for subject in subjects:
                             affine=np.eye(4), verbose=verbose)
         else:
             tck_path = os.path.join(TCK_folder,os.path.basename(trkpath).replace('.trk','.tck'))
+
+            if not os.path.exists(trkpath):
+                print(f'Could not find file for subject {subject}')
+                continue
+
             if csv == 'gm':
                 assignments_parcels_csv2 = os.path.join(excel_folder, subject+f'_assignments_con_plain_act.csv')
             elif csv == 'wm':
