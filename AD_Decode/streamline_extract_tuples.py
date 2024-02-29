@@ -87,10 +87,12 @@ target_tuples = [(74, 2),(74,40)]
 target_tuples = [(78,74),(74,40),(44,40),(40,2),(74,2)]
 #target_tuples = [(77, 43)] #superior frontal right to superior frontal left
 target_tuples = [(74,2)]
-target_tuples = np.arange(85,127)
+target_tuples = [(40,2),(74,10),(44,40),(78,74),(74,40)]
+target_tuples = [(40,2)]
+#target_tuples = np.arange(85,127)
 
-extraction = 'node' #either 'edge' or 'node', defaults to 'edge' (two region connection), node extracts only the single region
-csv = 'wm' #'wm' or 'gm' so far
+extraction = 'edge' #either 'edge' or 'node', defaults to 'edge' (two region connection), node extracts only the single region
+csv = 'gm' #'wm' or 'gm' so far
 
 labeltype = 'lrordered'
 #reference_img refers to statistical values that we want to compare to the streamlines, say fa, rd, etc
@@ -188,6 +190,7 @@ mkcdir([streamline_tupled_folders,TCK_folder])
 trk_files = glob.glob(os.path.join(TRK_folder,'*trk'))
 subjects = [os.path.basename(trk_file).split('_')[0] for trk_file in trk_files]
 subjects = sorted(subjects)
+
 if not os.path.exists(TRK_folder):
     raise Exception(f'cannot find TRK folder at {TRK_folder}')
 
@@ -281,7 +284,7 @@ for subject in subjects:
             if extraction == 'edge':
                 cmd = f'connectome2tck {tck_path} {assignments_parcels_csv2} {streamline_tupled_tck_path} -nodes ' \
                     f'{target_tuple[0]},{target_tuple[1]} -exclusive -files single'.replace("Shared ", "Shared\\ ")
-
+                os.system(cmd)
             if extraction == 'node':
                 cmd = f'connectome2tck {tck_path} {assignments_parcels_csv2} ' \
                     f'{os.path.join(streamline_tupled_folders,f"{subject}_node")} ' \
@@ -294,10 +297,8 @@ for subject in subjects:
                     streamline_tuple_folder_name = f'{index_to_struct[node]}_MDT{ratio_str}'
                     streamline_tuple_folder_path = os.path.join(streamline_tupled_folders, streamline_tuple_folder_name)
                     mkcdir(streamline_tuple_folder_path)
-                    streamline_tupled_path = os.path.join(streamline_tupled_folders, streamline_tuple_folder_name,
-                                                          f'{subject}_streamlines.trk')
                     #shutil.move(node_file,streamline_tupled_path)
                     shutil.copy(node_file,streamline_tupled_path)
 
-                (streamline_tupled_tck_path,streamline_tupled_path,ref_img_path)
-                os.remove(streamline_tupled_tck_path)
+            convert_tck_to_trk(streamline_tupled_tck_path,streamline_tupled_path,ref_img_path)
+            os.remove(streamline_tupled_tck_path)
