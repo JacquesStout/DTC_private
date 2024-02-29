@@ -137,7 +137,8 @@ def parcellated_FC_matrix(sub_timeseries, atlas_idx, roi_list):
 if 'santorini' in socket.gethostname().split('.')[0]:
     root = '/Volumes/Data/Badea/Lab/'
     #root_proj = '/Volumes/Data/Badea/Lab/mouse/Jasien_mrtrix_pipeline/'
-    root_proj = '/Volumes/Data/Badea/Lab/human/Jasien/'
+    #root_proj = '/Volumes/Data/Badea/Lab/human/Jasien/'
+    root_proj = '/Volumes/dusom_mousebrains/All_Staff/jacques/Jasien'
     data_path = '/Volumes/Data/Jasien/ADSB.01/Data/Anat/'
 else:
     root = '/mnt/munin2/Badea/Lab/'
@@ -146,7 +147,8 @@ else:
     data_path = '/mnt/munin2/Jasien/ADSB.01/Data/Anat/'
 
 
-fmriprep_output = '/Volumes/Data/Badea/Lab/human/Jasien/fmriprep_output/'
+#fmriprep_output = '/Volumes/Data/Badea/Lab/human/Jasien/fmriprep_output/'
+fmriprep_output = '/Volumes/dusom_mousebrains/All_Staff/jacques/Jasien/fmri_output_all'
 conn_path = os.path.join(root_proj, 'connectomes')
 func_conn_path = os.path.join(conn_path,'functional_conn')
 
@@ -155,7 +157,7 @@ SAMBA_path_results = '/Volumes/Data/Badea/Lab/mouse/VBM_21ADDecode03_IITmean_RPI
 slice_func = False #Do you want to split the functionnal time series into just the first three hundred points
 
 subjects = ['J01277', 'J01402', 'J04472', 'J04129', 'J01257', 'J04300', 'J04086','J01501','J01516','J04602','J01541']
-subjects = ['J04129']
+#subjects = ['J04129']
 #subjects = ['J01402','J01501']
 
 check_label = True
@@ -176,7 +178,7 @@ for subj in subjects:
 
     subj_temp = f'T{subj_strip}'
 
-    mkcdir(func_conn_path)
+    mkcdir([conn_path,func_conn_path])
     fmri_nii=nib.load(fmri_path)
 
     time_serts_path = os.path.join(func_conn_path, f'time_serts_{subj}.csv')
