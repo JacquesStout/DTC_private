@@ -14,7 +14,7 @@ if np.size(sys.argv)>5:
 else:
     verbose = False
 
-remote=True
+remote=False
 
 
 if remote:
