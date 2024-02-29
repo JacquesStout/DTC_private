@@ -10,13 +10,16 @@ import subprocess
 #trk_folder = '/mnt/paros_DB/Projects/AD_Decode/Analysis/TRK_MDT'
 #new_trk_folder = '/mnt/paros_WORK/jacques/AD_Decode/TRK_MDT_ratio_10'
 
-trk_folder = '/mnt/newJetStor/paros/paros_WORK/jacques/AD_Decode/TRK_MDT'
-new_trk_folder = '/mnt/newJetStor/paros/paros_WORK/jacques/AD_Decode/TRK_MDT_ratio_10'
+#trk_folder = '/mnt/newJetStor/paros/paros_WORK/jacques/AD_Decode/TRK_MDT'
+#new_trk_folder = '/mnt/newJetStor/paros/paros_WORK/jacques/AD_Decode/TRK_MDT_ratio_10'
 
-trk_folder = '/mnt/newJetStor/paros/paros_WORK/jacques/AD_Decode/TRK_MDT_ratio_100'
-new_trk_folder = '/mnt/newJetStor/paros/paros_WORK/jacques/AD_Decode/TRK_MDT_ratio_1000'
+#trk_folder = '/mnt/newJetStor/paros/paros_WORK/jacques/AD_Decode/TRK_MDT_ratio_100'
+#new_trk_folder = '/mnt/newJetStor/paros/paros_WORK/jacques/AD_Decode/TRK_MDT_ratio_1000'
 
-remote = True
+trk_folder = '/mnt/munin2/Badea/Lab/human/AD_Decode_trk_transfer/TRK_MDT/'
+new_trk_folder = '/mnt/munin2/Badea/Lab/human/AD_Decode_trk_transfer/TRK_MDT_ratio_10/'
+
+remote = False
 
 if remote:
     username, passwd = getfromfile(os.path.join(os.environ['HOME'],'remote_connect.rtf'))
@@ -28,7 +31,7 @@ inpath, _, _, sftp = get_mainpaths(remote,project = 'AD_Decode', username=userna
 
 mkcdir([new_trk_folder], sftp)
 
-orig_ratio =100
+orig_ratio =1
 ratio = 10
 stepsize = 2
 method= 'decimate'
@@ -72,7 +75,7 @@ print(filelist)
 
 verbose = True
 
-qsub = False
+qsub = True
 
 for filepath in filelist:
     _, f_ext = os.path.splitext(filepath)
