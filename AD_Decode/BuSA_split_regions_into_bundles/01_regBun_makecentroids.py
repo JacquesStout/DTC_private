@@ -32,6 +32,12 @@ args = parser.parse_args()
 bundle_split = args.split
 project_summary_file = args.proj
 
+bundle_id_orig = args.id
+if bundle_id_orig is not None:
+    bundle_id_orig_txt = '_'.join(bundle_id_orig) + '_'
+else:
+    bundle_id_orig_txt = '_'
+
 project_headfile_folder = '/Volumes/Data/Badea/Lab/jacques/BuSA_headfiles/'
 
 if project_summary_file is None:
@@ -93,7 +99,7 @@ else:
     trkroi = ["wholebrain"]
 
 str_identifier = get_str_identifier(stepsize, ratio, trkroi, type=streamline_type)
-str_identifier = '_streamlines'
+#str_identifier = '_streamlines'
 
 if 'santorini' in socket.gethostname().split('.')[0]:
     lab_folder = '/Volumes/Data/Badea/Lab'
@@ -214,8 +220,9 @@ for bundle in top_bundles[:bundle_split]:
     centroids.append(bundles.clusters[bundle].centroid)
 
 
-#pickled_centroids = os.path.join(pickle_folder, f'bundles_centroids_{bundle_id_orig_txt}_split_{bundle_split}.py')
-pickled_centroids = os.path.join(pickle_folder, f'bundles_centroids_split_{bundle_split}.py')
+pickled_centroids = os.path.join(pickle_folder, f'bundles_centroids{bundle_id_orig_txt}split_{bundle_split}.py')
+#pickled_centroids = os.path.join(pickle_folder, f'bundles_centroids_split_{bundle_split}.py')
+
 if not checkfile_exists_remote(pickled_centroids, sftp_out) or overwrite:
     # pickledump_remote(bundles.centroids,pickled_centroids,sftp_out)
     pickledump_remote(centroids, pickled_centroids, sftp_out)
@@ -225,8 +232,7 @@ else:
 timings.append(time.perf_counter())
 
 for new_bundle_id in np.arange(bundle_split):
-    bundle_id_orig_txt = ''
-    full_bundle_id = bundle_id_orig_txt + f'_{new_bundle_id}'
+    full_bundle_id = bundle_id_orig_txt + f'{new_bundle_id}'
     sg = lambda: (s for i, s in enumerate(centroids[new_bundle_id:new_bundle_id+1]))
     filepath_bundle = os.path.join(centroids_proj_path, f'centroid_bundle{full_bundle_id}.trk')
     save_trk_header(filepath=filepath_bundle, streamlines=sg, header=header, affine=np.eye(4), verbose=verbose,

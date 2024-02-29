@@ -40,12 +40,16 @@ parser.add_argument('--side', type=str, help='The specified side')
 
 
 args = parser.parse_args()
-#bundle_id_orig = args.id
-#bundle_id_orig_txt = '_'.join(bundle_id_orig)
+bundle_id_orig = args.id
 bundle_split = args.split
 project_summary_file = args.proj
 full_subjects_list = args.subj
 sides = [args.side]
+
+if bundle_id_orig is not None:
+    bundle_id_orig_txt = '_'.join(bundle_id_orig) + '_'
+else:
+    bundle_id_orig_txt = '_'
 
 project_headfile_folder = '/Volumes/Data/Badea/Lab/jacques/BuSA_headfiles/'
 
@@ -129,7 +133,7 @@ else:
     trkroi = ["wholebrain"]
 
 str_identifier = get_str_identifier(stepsize, ratio, trkroi, type='mrtrix')
-str_identifier = '_streamlines'
+#str_identifier = '_streamlines'
 
 ratiostr = ratio_to_str(ratio,spec_all=False)
 
@@ -162,8 +166,9 @@ centroid_all_side_tracker = {}
 
 centroids = {}
 
-#pickled_centroids = os.path.join(pickle_folder, f'bundles_centroids_{bundle_id_orig_txt}_split_{bundle_split}.py')
-pickled_centroids = os.path.join(pickle_folder, f'bundles_centroids_split_{bundle_split}.py')
+pickled_centroids = os.path.join(pickle_folder, f'bundles_centroids{bundle_id_orig_txt}split_{bundle_split}.py')
+#pickled_centroids = os.path.join(pickle_folder, f'bundles_centroids_split_{bundle_split}.py')
+
 try:
     centroids = remote_pickle(pickled_centroids,sftp_out,erase_temp=False)
 except pickle.UnpicklingError:
