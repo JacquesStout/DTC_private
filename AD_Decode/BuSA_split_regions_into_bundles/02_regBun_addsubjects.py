@@ -248,8 +248,8 @@ for subject in full_subjects_list:
     if verbose:
         print(f'Finished streamline prep')
     for new_bundle_id in streamline_bundle.keys():
-        bundle_id_orig_txt = ''
-        full_bundle_id = bundle_id_orig_txt + f'_{new_bundle_id}'
+        #bundle_id_orig_txt = ''
+        full_bundle_id = bundle_id_orig_txt + f'{new_bundle_id}'
         sg = lambda: (s for i, s in enumerate(streamline_bundle[new_bundle_id]))
         filepath_bundle = os.path.join(trk_proj_path, f'{subject}_bundle{full_bundle_id}_split_{bundle_split}.trk')
         save_trk_header(filepath=filepath_bundle, streamlines=sg, header=header,
