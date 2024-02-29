@@ -18,6 +18,8 @@ import socket
 from DTC.file_manager.computer_nav import checkfile_exists_all
 from DTC.diff_handlers.bvec_handler import fix_bvals_bvecs
 import subprocess, re
+from DTC.nifti_handlers.transform_handler import label_rounder
+
 
 def get_num_streamlines(tracks_path):
     cmd = f'tckinfo {tracks_path} -count'
@@ -196,7 +198,7 @@ else:
     fivett_nocoreg_nii_gz = subj_path + subj + '_5tt_nocoreg.nii.gz'
     fivett_nocoreg_mif = subj_path + subj + '5tt_nocoreg.mif'
 
-overwrite=False
+overwrite=True
 if alloutputs_found and not overwrite:
     print(f'All outputs found, subject {subj} is already done!')
 
@@ -555,7 +557,7 @@ else:
             file_result= nib.Nifti1Image(label_nii_order, label_nii.affine, label_nii.header)
             new_label = path_perm +subj+'_new_label.nii.gz'
             nib.save(file_result, new_label)
-
+            label_rounder(new_label,new_label)
             #new_label = label_path
             os.system('mrconvert '+new_label+ ' ' +parcels_mif + ' -force' )
 
