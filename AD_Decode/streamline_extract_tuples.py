@@ -27,6 +27,8 @@ from dipy.tracking.streamline import Streamlines
 from dipy.tracking.utils import connectivity_matrix
 from DTC.tract_manager.DTC_manager import get_str_identifier, check_dif_ratio
 from DTC.tract_manager.tract_save import convert_trk_to_tck,convert_tck_to_trk
+from DTC.file_manager.computer_nav import checkfile_exists_remote, get_mainpaths, load_nifti_remote, load_trk_remote
+from nibabel.streamlines.array_sequence import ArraySequence
 
 
 def get_grouping(grouping_xlsx):
@@ -39,6 +41,122 @@ def get_diff_ref(label_folder, subject, ref):
         return diff_path
     else:
         raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), diff_path)
+
+
+def check_streamline(streamline):
+    for i in range(len(streamline) - 1):
+        point1 = streamline[i]
+        point2 = streamline[i + 1]
+
+        distance = np.linalg.norm(point2 - point1)
+
+        if distance > 10:
+
+            firstpart = streamline[:i + 1]
+            secondpart = streamline[i + 1:]
+            if np.linalg.norm(firstpart - firstpart[0]) < 0.5:
+                if len(firstpart)==1:
+                    secondpart = secondpart[1:]
+                    continue
+                else:
+                    return(secondpart)
+            elif np.linalg.norm(secondpart - secondpart[0]) < 0.5:
+                return(firstpart)
+            else:
+                streamline_1 = check_streamline(firstpart)
+                streamline_2 = check_streamline(secondpart)
+                if len(streamline_1)>len(streamline_2):
+                    return(streamline_1)
+                else:
+                    return(streamline_2)
+
+    return(streamline)
+
+
+def fix_badwarp_streamlines(streamlines):
+    streamlines_pruned = []
+    streamlines_onlypruned = []
+
+    for id, streamline in enumerate(streamlines):
+        streamline = check_streamline(streamline)
+        streamlines_pruned.append(streamline)
+    return streamlines_pruned
+
+
+def fix_badwarp_streamlines_old(streamlines):
+    streamlines_pruned = []
+    streamlines_onlypruned = []
+
+    for id, streamline in enumerate(streamlines):
+        pruned = 0
+        for i in range(len(streamline) - 1):
+            point1 = streamline[i]
+            point2 = streamline[i + 1]
+
+            distance = np.linalg.norm(point2 - point1)
+
+            if distance > 10:
+                # print(f"Distance between points {i} and {i + 1} is {distance:.2f}, which exceeds the threshold.")
+                """
+                if i+1>len(streamline)/2:
+                    streamlines_pruned.append(streamline[:i+1])
+                    kept_part = streamline[:i+1]
+                    cut_part = streamline[i+1:]
+                elif i+1<len(streamline)/2:
+                    streamlines_pruned.append(streamline[i+1:])
+                    cutpart = streamline[:i + 1]
+                else:
+                """
+                firstpart = streamline[:i + 1]
+                secondpart = streamline[i + 1:]
+                if np.linalg.norm(firstpart - firstpart[0]) < 0.5:
+                    kept_part = secondpart
+                    cut_part = firstpart
+                elif np.linalg.norm(secondpart - secondpart[0]) < 0.5:
+                    kept_part = firstpart
+                    cut_part = secondpart
+                else:
+                    point_pre = firstpart[0]
+                    found = 0
+                    for point in firstpart[1:]:
+                        if np.linalg.norm(point - point_pre) == 0:
+                            kept_part = secondpart
+                            cut_part = firstpart
+                            found = 1
+                            break
+                        point_pre = point
+                    if not found:
+                        point_pre = secondpart[0]
+                        for point in secondpart[1:]:
+                            if np.linalg.norm(point - point_pre) == 0:
+                                kept_part = firstpart
+                                cut_part = secondpart
+                                found = 1
+                                break
+                            point_pre = point
+                    if not found:
+                        if (len(firstpart) > 2 * len(secondpart)) or (len(streamline)<10 and len(firstpart)>(len(secondpart))):
+                            kept_part = firstpart
+                            cut_part = secondpart
+                        elif len(secondpart) > 2 * len(firstpart) or (len(streamline)<10 and len(secondpart)>(len(firstpart))):
+                            kept_part = secondpart
+                            cut_part = firstpart
+                        else:
+                            print('investigate')
+                pruned = 1
+                try:
+                    streamlines_pruned.append(kept_part)
+                except:
+                    streamlines_pruned.append(firstpart)
+                streamlines_onlypruned.append(streamline)
+
+                # if not np.all(np.linalg.norm(cutpart - cutpart[0]) == cutpart[0], axis=0).all():
+                #    print('investigate')
+                break
+        if not pruned:
+            streamlines_pruned.append(streamline)
+    return streamlines_pruned,streamlines_onlypruned
+
 
 """
 '1 Cerebellum-Cortex_Right---Cerebellum-Cortex_Left 9 1 with weight of 3053.5005\n'
@@ -88,7 +206,8 @@ target_tuples = [(78,74),(74,40),(44,40),(40,2),(74,2)]
 #target_tuples = [(77, 43)] #superior frontal right to superior frontal left
 target_tuples = [(74,2)]
 target_tuples = [(40,2),(74,10),(44,40),(78,74),(74,40)]
-target_tuples = [(74,10)]
+target_tuples = [(44,40),(78,74),(74,40)]
+#target_tuples = [(40,2)]
 #target_tuples = np.arange(85,127)
 
 extraction = 'edge' #either 'edge' or 'node', defaults to 'edge' (two region connection), node extracts only the single region
@@ -190,9 +309,9 @@ mkcdir([streamline_tupled_folders,TCK_folder])
 trk_files = glob.glob(os.path.join(TRK_folder,'*trk'))
 subjects = [os.path.basename(trk_file).split('_')[0] for trk_file in trk_files]
 subjects = sorted(subjects)
-
+#subjects = ['S02390']
 #removed_list = ['S02230', 'S02654', 'S02490', 'S02523', 'S02745']
-removed_list = ['S02390','S02765']
+removed_list = []
 for remove in removed_list:
     if remove in subjects:
         subjects.remove(remove)
@@ -226,6 +345,8 @@ overwrite=False
 
 mrtrix_connectomes = True
 
+fix_streamlines = True
+
 for subject in subjects:
 
     #print(f'Starting the run for {index_to_struct[target_tuple[0]]} to {index_to_struct[target_tuple[1]]}')
@@ -247,7 +368,7 @@ for subject in subjects:
         mkcdir(streamline_tuple_folder_path)
         streamline_tupled_path = os.path.join(streamline_tupled_folders, streamline_tuple_folder_name, f'{subject}_streamlines.trk')
 
-        if os.path.exists(streamline_tupled_path) and not overwrite:
+        if os.path.exists(streamline_tupled_path) and not overwrite and not fix_streamlines:
             if extraction == 'edge':
                 print(f'Already did {subject} for tuple {index_to_struct[target_tuple[0]]} to {index_to_struct[target_tuple[1]]}')
             if extraction == 'node':
@@ -289,27 +410,42 @@ for subject in subjects:
                 assignments_parcels_csv2 = os.path.join(excel_folder, subject+f'_assignments_wm_con_plain_act.csv')
 
             streamline_tupled_tck_path = streamline_tupled_path.replace('.trk','.tck')
-            if not os.path.exists(tck_path):
+            if not os.path.exists(tck_path) or overwrite:
                 convert_trk_to_tck(trkpath, tck_path)
 
-            if extraction == 'edge':
-                cmd = f'connectome2tck {tck_path} {assignments_parcels_csv2} {streamline_tupled_tck_path} -nodes ' \
-                    f'{target_tuple[0]},{target_tuple[1]} -exclusive -files single'.replace("Shared ", "Shared\\ ")
-                os.system(cmd)
-            if extraction == 'node':
-                cmd = f'connectome2tck {tck_path} {assignments_parcels_csv2} ' \
-                    f'{os.path.join(streamline_tupled_folders,f"{subject}_node")} ' \
-                    f'-files per_node'.replace("Shared ", "Shared\\ ")
-                if not os.path.exists(streamline_tupled_tck_path):
+            if (not os.path.exists(streamline_tupled_tck_path) and not os.path.exists(streamline_tupled_path)) or overwrite:
+                if extraction == 'edge':
+                    cmd = f'connectome2tck {tck_path} {assignments_parcels_csv2} {streamline_tupled_tck_path} -nodes ' \
+                        f'{target_tuple[0]},{target_tuple[1]} -exclusive -files single'.replace("Shared ", "Shared\\ ")
                     os.system(cmd)
-                node_files = glob.glob(os.path.join(streamline_tupled_folders,f'{subject}_node*'))
-                for node_file in node_files:
-                    node = int(node_file.split('_node')[1].split('.tck')[0]) + 84
-                    streamline_tuple_folder_name = f'{index_to_struct[node]}_MDT{ratio_str}'
-                    streamline_tuple_folder_path = os.path.join(streamline_tupled_folders, streamline_tuple_folder_name)
-                    mkcdir(streamline_tuple_folder_path)
-                    #shutil.move(node_file,streamline_tupled_path)
-                    shutil.copy(node_file,streamline_tupled_path)
+                if extraction == 'node':
+                    cmd = f'connectome2tck {tck_path} {assignments_parcels_csv2} ' \
+                        f'{os.path.join(streamline_tupled_folders,f"{subject}_node")} ' \
+                        f'-files per_node'.replace("Shared ", "Shared\\ ")
+                    if not os.path.exists(streamline_tupled_tck_path):
+                        os.system(cmd)
+                    node_files = glob.glob(os.path.join(streamline_tupled_folders,f'{subject}_node*'))
+                    for node_file in node_files:
+                        node = int(node_file.split('_node')[1].split('.tck')[0]) + 84
+                        streamline_tuple_folder_name = f'{index_to_struct[node]}_MDT{ratio_str}'
+                        streamline_tuple_folder_path = os.path.join(streamline_tupled_folders, streamline_tuple_folder_name)
+                        mkcdir(streamline_tuple_folder_path)
+                        #shutil.move(node_file,streamline_tupled_path)
+                        shutil.copy(node_file,streamline_tupled_path)
 
-            convert_tck_to_trk(streamline_tupled_tck_path,streamline_tupled_path,ref_img_path)
-            os.remove(streamline_tupled_tck_path)
+            if not os.path.exists(streamline_tupled_path) or overwrite:
+                convert_tck_to_trk(streamline_tupled_tck_path,streamline_tupled_path,ref_img_path)
+
+            if fix_streamlines:
+                streamlines_data = load_trk_remote(streamline_tupled_path,'same')
+                streamlines_unfixed = ArraySequence(streamlines_data.streamlines)
+                header = streamlines_data.space_attributes
+
+                streamlines_fixed = fix_badwarp_streamlines(streamlines_unfixed)
+
+                sg_f = lambda: (s for i, s in enumerate(streamlines_fixed))
+                save_trk_header(filepath=streamline_tupled_path, streamlines=sg_f, header=header,
+                                affine=np.eye(4), verbose=verbose, sftp=None)
+
+            if os.path.exists(streamline_tupled_tck_path):
+                os.remove(streamline_tupled_tck_path)
