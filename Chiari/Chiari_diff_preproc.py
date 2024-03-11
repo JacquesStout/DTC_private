@@ -173,20 +173,22 @@ def save_new_bvecs(bvecs_orig, gradscheme_path, bvecs_new_path):
 
 # inputs
 
-if socket.gethostname().split('.')[0] == 'santorini':
-    root = '/Volumes/Data/Badea/Lab/mouse/Jasien_mrtrix_pipeline/'
+if 'santorini' in socket.gethostname().split('.')[0]:
+    work_path = '/Volumes/Data/Jasien/ADSB.01/Analysis/mrtrix_pipeline/work_dir'
     data_path = '/Volumes/Data/Jasien/ADSB.01/Data/Anat/'
-    data_path_output = '/Volumes/Data/Badea/Lab/mouse/Jasien_mrtrix_pipeline/'
+    #data_path_output = '/Volumes/Data/Badea/Lab/mouse/Jasien_mrtrix_pipeline/'
+    data_path_output = '/Volumes/Data/Jasien/ADSB.01/Analysis/mrtrix_pipeline'
 else:
-    root = '/mnt/munin2/Badea/Lab/mouse/Jasien_mrtrix_pipeline/'
+    work_path = '/mnt/munin2/Jasien/ADSB.01/Analysis/mrtrix_pipeline/work_dir'
     data_path = '/mnt/munin2/Jasien/ADSB.01/Data/Anat/'
-    data_path_output = '/mnt/munin2/Badea/Lab/mouse/Jasien_mrtrix_pipeline/'
+    #data_path_output = '/mnt/munin2/Badea/Lab/mouse/Jasien_mrtrix_pipeline/'
+    data_path_output = '/mnt/munin2/Jasien/ADSB.01/Analysis/mrtrix_pipeline'
 
-dwi_manual_pe_scheme_txt = os.path.join(root, 'dwi_manual_pe_scheme.txt')
-se_epi_manual_pe_scheme_txt = os.path.join(root, 'se_epi_manual_pe_scheme.txt')
-bvecs_grad_scheme_txt = os.path.join(root, 'bvecs_grad_scheme.txt')
+dwi_manual_pe_scheme_txt = os.path.join(work_path, 'dwi_manual_pe_scheme.txt')
+se_epi_manual_pe_scheme_txt = os.path.join(work_path, 'se_epi_manual_pe_scheme.txt')
+bvecs_grad_scheme_txt = os.path.join(work_path, 'bvecs_grad_scheme.txt')
 
-perm_output = os.path.join(root, 'perm_files/')
+perm_output = os.path.join(data_path_output, 'perm_files/')
 mkcdir(perm_output)
 if socket.gethostname().split('.')[0] == 'santorini':
     fsl_config_path = '$FSLDIR/src/fsl-topup/flirtsch/b02b0.cnf'
@@ -197,10 +199,12 @@ else:
 mkcdir(data_path_output)
 
 # subjects to run
-subjects = []
-subjects.append(sys.argv[1])
 
-subjects = ['J01257', 'J01277' ,'J01402', 'J04086', 'J04129', 'J04300' ,'J04472', 'J01501', 'J01516', 'J01541', 'J04602']
+if np.size(sys.argv)>1:
+    subjects = []
+    subjects.append(sys.argv[1])
+else:
+    subjects = ['J01257', 'J01277' ,'J01402', 'J04086', 'J04129', 'J04300' ,'J04472', 'J01501', 'J01516', 'J01541', 'J04602']
 # subjects = ['ADRC0001']
 
 index_gz = '.gz'
@@ -563,7 +567,7 @@ for subj in subjects:
         #### Command: Getting the popup config
         applytopup_config_txt = os.path.join(scratch_path, 'applytopup_config.txt')
         applytopup_indices_txt = os.path.join(scratch_path, 'applytopup_indices.txt')
-        dwi_manual_pe_scheme_txt = os.path.join(root, 'dwi_manual_pe_scheme.txt')
+        dwi_manual_pe_scheme_txt = os.path.join(work_path, 'dwi_manual_pe_scheme.txt')
         if not os.path.exists(applytopup_config_txt):
             command = 'mrconvert ' + diff_pad2_mif + ' -import_pe_table ' + dwi_manual_pe_scheme_txt + ' - | mrinfo - -export_pe_eddy ' + applytopup_config_txt + ' ' + applytopup_indices_txt + ' -force'
             print(command)
