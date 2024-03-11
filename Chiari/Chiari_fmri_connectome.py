@@ -138,17 +138,16 @@ if 'santorini' in socket.gethostname().split('.')[0]:
     root = '/Volumes/Data/Badea/Lab/'
     #root_proj = '/Volumes/Data/Badea/Lab/mouse/Jasien_mrtrix_pipeline/'
     #root_proj = '/Volumes/Data/Badea/Lab/human/Jasien/'
-    root_proj = '/Volumes/dusom_mousebrains/All_Staff/jacques/Jasien'
+    root_proj = '/Volumes/Data/Jasien/ADSB.01/Analysis'
     data_path = '/Volumes/Data/Jasien/ADSB.01/Data/Anat/'
 else:
     root = '/mnt/munin2/Badea/Lab/'
     #root_proj = '/mnt/munin2/Badea/Lab/mouse/Jasien_mrtrix_pipeline/'
-    root_proj = '/mnt/munin2/Badea/Lab/human/Jasien/'
+    root_proj = '/mnt/munin2/Jasien/ADSB.01/Analysis'
     data_path = '/mnt/munin2/Jasien/ADSB.01/Data/Anat/'
 
-
 #fmriprep_output = '/Volumes/Data/Badea/Lab/human/Jasien/fmriprep_output/'
-fmriprep_output = '/Volumes/dusom_mousebrains/All_Staff/jacques/Jasien/fmri_output_all'
+fmriprep_output = '/Volumes/Data/Jasien/ADSB.01/Analysis/fmri_output'
 conn_path = os.path.join(root_proj, 'connectomes')
 func_conn_path = os.path.join(conn_path,'functional_conn')
 
@@ -156,7 +155,8 @@ SAMBA_path_results = '/Volumes/Data/Badea/Lab/mouse/VBM_21ADDecode03_IITmean_RPI
 
 slice_func = False #Do you want to split the functionnal time series into just the first three hundred points
 
-subjects = ['J01277', 'J01402', 'J04472', 'J04129', 'J01257', 'J04300', 'J04086','J01501','J01516','J04602','J01541']
+subjects = ['J01277', 'J01402', 'J04472', 'J04129', 'J01257', 'J04300', 'J04086','J01516','J04602','J01541','J01501']
+subjects = ['J01277', 'J01402', 'J04472', 'J04129', 'J01257', 'J04300', 'J04086','J01516','J04602','J01541']
 #subjects = ['J04129']
 #subjects = ['J01402','J01501']
 
@@ -184,7 +184,12 @@ for subj in subjects:
     time_serts_path = os.path.join(func_conn_path, f'time_serts_{subj}.csv')
     time_FC_path = os.path.join(func_conn_path,f'time_serFC_{subj}.csv')
 
-    print(f'Running functionnal connectomes for subject {subj}')
+    if os.path.exists(time_serts_path) and os.path.exists(time_FC_path):
+        print(f'Already did subject {subj}')
+        continue
+    else:
+        print(f'Running functionnal connectomes for subject {subj}')
+
 
     if not os.path.exists(flabel) or overwrite:
         if not os.path.exists(new_label) or overwrite:
@@ -259,7 +264,6 @@ for subj in subjects:
 
     """
 
-
     #Creating a new label matrix that has the exact same dimensions as the fmri image.
     #Simple code, assumes that they're already aligned and have same voxel size and that voxel size is a good affine diagonal!!
 
@@ -269,11 +273,13 @@ for subj in subjects:
     else:
         label_mask_in = label_mask_inplace(label_nii,fmri_nii)
 
+    """
     if check_label and (not os.path.exists(flabeltest) or overwrite):
         #Nice bit of code to check if the resampled version is still aligned with previous labels and fmri image
         nii_test = nib.Nifti1Image(label_mask_in, fmri_nii.affine)
         flabeltest = os.path.join(conn_path, subj + '_new_labels_resampled_test.nii.gz')
         nib.save(nii_test,flabeltest)
+    """
 
     sub_timeseries=fmri_nii.get_fdata()
 
