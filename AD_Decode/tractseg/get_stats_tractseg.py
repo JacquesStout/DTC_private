@@ -40,7 +40,8 @@ from DTC.wrapper_tools import parse_list_arg
 from nibabel.streamlines import Field
 from nibabel.orientations import aff2axcodes
 from dipy.tracking.utils import length
-
+from dipy.tracking.streamline import set_number_of_points
+from DTC.file_manager.computer_nav import checkfile_exists_remote, get_mainpaths, load_nifti_remote, load_trk_remote
 
 def convert_tck_to_trk(input_file, output_file, ref):
     header = {}
@@ -82,7 +83,7 @@ ref_folder = '/Volumes/Data/Badea/ADdecode.01/Analysis/TractSeg_project/TractSeg
 
 
 #references = ['fa']
-references = []
+references = ['fa']
 ref='fa'
 verbose = False
 points_resample = 50
@@ -111,6 +112,7 @@ for subject in full_subjects_list:
 
         for side in sides:
 
+            stat_path_subject = os.path.join(stat_folder, f'{subject}_{region}_{side}.xlsx')
             trk_reg_subj_path = os.path.join(tract_seg_folder,subject,'TOM_trackings',f'{region}_{side}.trk')
             if not os.path.exists(trk_reg_subj_path):
                 tck_reg_subj_path = trk_reg_subj_path.replace('.trk','.tck')
@@ -177,8 +179,8 @@ for subject in full_subjects_list:
                     for sl, _ in enumerate(bundle_streamlines_transformed):
                         # Convert streamline to voxel coordinates
                         # entire = _to_voxel_coordinates(target_streamlines_set[sl], lin_T, offset)
-
-                        voxel_coords = np.round(bundle_streamlines_transformed[sl]).astype(int)
+                        streamlines_transformed = set_number_of_points(bundle_streamlines_transformed[sl], points_resample)
+                        voxel_coords = np.round(streamlines_transformed).astype(int)
                         voxel_coords_tweaked = retweak_points(voxel_coords, np.shape(ref_data))
                         ref_values = ref_data[
                             voxel_coords_tweaked[:, 0], voxel_coords_tweaked[:, 1], voxel_coords_tweaked[:, 2]]
@@ -194,8 +196,8 @@ for subject in full_subjects_list:
                         # new_row.update({'Length':list(tract_length(bundle_streamlines[sl:sl+1]))[0]})
                         # dataf_subj.loc[np.shape(dataf_subj)[0][]] = new_row
 
-                save_df_remote(dataf_subj, stat_path_subject, sftp_out)
-                print(f'Wrote file for subject {subject} and {full_bundle_id}')
+                save_df_remote(dataf_subj, stat_path_subject, None)
+                print(f'Wrote file for subject {subject}, region {side}_{side} at {stat_path_subject}')
 
     if not missing_data and calc_BUAN and (not os.path.exists(bundle_compare_summary) or overwrite):
         BUANs = []
