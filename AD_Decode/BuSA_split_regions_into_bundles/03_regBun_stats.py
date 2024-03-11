@@ -37,6 +37,7 @@ from dipy.tracking.utils import length as tract_length
 from dipy.segment.bundles import bundle_shape_similarity
 import argparse
 from DTC.wrapper_tools import parse_list_arg
+from DTC.file_manager.computer_nav import checkfile_exists_remote, get_mainpaths, load_nifti_remote, load_trk_remote
 
 
 parser = argparse.ArgumentParser(description='Process some integers.')

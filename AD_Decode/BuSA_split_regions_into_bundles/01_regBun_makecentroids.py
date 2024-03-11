@@ -169,6 +169,16 @@ if not checkfile_exists_remote(trktemplate_paths, sftp_out) \
         else:
             streamlines_temp = load_trk_remote(subj_trk, 'same', sftp_in).streamlines
 
+        #from dipy.tracking.utils import length as tract_length
+        """
+        result = []
+        tract_length_resampled = list(tract_length((set_number_of_points(streamlines_temp, points_resample))))
+        tract_length_orig = list(tract_length(streamlines_temp))
+        for i in tract_length_resampled:
+            for j in tract_length_orig:
+                result.append(i - j)
+        """
+
         if setpoints:
             streamlines_template.extend(set_number_of_points(streamlines_temp, points_resample))
         else:
