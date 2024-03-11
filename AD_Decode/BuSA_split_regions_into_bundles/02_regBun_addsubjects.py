@@ -133,7 +133,7 @@ else:
     trkroi = ["wholebrain"]
 
 str_identifier = get_str_identifier(stepsize, ratio, trkroi, type='mrtrix')
-#str_identifier = '_streamlines'
+str_identifier = '_streamlines'
 
 ratiostr = ratio_to_str(ratio,spec_all=False)
 

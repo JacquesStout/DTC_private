@@ -99,7 +99,7 @@ else:
     trkroi = ["wholebrain"]
 
 str_identifier = get_str_identifier(stepsize, ratio, trkroi, type=streamline_type)
-#str_identifier = '_streamlines'
+str_identifier = '_streamlines'
 
 if 'santorini' in socket.gethostname().split('.')[0]:
     lab_folder = '/Volumes/Data/Badea/Lab'
