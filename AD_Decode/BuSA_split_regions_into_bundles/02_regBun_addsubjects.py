@@ -127,7 +127,7 @@ else:
     trkroi = ["wholebrain"]
 
 str_identifier = get_str_identifier(stepsize, ratio, trkroi, type='mrtrix')
-str_identifier = '_streamlines'
+#str_identifier = '_streamlines'
 
 ratiostr = ratio_to_str(ratio,spec_all=False)
 
@@ -253,7 +253,7 @@ for side in sides:
                                               include=streamline_lr_inclusion,
                                               threshold=length_threshold)
 
-        for streamline in streamlines:
+        for streamline in streamlines_side:
             dist_min = 1000000
             new_bundle_id = -1
 

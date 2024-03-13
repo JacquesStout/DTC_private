@@ -322,14 +322,16 @@ for side in sides:
                     time1 = time()
                     testmode = False
 
-                    #for sl, _ in enumerate(bundle_streamlines_transformed):
-                    for sl in np.arange(100):
+                    for sl, _ in enumerate(bundle_streamlines_transformed):
+                    #for sl in np.arange(100):
                         # Convert streamline to voxel coordinates
                         # entire = _to_voxel_coordinates(target_streamlines_set[sl], lin_T, offset)
 
-                        voxel_coords = np.round(bundle_streamlines_transformed[sl]).astype(int)
-                        voxel_coords_tweaked = retweak_points(voxel_coords, np.shape(gw_label))
-
+                        try:
+                            voxel_coords = np.round(bundle_streamlines_transformed[sl]).astype(int)
+                            voxel_coords_tweaked = retweak_points(voxel_coords, np.shape(gw_label))
+                        except:
+                            print('hi')
                         label_values = gw_label[
                             voxel_coords_tweaked[:, 0], voxel_coords_tweaked[:, 1], voxel_coords_tweaked[:, 2]]
 
@@ -342,7 +344,11 @@ for side in sides:
                         column_indices = [dataf_subj.columns.get_loc(col) for col in column_names_ref]
                         dataf_subj.iloc[row_index, column_indices] = label_values
 
-                    list_gw = list(dataf_subj.mode().iloc[0][column_indices])
+                    if np.size(bundle_streamlines)>0:
+                        list_gw = list(dataf_subj.mode().iloc[0][column_indices])
+                    else:
+                        list_gw = [np.nan] * 50
+
                     list_gw = [100 if color == 'grey' else 101 if color == 'white' else color for color in list_gw]
 
                     tractometry_array[ref][:, new_bundle_id] = list_gw
@@ -363,8 +369,8 @@ for side in sides:
                     time1 = time()
                     testmode = False
 
-                    #for sl, _ in enumerate(bundle_streamlines_transformed):
-                    for sl in np.arange(100):
+                    for sl, _ in enumerate(bundle_streamlines_transformed):
+                    #for sl in np.arange(100):
 
                         # Convert streamline to voxel coordinates
                         # entire = _to_voxel_coordinates(target_streamlines_set[sl], lin_T, offset)
@@ -413,15 +419,15 @@ for side in sides:
                         column_indices = [dataf_subj.columns.get_loc(col) for col in column_names_ref]
                         dataf_subj.iloc[row_index, column_indices] = ref_values
 
-                    #tractometry_array[ref][:, new_bundle_id] /= np.size(new_bundle_ids)
-                    tractometry_array[ref][:, new_bundle_id] /= 100
+                    tractometry_array[ref][:, new_bundle_id] /= np.shape(bundle_streamlines_transformed)[0]
+                    #tractometry_array[ref][:, new_bundle_id] /= 100
                         # dataf_subj.loc[dataf_subj[row_index],column_indices] = ref_values
                         # dataf_subj[dataf_subj['Streamline_ID'] == sl][column_names_ref] = ref_values
                         # new_row.update({f'point_{i}_{ref}': value for i, value in enumerate(ref_values)})
                         # new_row.update({'Length':list(tract_length(bundle_streamlines[sl:sl+1]))[0]})
-                        # dataf_subj.loc[np.shape(dataf_subj)[0][]] = new_row
+                        # dataf_subj.loc[np.shape(dataf _subj)[0][]] = new_row
 
-            #save_df_remote(dataf_subj, stat_path_subject, sftp_out)
+            save_df_remote(dataf_subj, stat_path_subject, sftp_out)
             print(f'Wrote file for subject {subject} and {full_bundle_id}')
 
         for ref in references:
