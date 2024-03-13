@@ -182,7 +182,8 @@ def filter_streamlines(streamlines, roi_mask = None, include= 'all', label_list 
     #interactive: Enables/disables interactive visualization
 
     if isinstance(roi_mask, str):
-        roi_mask = nib.load(roi_mask)
+        roi_mask = nib.load(roi_mask).get_fdata()
+        roi_mask = roi_mask.astype(np.bool_)
     if isinstance(roi_mask, nib.Nifti1Image):
         affine = roi_mask.affine
         if label_list is not None:
