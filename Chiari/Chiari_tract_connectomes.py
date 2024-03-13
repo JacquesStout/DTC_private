@@ -35,6 +35,7 @@ def mkcdir(folderpaths, sftp=None):
                     sftp.mkdir(folderpath)
 
 
+"""
 if socket.gethostname().split('.')[0] == 'santorini':
     root = '/Volumes/Data/Badea/Lab/'
     #root_proj = '/Volumes/Data/Badea/Lab/mouse/Jasien_mrtrix_pipeline/'
@@ -47,13 +48,30 @@ else:
     root_proj = '/mnt/munin2/Badea/Lab/mouse/Jasien_mrtrix_pipeline/'
     data_path = '/mnt/munin2/Jasien/ADSB.01/Data/Anat/'
     data_path_output = '/mnt/munin2/Badea/Lab/mouse/Jasien_mrtrix_pipeline/'
+"""
 
-dwi_manual_pe_scheme_txt = os.path.join(root_proj, 'dwi_manual_pe_scheme.txt')
-se_epi_manual_pe_scheme_txt = os.path.join(root_proj, 'se_epi_manual_pe_scheme.txt')
-bvecs_grad_scheme_txt = os.path.join(root_proj, 'bvecs_grad_scheme.txt')
+if 'santorini' in socket.gethostname().split('.')[0]:
+    work_path = '/Volumes/Data/Jasien/ADSB.01/Analysis/mrtrix_pipeline/work_dir'
+    data_path = '/Volumes/Data/Jasien/ADSB.01/Data/Anat/'
+    #data_path_output = '/Volumes/Data/Badea/Lab/mouse/Jasien_mrtrix_pipeline/'
+    data_path_output = '/Volumes/Data/Jasien/ADSB.01/Analysis/mrtrix_pipeline'
+    root_proj = '/Volumes/Data/Jasien/ADSB.01/Analysis'
+    anat_folder_path = '/Volumes/Data/Badea/Lab/atlases/'
+else:
+    work_path = '/mnt/munin2/Jasien/ADSB.01/Analysis/mrtrix_pipeline/work_dir'
+    data_path = '/mnt/munin2/Jasien/ADSB.01/Data/Anat/'
+    #data_path_output = '/mnt/munin2/Badea/Lab/mouse/Jasien_mrtrix_pipeline/'
+    data_path_output = '/mnt/munin2/Jasien/ADSB.01/Analysis/mrtrix_pipeline'
+    root_proj = '/mnt/munin2/Jasien/ADSB.01/Analysis'
+    anat_folder_path = '/mnt/munin2/Badea/Lab/atlases/'
 
-conn_output = os.path.join(root_proj, 'connectomes')
-perm_input = os.path.join(root_proj, 'perm_files/')
+
+dwi_manual_pe_scheme_txt = os.path.join(work_path, 'dwi_manual_pe_scheme.txt')
+se_epi_manual_pe_scheme_txt = os.path.join(work_path, 'se_epi_manual_pe_scheme.txt')
+bvecs_grad_scheme_txt = os.path.join(work_path, 'bvecs_grad_scheme.txt')
+
+conn_output = os.path.join(root_proj, 'connectomes','tract_conn')
+perm_input = os.path.join(data_path_output, 'perm_files/')
 
 mkcdir(conn_output)
 
@@ -68,12 +86,12 @@ mkcdir(data_path_output)
 # subjects to run
 subjects = []
 # subjects.append(sys.argv[1])
-subjects = ['J01277', 'J01402', 'J04472', 'J04129', 'J01257', 'J04300', 'J04086']
+#subjects = ['J01277', 'J01402', 'J04472', 'J04129', 'J01257', 'J04300', 'J04086']
 subjects = ['J01277', 'J01402', 'J04472', 'J04129', 'J01257', 'J04300', 'J04086','J01501','J01516','J04602','J01541']
-subjects = ['J01501','J01516','J04602','J01541']
+#subjects = ['J01501','J01516','J04602','J01541']
 
-subjects = []
-subjects.append(sys.argv[1])
+#subjects = []
+#subjects.append(sys.argv[1])
 # subjects = ['ADRC0001']
 
 index_gz = '.gz'
@@ -106,7 +124,8 @@ for subj in subjects:
     subj_out_folder = os.path.join(allsubjs_out_folder, subj)
     scratch_path = os.path.join(subj_out_folder, 'scratch')
     perm_subj_output = conn_output
-    conn_folder_subj = os.path.join(perm_subj_output, subj)
+    #conn_folder_subj = os.path.join(perm_subj_output, subj)
+    conn_folder_subj = perm_subj_output
     mkcdir([allsubjs_out_folder, subj_out_folder, perm_subj_output, conn_folder_subj])
 
     if sifting:
@@ -209,7 +228,7 @@ for subj in subjects:
         labels = np.delete(labels, 0)
         label_nii_order = labels_data * 0.0
 
-        path_atlas_legend = os.path.join(root, 'atlases', 'IITmean_RPI', 'IITmean_RPI_index.xlsx')
+        path_atlas_legend = os.path.join(anat_folder_path, 'IITmean_RPI', 'IITmean_RPI_index.xlsx')
         legend = pd.read_excel(path_atlas_legend)
         new_label = os.path.join(perm_subj_output, subj + '_new_labels.nii.gz')
 
@@ -249,19 +268,28 @@ for subj in subjects:
     parcels_csv_3 = os.path.join(conn_folder_subj, subj + '_conn_sift.csv')
     mean_FA_per_streamline = os.path.join(subj_out_folder, subj + '_per_strmline_mean_FA.csv')
 
-    os.system(
-        'tck2connectome ' + smallerTracks + ' ' + parcels_mif + ' ' + distances_csv + ' -zero_diagonal -symmetric -scale_length -stat_edge  mean' + ' -force')
-    os.system(
-        'tcksample ' + smallerTracks + ' ' + fa_mif + ' ' + mean_FA_per_streamline + ' -stat_tck mean ' + ' -force')
-    os.system(
-        'tck2connectome ' + smallerTracks + ' ' + parcels_mif + ' ' + mean_FA_connectome + ' -zero_diagonal -symmetric -scale_file ' + mean_FA_per_streamline + ' -stat_edge mean ' + ' -force')
+    if not os.path.exists(distances_csv) or overwrite:
+        os.system('tck2connectome ' + smallerTracks + ' ' + parcels_mif + ' ' + distances_csv +
+                  ' -zero_diagonal -symmetric -scale_length -stat_edge  mean' + ' -force')
 
-    os.system(
-        'tck2connectome -symmetric -zero_diagonal ' + smallerTracks + ' ' + parcels_mif + ' ' + parcels_csv_2 + ' -out_assignment ' + assignments_parcels_csv2 + ' -force')
+    if not os.path.exists(mean_FA_per_streamline) or overwrite:
+        os.system('tcksample ' + smallerTracks + ' ' + fa_mif + ' ' + mean_FA_per_streamline +
+                  ' -stat_tck mean ' + ' -force')
+
+    if not os.path.exists(mean_FA_connectome) or overwrite:
+        os.system('tck2connectome ' + smallerTracks + ' ' + parcels_mif + ' ' + mean_FA_connectome +
+                  ' -zero_diagonal -symmetric -scale_file ' + mean_FA_per_streamline + ' -stat_edge mean ' + ' -force')
+
+    if not os.path.exists(parcels_csv_2) or overwrite:
+        os.system('tck2connectome -symmetric -zero_diagonal ' + smallerTracks + ' ' + parcels_mif + ' ' +
+                  parcels_csv_2 + ' -out_assignment ' + assignments_parcels_csv2 + ' -force')
 
     if sifting:
-        os.system(
-            'tck2connectome -symmetric -zero_diagonal -scale_invnodevol -tck_weights_in ' + sift_1M_txt + ' ' + smallerTracks + ' ' + parcels_mif + ' ' + parcels_csv + ' -out_assignment ' + assignments_parcels_csv + ' -force')
-        os.system(
-            'tck2connectome -symmetric -zero_diagonal -tck_weights_in ' + sift_1M_txt + ' ' + smallerTracks + ' ' + parcels_mif + ' ' + parcels_csv_3 + ' -out_assignment ' + assignments_parcels_csv3 + ' -force')
+        if not os.path.exists(assignments_parcels_csv) or overwrite:
+            os.system('tck2connectome -symmetric -zero_diagonal -scale_invnodevol -tck_weights_in ' + sift_1M_txt + ' '
+                      + smallerTracks + ' ' + parcels_mif + ' ' + parcels_csv + ' -out_assignment ' +
+                      assignments_parcels_csv + ' -force')
+        if not os.path.exists(assignments_parcels_csv3) or overwrite:
+            os.system('tck2connectome -symmetric -zero_diagonal -tck_weights_in ' + sift_1M_txt + ' ' + smallerTracks +
+                      ' ' + parcels_mif + ' ' + parcels_csv_3 + ' -out_assignment ' + assignments_parcels_csv3 + ' -force')
 
