@@ -18,11 +18,6 @@ import subprocess
 #trk_folder = '/mnt/newJetStor/paros/paros_WORK/jacques/AD_Decode/TRK_MDT_ratio_100'
 #new_trk_folder = '/mnt/newJetStor/paros/paros_WORK/jacques/AD_Decode/TRK_MDT_ratio_1000'
 
-<<<<<<< HEAD
-trk_folder = '/mnt/munin2/Badea/Lab/human/AD_Decode_trk_transfer/TRK_MDT/'
-new_trk_folder = '/mnt/munin2/Badea/Lab/human/AD_Decode_trk_transfer/TRK_MDT_ratio_10/'
-
-=======
 trk_folder = '/Volumes/dusom_mousebrains/All_Staff/Data/ADDECODE/TRK_MDT_fixed'
 new_trk_folder = '/Volumes/dusom_mousebrains/All_Staff/Data/ADDECODE/TRK_MDT_fixed_ratio_10'
 
@@ -30,7 +25,7 @@ trk_folder = '/Volumes/Data/Badea/Lab/human/AD_Decode_trk_transfer/TRK_MDT_fixed
 new_trk_folder = '/Volumes/Data/Badea/Lab/human/AD_Decode_trk_transfer/TRK_MDT_fixed_ratio_100'
 
 #remote = True
->>>>>>> 67ec399 (major changes so that downsample folder does not need qsubbing)
+
 remote = False
 
 if remote:
@@ -43,11 +38,8 @@ inpath, _, _, sftp = get_mainpaths(remote,project = 'AD_Decode', username=userna
 
 mkcdir([new_trk_folder], sftp)
 
-<<<<<<< HEAD
-orig_ratio =1
-=======
 orig_ratio =10
->>>>>>> 67ec399 (major changes so that downsample folder does not need qsubbing)
+
 ratio = 10
 stepsize = 2
 method= 'decimate'
@@ -94,11 +86,7 @@ job_descrp = "BuSA"
 print(filelist)
 
 verbose = True
-
-<<<<<<< HEAD
-qsub = True
-=======
->>>>>>> 67ec399 (major changes so that downsample folder does not need qsubbing)
+qsub = False
 
 for filepath in filelist:
     _, f_ext = os.path.splitext(filepath)
