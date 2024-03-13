@@ -237,10 +237,17 @@ def save_nifti_remote(niiobject,niipath, sftp):
 
 def save_df_remote(df,df_path, sftp):
 
+
     if sftp is None:
-        df.to_excel(df_path)
+        if os.path.basename(df_path).split('.')[-1] == 'xlsx':
+            df.to_excel(df_path)
+        if os.path.basename(df_path).split('.')[-1] == 'csv':
+            df.to_csv(df_path)
     else:
-        df.to_excel(make_temppath(df_path))
+        if os.path.basename(df_path).split('.')[-1] == 'xlsx':
+            df.to_excel(make_temppath(df_path))
+        if os.path.basename(df_path).split('.')[-1] == 'csv':
+            df.to_csv(df_path)
         sftp.put(make_temppath(df_path),df_path)
         os.remove(make_temppath(df_path))
     return
