@@ -14,7 +14,7 @@ import time
 import nibabel as nib
 import copy
 import socket
-from DTC.tract_manager.tract_handler import ratio_to_str
+from DTC.tract_manager.tract_handler import ratio_to_str, filter_streamlines
 from dipy.segment.featurespeed import ResampleFeature
 from dipy.segment.metric import AveragePointwiseEuclideanMetric
 from dipy.segment.clustering import QuickBundles
@@ -33,10 +33,6 @@ bundle_split = args.split
 project_summary_file = args.proj
 
 bundle_id_orig = args.id
-if bundle_id_orig is not None:
-    bundle_id_orig_txt = '_'.join(bundle_id_orig) + '_'
-else:
-    bundle_id_orig_txt = '_'
 
 project_headfile_folder = '/Volumes/Data/Badea/Lab/jacques/BuSA_headfiles/'
 
@@ -58,7 +54,6 @@ else:
 
 #locals().update(params) #This line will add to the code the variables specified above from the config file, namely
 
-
 project = params['project']
 streamline_type = params['streamline_type']
 test = params['test']
@@ -69,6 +64,8 @@ setpoints = params['setpoints']
 points_resample = int(params['points_resample'])
 remote_output = bool(params['remote_output'])
 remote_input = bool(params['remote_input'])
+streamline_lr_inclusion = params['streamline_lr_inclusion']
+length_threshold = int(params['length_threshold'])
 
 distance = int(params['distance'])
 bundle_points = int(params['bundle_points'])
@@ -149,6 +146,8 @@ streams_dict_picklepaths = os.path.join(combined_trk_folder, f'streams_dict.py')
 streamlines_template = nib.streamlines.array_sequence.ArraySequence()
 
 timings.append(time.perf_counter())
+
+
 if not checkfile_exists_remote(trktemplate_paths, sftp_out) \
         or not checkfile_exists_remote(streams_dict_picklepaths, sftp_out) or overwrite:
 
@@ -219,32 +218,111 @@ num_streamlines = {}
 streams_dict_picklepaths = {}
 centroids_perside = {}
 
-bundles = qb.cluster(streamlines_template)
-num_streamlines = bundles.clusters_sizes()
+sides = ['left', 'right']
 
-top_bundles = sorted(range(len(num_streamlines)), key=lambda i: num_streamlines[i], reverse=True)[:]
-ordered_bundles = []
-centroids = []
-for bundle in top_bundles[:bundle_split]:
-    ordered_bundles.append(bundles.clusters[bundle])
-    centroids.append(bundles.clusters[bundle].centroid)
+if bundle_id_orig is None:
 
+    side = 'left'
 
-pickled_centroids = os.path.join(pickle_folder, f'bundles_centroids{bundle_id_orig_txt}split_{bundle_split}.py')
-#pickled_centroids = os.path.join(pickle_folder, f'bundles_centroids_split_{bundle_split}.py')
+    side_str = f'_{side}'
 
-if not checkfile_exists_remote(pickled_centroids, sftp_out) or overwrite:
-    # pickledump_remote(bundles.centroids,pickled_centroids,sftp_out)
-    pickledump_remote(centroids, pickled_centroids, sftp_out)
-    print(f'Saved centroids at {pickled_centroids}, took {timings[-1] - timings[-2]} seconds')
+    bundle_id_orig_txt = side_str
+
+    side_mask_path = os.path.join(MDT_mask_folder, f'IITmean_RPI_MDT_mask_left.nii.gz')
+    roi_mask_left = nib.load(side_mask_path)
+    streamlines_all = filter_streamlines(streamlines_template, roi_mask=roi_mask_left, world_coords=True,
+                                          include=streamline_lr_inclusion,
+                                          threshold=length_threshold)
+
+    side_mask_path = os.path.join(MDT_mask_folder, f'IITmean_RPI_MDT_mask_right.nii.gz')
+    roi_mask_right = nib.load(side_mask_path)
+    streamlines_right_rev = filter_streamlines(streamlines_template, roi_mask=roi_mask_right, world_coords=True,
+                                          include=streamline_lr_inclusion,
+                                          threshold=length_threshold)
+
+    affine_flip = np.eye(4)
+    affine_flip[0, 0] = -1
+    affine_flip[0, 3] = 0
+
+    streamlines_right_rev = transform_streamlines(streamlines_right_rev, affine_flip,
+                                                       in_place=False)
+
+    streamlines_all.extend(streamlines_right_rev)
+
+    bundles = qb.cluster(streamlines_all)
+    num_streamlines = bundles.clusters_sizes()
+
+    top_bundles = sorted(range(len(num_streamlines)), key=lambda i: num_streamlines[i], reverse=True)[:]
+    ordered_bundles = []
+    centroids_side = {}
+    centroids_side['left'] = []
+    centroids_side['right'] = []
+
+    for bundle in top_bundles[:bundle_split]:
+        ordered_bundles.append(bundles.clusters[bundle])
+        centroids_side['left'].append(bundles.clusters[bundle].centroid)
+
+    for bundle_toflip in centroids_side['left']:
+        centroids_side['right'].append(np.array(transform_streamlines(bundle_toflip, affine_flip, in_place=False)))
+
+    for side in sides:
+        pickled_centroids = os.path.join(pickle_folder, f'bundles_centroids_{side}.py')
+        if not checkfile_exists_remote(pickled_centroids, sftp_out) or overwrite:
+            # pickledump_remote(bundles.centroids,pickled_centroids,sftp_out)
+            pickledump_remote(centroids_side[side], pickled_centroids, sftp_out)
+            print(f'Saved centroids at {pickled_centroids}, took {timings[-1] - timings[-2]} seconds')
+        else:
+            print(f'Centroids at {pickled_centroids} already exist')
+        timings.append(time.perf_counter())
+
+        for bundle_id in np.arange(num_bundles):
+            sg = lambda: (s for i, s in enumerate(centroids_side[side][bundle_id:bundle_id+1]))
+            filepath_bundle = os.path.join(centroids_proj_path, f'centroid_{side}_bundle_{bundle_id}.trk')
+            save_trk_header(filepath=filepath_bundle, streamlines=sg, header=header, affine=np.eye(4), verbose=verbose,
+                            sftp=sftp_out)
+
 else:
-    print(f'Centroids at {pickled_centroids} already exist')
-timings.append(time.perf_counter())
 
-for new_bundle_id in np.arange(bundle_split):
-    full_bundle_id = bundle_id_orig_txt + f'{new_bundle_id}'
-    sg = lambda: (s for i, s in enumerate(centroids[new_bundle_id:new_bundle_id+1]))
-    filepath_bundle = os.path.join(centroids_proj_path, f'centroid_bundle{full_bundle_id}.trk')
-    save_trk_header(filepath=filepath_bundle, streamlines=sg, header=header, affine=np.eye(4), verbose=verbose,
-                    sftp=sftp_out)
-del bundles
+    for side in sides:
+
+        side_str = f'_{side}'
+
+        if bundle_id_orig is not None:
+            bundle_id_orig_txt = side_str + '_'.join(bundle_id_orig) + '_'
+        else:
+            bundle_id_orig_txt = side_str
+
+        side_mask_path = os.path.join(MDT_mask_folder, f'IITmean_RPI_MDT_mask{side_str}.nii.gz')
+        roi_mask_side= nib.load(side_mask_path)
+
+        streamlines_side = filter_streamlines(streamlines_template, roi_mask=roi_mask_side, world_coords=True, include=streamline_lr_inclusion,
+                           threshold=length_threshold)
+
+        bundles = qb.cluster(streamlines_side)
+        num_streamlines = bundles.clusters_sizes()
+
+        top_bundles = sorted(range(len(num_streamlines)), key=lambda i: num_streamlines[i], reverse=True)[:]
+        ordered_bundles = []
+        centroids = []
+        for bundle in top_bundles[:bundle_split]:
+            ordered_bundles.append(bundles.clusters[bundle])
+            centroids.append(bundles.clusters[bundle].centroid)
+
+        pickled_centroids = os.path.join(pickle_folder, f'bundles_centroids{bundle_id_orig_txt}_split_{bundle_split}.py')
+        #pickled_centroids = os.path.join(pickle_folder, f'bundles_centroids_split_{bundle_split}.py')
+
+        if not checkfile_exists_remote(pickled_centroids, sftp_out) or overwrite:
+            # pickledump_remote(bundles.centroids,pickled_centroids,sftp_out)
+            pickledump_remote(centroids, pickled_centroids, sftp_out)
+            print(f'Saved centroids at {pickled_centroids}, took {timings[-1] - timings[-2]} seconds')
+        else:
+            print(f'Centroids at {pickled_centroids} already exist')
+        timings.append(time.perf_counter())
+
+        for new_bundle_id in np.arange(bundle_split):
+            full_bundle_id = bundle_id_orig_txt + side_str + f'{new_bundle_id}'
+            sg = lambda: (s for i, s in enumerate(centroids[new_bundle_id:new_bundle_id+1]))
+            filepath_bundle = os.path.join(centroids_proj_path, f'centroid_bundle{full_bundle_id}.trk')
+            save_trk_header(filepath=filepath_bundle, streamlines=sg, header=header, affine=np.eye(4), verbose=verbose,
+                            sftp=sftp_out)
+        del bundles

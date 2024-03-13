@@ -202,185 +202,233 @@ column_bundle_compare = ['Subject'] + [f'BUAN_{bundle_id_orig_txt}_{bundle_id}' 
 
 calc_BUAN = True
 
-for subject in full_subjects_list:
+tractometry_dic_path = {}
+tractometry_array = {}
 
-    bundle_compare_summary = os.path.join(stat_folder, f'{subject}_bundle_{bundle_id_orig_txt}_split_{bundle_split}_comparison.xlsx')
-    files_subj = []
-    for side, new_bundle_id in streamline_bundle.keys():
-        files_subj.append(os.path.join(trk_proj_path, f'{subject}_{side}_bundle_{bundle_id_orig_txt}_{new_bundle_id}.trk'))
-    check_all = checkfile_exists_all(files_subj,sftp_out)
-    # filepath_bundle = os.path.join(trk_proj_path, f'{subject}_{side}_bundle_{bundle_id}.trk')
-    if not check_all:
-        print(f'Missing trk files for subject {subject} in {trk_proj_path}, please rerun bundle creator')
-        continue
+references = ['mrtrixfa', 'Length', 'greywhite']
 
-    column_names = ['Streamline_ID']
-    for ref in references:
-        if ref not in unique_refs:
-            column_names += ([f'point_{ID}_{ref}' for ID in np.arange(points_resample)])
-        if ref in unique_refs:
-            column_names += ([ref])
+for side in sides:
 
-    print(f'Files will be saved at {stat_folder}')
-    bundle_data_dic = {}
+    if side == 'all':
+        side_str = ''
+    else:
+        side_str = f'_{side}'
 
-    for new_bundle_id in new_bundle_ids:
-        #full_bundle_id = bundle_id_orig_txt + f'_{new_bundle_id}'
-        bundle_id_orig_txt = ''
-        full_bundle_id = bundle_id_orig_txt + f'_{new_bundle_id}'
-        stat_path_subject = os.path.join(stat_folder, f'{subject}_bundle{full_bundle_id}.xlsx')
+    if bundle_id_orig is not None:
+        bundle_id_orig_txt = side_str + '_'.join(bundle_id_orig) + '_'
+    else:
+        bundle_id_orig_txt = side_str
 
-        if not overwrite and checkfile_exists_remote(stat_path_subject, sftp_out) and not (
-                calc_BUAN and not os.path.exists(bundle_compare_summary)):
-            print(f'Already created file for subject {subject}, side {side} and {full_bundle_id}')
+    bundles_num = bundle_split
+
+    for subject in full_subjects_list:
+
+        for i in np.arange(bundles_num):
+            full_bundle_id = bundle_id_orig_txt + f'_{i}'
+            streamline_bundle[full_bundle_id] = []
+
+        bundle_compare_summary = os.path.join(stat_folder, f'{subject}_bundle{bundle_id_orig_txt}_split_{bundle_split}_comparison.xlsx')
+        files_subj = []
+        for full_bundle_id in streamline_bundle.keys():
+            files_subj.append(os.path.join(trk_proj_path, f'{subject}_bundle{full_bundle_id}.trk'))
+        check_all = checkfile_exists_all(files_subj,sftp_out)
+        # filepath_bundle = os.path.join(trk_proj_path, f'{subject}_{side}_bundle_{bundle_id}.trk')
+        if not check_all:
+            print(f'Missing trk files for subject {subject} in {trk_proj_path}, please rerun bundle creator')
             continue
 
-        dataf_subj = pd.DataFrame(columns=column_names)
+        column_names = ['Streamline_ID']
+        for ref in references:
+            if ref not in unique_refs:
+                column_names += ([f'point_{ID}_{ref}' for ID in np.arange(points_resample)])
+                tractometry_dic_path[ref] = os.path.join(stat_folder, f'Tractometry_{ref}_{subject}.csv')
+                tractometry_array[ref] = np.zeros([points_resample,np.size(new_bundle_ids)])
+            if ref in unique_refs:
+                column_names += ([ref])
 
-        filepath_bundle = os.path.join(trk_proj_path, f'{subject}_bundle{full_bundle_id}_split_{bundle_split}.trk')
-        bundle_data = load_trk_remote(filepath_bundle, 'same', sftp_out)
-        bundle_data_dic[new_bundle_id] = bundle_data
-        bundle_streamlines = bundle_data.streamlines
-        num_streamlines = np.shape(bundle_streamlines)[0]
-        header = bundle_data.space_attributes
+        print(f'Files will be saved at {stat_folder}')
+        bundle_data_dic = {}
 
-        dataf_subj['Streamline_ID'] = np.arange(num_streamlines)
+        dataf = pd.DataFrame(columns=new_bundle_ids)
 
-        if not overwrite and checkfile_exists_remote(stat_path_subject, sftp_out):
-            print(f'Already created file for subject {subject} and {full_bundle_id}')
-            continue
+        for id_order,new_bundle_id in enumerate(new_bundle_ids):
+            #full_bundle_id = bundle_id_orig_txt + f'_{new_bundle_id}'
+            full_bundle_id = bundle_id_orig_txt + f'_{new_bundle_id}'
+            stat_path_subject = os.path.join(stat_folder, f'{subject}_bundle{full_bundle_id}.xlsx')
 
-        # dataf_subj.set_index('Streamline_ID', inplace=True)
+            if not overwrite and checkfile_exists_remote(stat_path_subject, sftp_out) and not (
+                    calc_BUAN and not os.path.exists(bundle_compare_summary)):
+                print(f'Already created file for subject {subject}, side {side} and {full_bundle_id}')
+                continue
 
-        # workbook = xlsxwriter.Workbook(stat_path_subject)
-        # worksheet = workbook.add_worksheet()
+            dataf_subj = pd.DataFrame(columns=column_names)
+
+            filepath_bundle = os.path.join(trk_proj_path, f'{subject}_bundle{full_bundle_id}.trk')
+            bundle_data = load_trk_remote(filepath_bundle, 'same', sftp_out)
+            bundle_data_dic[new_bundle_id] = bundle_data
+            bundle_streamlines = bundle_data.streamlines
+            num_streamlines = np.shape(bundle_streamlines)[0]
+            header = bundle_data.space_attributes
+
+            dataf_subj['Streamline_ID'] = np.arange(num_streamlines)
+
+            if not overwrite and checkfile_exists_remote(stat_path_subject, sftp_out):
+                print(f'Already created file for subject {subject} and {full_bundle_id}')
+                continue
+
+            # dataf_subj.set_index('Streamline_ID', inplace=True)
+
+            # workbook = xlsxwriter.Workbook(stat_path_subject)
+            # worksheet = workbook.add_worksheet()
+
+            for ref in references:
+
+                if ref == 'Length':
+
+                    column_indices = dataf_subj.columns.get_loc('Length')
+                    dataf_subj.iloc[:, column_indices] = list(tract_length(bundle_streamlines[:]))
+
+                elif ref == 'CCI':
+                    column_indices = dataf_subj.columns.get_loc('CCI')
+                    # print(tract_length(bundle_streamlines))
+                    # print([[i] for i in tract_length(bundle_streamlines)])
+                    try:
+                        cci = cluster_confidence(bundle_streamlines, override=True)
+                        dataf_subj.iloc[:, column_indices] = cci
+                    except TypeError:
+                        warningstxt = f'Could not work for subject {subject} at bundle_id {new_bundle_id}'
+                        warnings.warn(warningstxt)
+
+                    """
+                    length_streamlines = list(tract_length(bundle_streamlines))
+                    cut_streamlines = [streamline for streamline, length in zip(bundle_streamlines, length_streamlines) if length > 40]
+                    fbc = FBCMeasures(streamlines[group][selected_bundles[group][idbundle].indices], k)
+                    fbc_sl, lfbc_orig, rfbc_bundle = \
+                        fbc.get_points_rfbc_thresholded(-0.1, emphasis=0.01)
+                    """
+                elif ref == 'greywhite':
+                    gw_label, gw_affine, _, _, _ = load_nifti_remote(grey_white_label_path, sftp=None)
+                    column_indices = dataf_subj.columns.get_loc('Length')
+                    dataf_subj.iloc[:, column_indices] = list(tract_length(bundle_streamlines[:]))
+
+                    bundle_streamlines_transformed = transform_streamlines(bundle_streamlines,
+                                                                           np.linalg.inv(gw_affine))
+
+                    edges = np.ndarray(shape=(3, 0), dtype=int)
+                    lin_T, offset = _mapping_to_voxel(bundle_data.space_attributes[0])
+                    # stream_point_ref = []
+                    from time import time
+
+                    time1 = time()
+                    testmode = False
+
+                    #for sl, _ in enumerate(bundle_streamlines_transformed):
+                    for sl in np.arange(100):
+                        # Convert streamline to voxel coordinates
+                        # entire = _to_voxel_coordinates(target_streamlines_set[sl], lin_T, offset)
+
+                        voxel_coords = np.round(bundle_streamlines_transformed[sl]).astype(int)
+                        voxel_coords_tweaked = retweak_points(voxel_coords, np.shape(gw_label))
+
+                        label_values = gw_label[
+                            voxel_coords_tweaked[:, 0], voxel_coords_tweaked[:, 1], voxel_coords_tweaked[:, 2]]
+
+                        label_values = ['grey' if x == 1 else 'white' if x == 2 else x for x in label_values]
+
+                        # stream_point_ref.append(label_values)
+
+                        column_names_ref = [f'point_{i}_{ref}' for i, _ in enumerate(label_values)]
+                        row_index = dataf_subj.index[dataf_subj['Streamline_ID'] == sl].tolist()[0]
+                        column_indices = [dataf_subj.columns.get_loc(col) for col in column_names_ref]
+                        dataf_subj.iloc[row_index, column_indices] = label_values
+
+                    list_gw = list(dataf_subj.mode().iloc[0][column_indices])
+                    list_gw = [100 if color == 'grey' else 101 if color == 'white' else color for color in list_gw]
+
+                    tractometry_array[ref][:, new_bundle_id] = list_gw
+
+                else:
+                    ref_img_path = get_diff_ref(ref_MDT_folder, subject, ref, sftp=None)
+                    ref_data, ref_affine, _, _, _ = load_nifti_remote(ref_img_path, sftp=None)
+
+                    bundle_streamlines_transformed = transform_streamlines(bundle_streamlines,
+                                                                           np.linalg.inv(ref_affine))
+
+                    edges = np.ndarray(shape=(3, 0), dtype=int)
+                    lin_T, offset = _mapping_to_voxel(bundle_data.space_attributes[0])
+                    # stream_ref = []
+                    # stream_point_ref = []
+                    from time import time
+
+                    time1 = time()
+                    testmode = False
+
+                    #for sl, _ in enumerate(bundle_streamlines_transformed):
+                    for sl in np.arange(100):
+
+                        # Convert streamline to voxel coordinates
+                        # entire = _to_voxel_coordinates(target_streamlines_set[sl], lin_T, offset)
+
+                        try:
+                            voxel_coords = np.round(bundle_streamlines_transformed[sl]).astype(int)
+                        except:
+                            print('hi')
+                        voxel_coords_tweaked = retweak_points(voxel_coords, np.shape(ref_data))
+                        ref_values = ref_data[
+                            voxel_coords_tweaked[:, 0], voxel_coords_tweaked[:, 1], voxel_coords_tweaked[:, 2]]
+
+                        tractometry_array[ref][:,new_bundle_id] += ref_values
+
+                        # stream_point_ref.append(ref_values)
+                        # stream_ref.append(np.mean(ref_values))
+
+                        if np.mean(ref_values) == 0:
+                            if verbose:
+                                print('too low a value for new method')
+                            testmode = True
+
+                        if testmode:
+                            from DTC.tract_manager.tract_save import save_trk_header
+
+                            streamline_file_path = os.path.join(small_streamlines_testzone,
+                                                                f'{subject}_streamline_{sl}.trk')
+                            # sg = lambda: (s for i, s in enumerate(trkobject[0]))
+                            from dipy.tracking import streamline
+
+                            streamlines = streamline.Streamlines([bundle_streamlines[sl]])
+                            save_trk_header(filepath=streamline_file_path, streamlines=streamlines, header=header,
+                                            affine=np.eye(4), verbose=verbose, sftp=sftp_out)
+                            testmode = False
+
+                            lut_cmap = actor.colormap_lookup_table(
+                                scale_range=(0.05, 0.3))
+
+                            # scene = setup_view(nib.streamlines.ArraySequence(bundle_streamlines_transformed), colors=lut_cmap,
+                            #                   ref=ref_img_path, world_coords=False,
+                            #                   objectvals=[None], colorbar=True, record=None, scene=None, interactive=True, value_range = (0,0.8))
+
+                        # new_row = {'Streamline_ID': sl}
+                        column_names_ref = [f'point_{i}_{ref}' for i, _ in enumerate(ref_values)]
+                        row_index = dataf_subj.index[dataf_subj['Streamline_ID'] == sl].tolist()[0]
+                        column_indices = [dataf_subj.columns.get_loc(col) for col in column_names_ref]
+                        dataf_subj.iloc[row_index, column_indices] = ref_values
+
+                    #tractometry_array[ref][:, new_bundle_id] /= np.size(new_bundle_ids)
+                    tractometry_array[ref][:, new_bundle_id] /= 100
+                        # dataf_subj.loc[dataf_subj[row_index],column_indices] = ref_values
+                        # dataf_subj[dataf_subj['Streamline_ID'] == sl][column_names_ref] = ref_values
+                        # new_row.update({f'point_{i}_{ref}': value for i, value in enumerate(ref_values)})
+                        # new_row.update({'Length':list(tract_length(bundle_streamlines[sl:sl+1]))[0]})
+                        # dataf_subj.loc[np.shape(dataf_subj)[0][]] = new_row
+
+            #save_df_remote(dataf_subj, stat_path_subject, sftp_out)
+            print(f'Wrote file for subject {subject} and {full_bundle_id}')
 
         for ref in references:
-
-            if ref == 'Length':
-
-                column_indices = dataf_subj.columns.get_loc('Length')
-                dataf_subj.iloc[:, column_indices] = list(tract_length(bundle_streamlines[:]))
-
-            elif ref == 'CCI':
-                column_indices = dataf_subj.columns.get_loc('CCI')
-                # print(tract_length(bundle_streamlines))
-                # print([[i] for i in tract_length(bundle_streamlines)])
-                try:
-                    cci = cluster_confidence(bundle_streamlines, override=True)
-                    dataf_subj.iloc[:, column_indices] = cci
-                except TypeError:
-                    warningstxt = f'Could not work for subject {subject} at bundle_id {new_bundle_id}'
-                    warnings.warn(warningstxt)
-
-                """
-                length_streamlines = list(tract_length(bundle_streamlines))
-                cut_streamlines = [streamline for streamline, length in zip(bundle_streamlines, length_streamlines) if length > 40]
-                fbc = FBCMeasures(streamlines[group][selected_bundles[group][idbundle].indices], k)
-                fbc_sl, lfbc_orig, rfbc_bundle = \
-                    fbc.get_points_rfbc_thresholded(-0.1, emphasis=0.01)
-                """
-            elif ref == 'greywhite':
-                gw_label, gw_affine, _, _, _ = load_nifti_remote(grey_white_label_path, sftp=None)
-                column_indices = dataf_subj.columns.get_loc('Length')
-                dataf_subj.iloc[:, column_indices] = list(tract_length(bundle_streamlines[:]))
-
-                bundle_streamlines_transformed = transform_streamlines(bundle_streamlines,
-                                                                       np.linalg.inv(gw_affine))
-
-                edges = np.ndarray(shape=(3, 0), dtype=int)
-                lin_T, offset = _mapping_to_voxel(bundle_data.space_attributes[0])
-                # stream_point_ref = []
-                from time import time
-
-                time1 = time()
-                testmode = False
-
-                for sl, _ in enumerate(bundle_streamlines_transformed):
-                    # Convert streamline to voxel coordinates
-                    # entire = _to_voxel_coordinates(target_streamlines_set[sl], lin_T, offset)
-
-                    voxel_coords = np.round(bundle_streamlines_transformed[sl]).astype(int)
-                    voxel_coords_tweaked = retweak_points(voxel_coords, np.shape(gw_label))
-
-                    label_values = gw_label[
-                        voxel_coords_tweaked[:, 0], voxel_coords_tweaked[:, 1], voxel_coords_tweaked[:, 2]]
-
-                    label_values = ['grey' if x == 1 else 'white' if x == 2 else x for x in label_values]
-
-                    # stream_point_ref.append(label_values)
-
-                    column_names_ref = [f'point_{i}_{ref}' for i, _ in enumerate(label_values)]
-                    row_index = dataf_subj.index[dataf_subj['Streamline_ID'] == sl].tolist()[0]
-                    column_indices = [dataf_subj.columns.get_loc(col) for col in column_names_ref]
-                    dataf_subj.iloc[row_index, column_indices] = label_values
-
-            else:
-                ref_img_path = get_diff_ref(ref_MDT_folder, subject, ref, sftp=None)
-                ref_data, ref_affine, _, _, _ = load_nifti_remote(ref_img_path, sftp=None)
-
-                bundle_streamlines_transformed = transform_streamlines(bundle_streamlines,
-                                                                       np.linalg.inv(ref_affine))
-
-                edges = np.ndarray(shape=(3, 0), dtype=int)
-                lin_T, offset = _mapping_to_voxel(bundle_data.space_attributes[0])
-                # stream_ref = []
-                # stream_point_ref = []
-                from time import time
-
-                time1 = time()
-                testmode = False
-
-                for sl, _ in enumerate(bundle_streamlines_transformed):
-                    # Convert streamline to voxel coordinates
-                    # entire = _to_voxel_coordinates(target_streamlines_set[sl], lin_T, offset)
-
-                    voxel_coords = np.round(bundle_streamlines_transformed[sl]).astype(int)
-                    voxel_coords_tweaked = retweak_points(voxel_coords, np.shape(ref_data))
-                    ref_values = ref_data[
-                        voxel_coords_tweaked[:, 0], voxel_coords_tweaked[:, 1], voxel_coords_tweaked[:, 2]]
-
-                    # stream_point_ref.append(ref_values)
-                    # stream_ref.append(np.mean(ref_values))
-
-                    if np.mean(ref_values) == 0:
-                        if verbose:
-                            print('too low a value for new method')
-                        testmode = True
-
-                    if testmode:
-                        from DTC.tract_manager.tract_save import save_trk_header
-
-                        streamline_file_path = os.path.join(small_streamlines_testzone,
-                                                            f'{subject}_streamline_{sl}.trk')
-                        # sg = lambda: (s for i, s in enumerate(trkobject[0]))
-                        from dipy.tracking import streamline
-
-                        streamlines = streamline.Streamlines([bundle_streamlines[sl]])
-                        save_trk_header(filepath=streamline_file_path, streamlines=streamlines, header=header,
-                                        affine=np.eye(4), verbose=verbose, sftp=sftp_out)
-                        testmode = False
-
-                        lut_cmap = actor.colormap_lookup_table(
-                            scale_range=(0.05, 0.3))
-
-                        # scene = setup_view(nib.streamlines.ArraySequence(bundle_streamlines_transformed), colors=lut_cmap,
-                        #                   ref=ref_img_path, world_coords=False,
-                        #                   objectvals=[None], colorbar=True, record=None, scene=None, interactive=True, value_range = (0,0.8))
-
-                    # new_row = {'Streamline_ID': sl}
-                    column_names_ref = [f'point_{i}_{ref}' for i, _ in enumerate(ref_values)]
-                    row_index = dataf_subj.index[dataf_subj['Streamline_ID'] == sl].tolist()[0]
-                    column_indices = [dataf_subj.columns.get_loc(col) for col in column_names_ref]
-                    dataf_subj.iloc[row_index, column_indices] = ref_values
-                    # dataf_subj.loc[dataf_subj[row_index],column_indices] = ref_values
-                    # dataf_subj[dataf_subj['Streamline_ID'] == sl][column_names_ref] = ref_values
-                    # new_row.update({f'point_{i}_{ref}': value for i, value in enumerate(ref_values)})
-                    # new_row.update({'Length':list(tract_length(bundle_streamlines[sl:sl+1]))[0]})
-                    # dataf_subj.loc[np.shape(dataf_subj)[0][]] = new_row
-
-        save_df_remote(dataf_subj, stat_path_subject, sftp_out)
-        print(f'Wrote file for subject {subject} and {full_bundle_id}')
+            if ref not in unique_refs:
+                df_ref = pd.DataFrame(tractometry_array[ref], columns=new_bundle_ids)
+                df_ref = df_ref.replace({100: 'grey', 101: 'white'})
+                save_df_remote(df_ref,tractometry_dic_path[ref], sftp_out)
 
     """
     if calc_BUAN and (not os.path.exists(bundle_compare_summary) or overwrite):

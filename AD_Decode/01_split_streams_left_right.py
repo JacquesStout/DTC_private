@@ -49,6 +49,7 @@ remote_output = bool(params['remote_output'])
 path_TRK = params['path_trk']
 
 overwrite = False
+overwrite = False
 verbose = False
 
 if 'santorini' in socket.gethostname().split('.')[0]:

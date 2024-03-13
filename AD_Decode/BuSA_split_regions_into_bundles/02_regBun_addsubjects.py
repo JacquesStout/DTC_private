@@ -46,13 +46,7 @@ project_summary_file = args.proj
 full_subjects_list = args.subj
 sides = [args.side]
 
-if bundle_id_orig is not None:
-    bundle_id_orig_txt = '_'.join(bundle_id_orig) + '_'
-else:
-    bundle_id_orig_txt = '_'
-
 project_headfile_folder = '/Volumes/Data/Badea/Lab/jacques/BuSA_headfiles/'
-
 
 if project_summary_file is None:
     project_headfile_folder = '/Volumes/Data/Badea/Lab/jacques/BuSA_headfiles/'
@@ -164,20 +158,6 @@ centroids_sidedic = {}
 centroids_all = []
 centroid_all_side_tracker = {}
 
-centroids = {}
-
-pickled_centroids = os.path.join(pickle_folder, f'bundles_centroids{bundle_id_orig_txt}split_{bundle_split}.py')
-#pickled_centroids = os.path.join(pickle_folder, f'bundles_centroids_split_{bundle_split}.py')
-
-try:
-    centroids = remote_pickle(pickled_centroids,sftp_out,erase_temp=False)
-except pickle.UnpicklingError:
-    txt = f'{pickled_centroids} path could not be loaded'
-    raise FileNotFoundError(txt)
-
-bundles_num = np.shape(centroids)[0]
-
-
 
 save_img = False
 
@@ -194,88 +174,136 @@ roi_mask_left = nib.load(left_mask_path)
 scene = None
 interactive = False
 
-for subject in full_subjects_list:
+if bundle_id_orig is None:
+    sides = ['left', 'right']
+else:
+    sides = ['all']
 
-    streamline_bundle = {}
-    for i in np.arange(bundles_num):
-        streamline_bundle[i] = []
+centroids_sides = {}
 
-    files_subj = []
-    for new_bundle_id in streamline_bundle.keys():
-        #files_subj.append(os.path.join(trk_proj_path, f'{subject}_bundle_{bundle_id_orig_txt}_{new_bundle_id}.trk'))
-        files_subj.append(os.path.join(trk_proj_path, f'{subject}_bundle_{new_bundle_id}_split_{bundle_split}.trk'))
-    check_all = checkfile_exists_all(files_subj,sftp_out)
+for side in sides:
 
-    if check_all and not overwrite:
-        print(f'Already ran succesfully for subject {subject}')
-        if verbose:
-            print(f'Example of file found {files_subj[0]}')
-        continue
+    if side == 'all':
+        side_str = ''
     else:
-        print(f'Starting run for subject {subject}')
+        side_str = f'_{side}'
 
-    #trkpath_subj_right = os.path.join(trk_proj_path, f'{subject}_right_bundle_{bundle_id_orig_txt}.trk')
-    #trkpath_subj_left = os.path.join(trk_proj_path, f'{subject}_left_bundle_{bundle_id_orig_txt}.trk')
-
-    trkpath_subj, _ = gettrkpath(path_TRK, subject, str_identifier, pruned=prune, verbose=False, sftp=sftp_in)
-
-    streamlines_side = {}
-
-    if 'header' not in locals():
-        streamlines_data = load_trk_remote(trkpath_subj, 'same', sftp_in)
-        header = streamlines_data.space_attributes
-        streamlines = streamlines_data.streamlines
-        del streamlines_data
+    if bundle_id_orig is not None:
+        bundle_id_orig_txt = side_str + '_'.join(bundle_id_orig) + '_'
     else:
-        streamlines = load_trk_remote(trkpath_subj, 'same', sftp_in).streamlines
+        bundle_id_orig_txt = side_str
 
-    if setpoints:
-        streamlines = set_number_of_points(streamlines, points_resample)
+    pickled_centroids = os.path.join(pickle_folder, f'bundles_centroids{bundle_id_orig_txt}.py')
+    # pickled_centroids = os.path.join(pickle_folder, f'bundles_centroids_split_{bundle_split}.py')
 
-    for streamline in streamlines:
-        dist_min = 1000000
-        new_bundle_id = -1
-        for i,centroid in enumerate(centroids):
-            dist = (mdf(streamline, centroid))
-            if dist<dist_min:
-                new_bundle_id = i
-                dist_min = dist
-        if new_bundle_id!=-1:
-            streamline = set_number_of_points(streamline, points_resample)
-            streamline_bundle[new_bundle_id].append(streamline)
+    centroids_sides[side] = {}
+
+    try:
+        centroids_sides[side] = remote_pickle(pickled_centroids, sftp_out, erase_temp=False)
+    except pickle.UnpicklingError:
+        txt = f'{pickled_centroids} path could not be loaded'
+        raise FileNotFoundError(txt)
+
+    bundles_num = np.shape(centroids_sides[side])[0]
+
+    side_mask_path = os.path.join(MDT_mask_folder, f'IITmean_RPI_MDT_mask{side_str}.nii.gz')
+    roi_mask_side = nib.load(side_mask_path)
+
+    for subject in full_subjects_list:
+
+        streamline_bundle = {}
+        for i in np.arange(bundles_num):
+            full_bundle_id = bundle_id_orig_txt + f'_{i}'
+            streamline_bundle[full_bundle_id] = []
+
+        files_subj = []
+        for full_bundle_id in streamline_bundle.keys():
+            #files_subj.append(os.path.join(trk_proj_path, f'{subject}_bundle_{bundle_id_orig_txt}_{new_bundle_id}.trk'))
+            #files_subj.append(os.path.join(trk_proj_path, f'{subject}_bundle_{new_bundle_id}_split_{bundle_split}.trk'))
+            #full_bundle_id = bundle_id_orig_txt + f'_{new_bundle_id}'
+            files_subj.append(os.path.join(trk_proj_path, f'{subject}_bundle{full_bundle_id}.trk'))
+
+        check_all = checkfile_exists_all(files_subj,sftp_out)
+
+        if check_all and not overwrite:
+            print(f'Already ran succesfully for subject {subject}')
+            if verbose:
+                print(f'Example of file found {files_subj[0]}')
+            continue
         else:
-            print(dist)
-    if verbose:
-        print(f'Finished streamline prep')
-    for new_bundle_id in streamline_bundle.keys():
-        #bundle_id_orig_txt = ''
-        full_bundle_id = bundle_id_orig_txt + f'{new_bundle_id}'
-        sg = lambda: (s for i, s in enumerate(streamline_bundle[new_bundle_id]))
-        filepath_bundle = os.path.join(trk_proj_path, f'{subject}_bundle{full_bundle_id}_split_{bundle_split}.trk')
-        save_trk_header(filepath=filepath_bundle, streamlines=sg, header=header,
-                    affine=np.eye(4), verbose=verbose, sftp=sftp_out)
-    if verbose:
-        print(f'Finished saving trk files')
-    save_img = False
-    interactive=False
-    if save_img:
-        lut_cmap = None
-        coloring_vals = fury.colormap.distinguishable_colormap(nb_colors=bundle_split)
-        colorbar = False
-        plane = 'z'
-        streamlines_bundled = []
-        for new_bundle_id in np.arange(bundle_split):
-            new_bundle = qb_test.cluster(streamline_bundle[new_bundle_id])[0]
-            streamlines_bundled.append(new_bundle)
-        record_path = os.path.join(figures_proj_path,
-                                   f'{subject}_{bundle_id_orig_txt}_split_{bundle_split}_distance_'
-                                   f'{str(distance)}{ratiostr}_figure.png')
+            print(f'Starting run for subject {subject}')
 
-        scene = setup_view(streamlines_bundled, colors=coloring_vals, ref=anat_path, world_coords=True,
-                           objectvals=None,
-                           colorbar=colorbar, record=record_path, scene=scene, plane=plane,
-                           interactive=interactive, value_range = (0,1))
-    interactive = False
-    print(f'Finished for subject {subject}')
+        #trkpath_subj_right = os.path.join(trk_proj_path, f'{subject}_right_bundle_{bundle_id_orig_txt}.trk')
+        #trkpath_subj_left = os.path.join(trk_proj_path, f'{subject}_left_bundle_{bundle_id_orig_txt}.trk')
 
-    del(streamlines_side,sg,streamlines,header)
+        trkpath_subj, _ = gettrkpath(path_TRK, subject, str_identifier, pruned=prune, verbose=False, sftp=sftp_in)
+
+        if 'header' not in locals():
+            streamlines_data = load_trk_remote(trkpath_subj, 'same', sftp_in)
+            header = streamlines_data.space_attributes
+            streamlines = streamlines_data.streamlines
+            del streamlines_data
+        else:
+            streamlines = load_trk_remote(trkpath_subj, 'same', sftp_in).streamlines
+
+        if setpoints:
+            streamlines = set_number_of_points(streamlines, points_resample)
+
+        streamlines_side = filter_streamlines(streamlines, roi_mask=roi_mask_side, world_coords=True,
+                                              include=streamline_lr_inclusion,
+                                              threshold=length_threshold)
+
+        for streamline in streamlines:
+            dist_min = 1000000
+            new_bundle_id = -1
+
+            for i,centroid in enumerate(centroids_sides[side]):
+                dist = (mdf(streamline, centroid))
+                if dist<dist_min:
+                    new_bundle_id = i
+                    dist_min = dist
+            if new_bundle_id!=-1:
+
+                full_bundle_id = bundle_id_orig_txt + f'_{new_bundle_id}'
+
+                streamline = set_number_of_points(streamline, points_resample)
+                streamline_bundle[full_bundle_id].append(streamline)
+            else:
+                print(dist)
+
+        if verbose:
+            print(f'Finished streamline prep')
+        for full_id in streamline_bundle.keys():
+            #bundle_id_orig_txt = ''
+            #full_bundle_id = bundle_id_orig_txt + f'_{new_bundle_id}'
+            sg = lambda: (s for i, s in enumerate(streamline_bundle[full_id]))
+            filepath_bundle = os.path.join(trk_proj_path, f'{subject}_bundle{full_id}.trk')
+            save_trk_header(filepath=filepath_bundle, streamlines=sg, header=header,
+                        affine=np.eye(4), verbose=verbose, sftp=sftp_out)
+
+        if verbose:
+            print(f'Finished saving trk files')
+
+        save_img = False
+        interactive=False
+        if save_img:
+            lut_cmap = None
+            coloring_vals = fury.colormap.distinguishable_colormap(nb_colors=bundle_split)
+            colorbar = False
+            plane = 'z'
+            streamlines_bundled = []
+            for new_bundle_id in np.arange(bundle_split):
+                new_bundle = qb_test.cluster(streamline_bundle[new_bundle_id])[0]
+                streamlines_bundled.append(new_bundle)
+            record_path = os.path.join(figures_proj_path,
+                                       f'{subject}_{bundle_id_orig_txt}_split_{bundle_split}_distance_'
+                                       f'{str(distance)}{ratiostr}_figure.png')
+
+            scene = setup_view(streamlines_bundled, colors=coloring_vals, ref=anat_path, world_coords=True,
+                               objectvals=None,
+                               colorbar=colorbar, record=record_path, scene=scene, plane=plane,
+                               interactive=interactive, value_range = (0,1))
+        interactive = False
+        print(f'Finished for subject {subject}')
+
+        del(streamlines_side,sg,streamlines,header)
