@@ -207,6 +207,8 @@ else:
     subjects = ['J01257', 'J01277' ,'J01402', 'J04086', 'J04129', 'J04300' ,'J04472', 'J01501', 'J01516', 'J01541', 'J04602']
 # subjects = ['ADRC0001']
 
+subjects = ['J04472']
+
 index_gz = '.gz'
 overwrite = False
 
