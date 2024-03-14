@@ -207,44 +207,69 @@ tractometry_array = {}
 
 references = ['mrtrixfa', 'Length', 'greywhite']
 
-for side in sides:
 
-    if side == 'all':
-        side_str = ''
-    else:
-        side_str = f'_{side}'
+for subject in full_subjects_list:
+    #        bundle_compare_summary = os.path.join(stat_folder, f'{subject}_bundle{bundle_id_orig_txt}_split_{bundle_split}_comparison.xlsx')
 
-    if bundle_id_orig is not None:
-        bundle_id_orig_txt = side_str + '_'.join(bundle_id_orig) + '_'
-    else:
-        bundle_id_orig_txt = side_str
+    column_names = ['Streamline_ID']
+    df_ref = {}
+    for ref in references:
+        if ref not in unique_refs:
+            column_names += ([f'point_{ID}_{ref}' for ID in np.arange(points_resample)])
+            tractometry_dic_path[ref] = os.path.join(stat_folder, f'Tractometry_{ref}_{subject}.csv')
+            tractometry_array[ref] = np.zeros([points_resample, np.size(new_bundle_ids)*np.size(sides)])
+            all_bundle_ids = [f'bundle_left_{bundle_id}' for bundle_id in new_bundle_ids] + [f'bundle_right_{bundle_id}' for bundle_id in new_bundle_ids]
+            df_ref[ref] = pd.DataFrame(tractometry_array[ref], columns=all_bundle_ids)
 
-    bundles_num = bundle_split
+        if ref in unique_refs:
+            column_names += ([ref])
 
-    for subject in full_subjects_list:
+    stat_files_tocheck = []
+    for side in sides:
+        #checking whether we already have al stat files or not
+        for id_order, new_bundle_id in enumerate(new_bundle_ids):
+            full_bundle_id = bundle_id_orig_txt + f'_{new_bundle_id}'
+            stat_path_subject = os.path.join(stat_folder, f'{subject}_bundle{full_bundle_id}.xlsx')
+            stat_files_tocheck.append(stat_path_subject)
+
+    for ref in references:
+        if ref not in unique_refs:
+            stat_files_tocheck.append(tractometry_dic_path[ref])
+    #if calc_BUAN:
+    #    stat_files_tocheck.append(bundle_compare_summary)
+
+    check_stats_all = checkfile_exists_all(stat_files_tocheck,sftp_out)
+
+    if check_stats_all:
+        print(f'Already created all relevant stats for subject {subject}')
+        continue
+
+    for side in sides:
+
+        if side == 'all':
+            side_str = ''
+        else:
+            side_str = f'_{side}'
+
+        if bundle_id_orig is not None:
+            bundle_id_orig_txt = side_str + '_'.join(bundle_id_orig) + '_'
+        else:
+            bundle_id_orig_txt = side_str
+
+        bundles_num = bundle_split
 
         for i in np.arange(bundles_num):
             full_bundle_id = bundle_id_orig_txt + f'_{i}'
             streamline_bundle[full_bundle_id] = []
 
-        bundle_compare_summary = os.path.join(stat_folder, f'{subject}_bundle{bundle_id_orig_txt}_split_{bundle_split}_comparison.xlsx')
         files_subj = []
         for full_bundle_id in streamline_bundle.keys():
             files_subj.append(os.path.join(trk_proj_path, f'{subject}_bundle{full_bundle_id}.trk'))
-        check_all = checkfile_exists_all(files_subj,sftp_out)
-        # filepath_bundle = os.path.join(trk_proj_path, f'{subject}_{side}_bundle_{bundle_id}.trk')
+        #check_all = checkfile_exists_all(files_subj,sftp_out)
+        check_all = True
         if not check_all:
             print(f'Missing trk files for subject {subject} in {trk_proj_path}, please rerun bundle creator')
             continue
-
-        column_names = ['Streamline_ID']
-        for ref in references:
-            if ref not in unique_refs:
-                column_names += ([f'point_{ID}_{ref}' for ID in np.arange(points_resample)])
-                tractometry_dic_path[ref] = os.path.join(stat_folder, f'Tractometry_{ref}_{subject}.csv')
-                tractometry_array[ref] = np.zeros([points_resample,np.size(new_bundle_ids)])
-            if ref in unique_refs:
-                column_names += ([ref])
 
         print(f'Files will be saved at {stat_folder}')
         bundle_data_dic = {}
@@ -252,14 +277,8 @@ for side in sides:
         dataf = pd.DataFrame(columns=new_bundle_ids)
 
         for id_order,new_bundle_id in enumerate(new_bundle_ids):
-            #full_bundle_id = bundle_id_orig_txt + f'_{new_bundle_id}'
-            full_bundle_id = bundle_id_orig_txt + f'_{new_bundle_id}'
-            stat_path_subject = os.path.join(stat_folder, f'{subject}_bundle{full_bundle_id}.xlsx')
 
-            if not overwrite and checkfile_exists_remote(stat_path_subject, sftp_out) and not (
-                    calc_BUAN and not os.path.exists(bundle_compare_summary)):
-                print(f'Already created file for subject {subject}, side {side} and {full_bundle_id}')
-                continue
+            full_bundle_id = bundle_id_orig_txt + f'_{new_bundle_id}'
 
             dataf_subj = pd.DataFrame(columns=column_names)
 
@@ -271,10 +290,6 @@ for side in sides:
             header = bundle_data.space_attributes
 
             dataf_subj['Streamline_ID'] = np.arange(num_streamlines)
-
-            if not overwrite and checkfile_exists_remote(stat_path_subject, sftp_out):
-                print(f'Already created file for subject {subject} and {full_bundle_id}')
-                continue
 
             # dataf_subj.set_index('Streamline_ID', inplace=True)
 
@@ -351,7 +366,7 @@ for side in sides:
 
                     list_gw = [100 if color == 'grey' else 101 if color == 'white' else color for color in list_gw]
 
-                    tractometry_array[ref][:, new_bundle_id] = list_gw
+                    df_ref[ref].loc[:, f'bundle_{side}_{new_bundle_id}'] = list_gw
 
                 else:
                     ref_img_path = get_diff_ref(ref_MDT_folder, subject, ref, sftp=None)
@@ -369,6 +384,8 @@ for side in sides:
                     time1 = time()
                     testmode = False
 
+                    sum_ref_values = np.zeros(points_resample)
+
                     for sl, _ in enumerate(bundle_streamlines_transformed):
                     #for sl in np.arange(100):
 
@@ -383,7 +400,8 @@ for side in sides:
                         ref_values = ref_data[
                             voxel_coords_tweaked[:, 0], voxel_coords_tweaked[:, 1], voxel_coords_tweaked[:, 2]]
 
-                        tractometry_array[ref][:,new_bundle_id] += ref_values
+                        #tractometry_array[ref][:,new_bundle_id] += ref_values
+                        sum_ref_values += ref_values
 
                         # stream_point_ref.append(ref_values)
                         # stream_ref.append(np.mean(ref_values))
@@ -419,7 +437,8 @@ for side in sides:
                         column_indices = [dataf_subj.columns.get_loc(col) for col in column_names_ref]
                         dataf_subj.iloc[row_index, column_indices] = ref_values
 
-                    tractometry_array[ref][:, new_bundle_id] /= np.shape(bundle_streamlines_transformed)[0]
+                    df_ref[ref].loc[:, f'bundle_{side}_{new_bundle_id}'] = sum_ref_values / np.shape(bundle_streamlines_transformed)[0]
+
                     #tractometry_array[ref][:, new_bundle_id] /= 100
                         # dataf_subj.loc[dataf_subj[row_index],column_indices] = ref_values
                         # dataf_subj[dataf_subj['Streamline_ID'] == sl][column_names_ref] = ref_values
@@ -430,11 +449,11 @@ for side in sides:
             save_df_remote(dataf_subj, stat_path_subject, sftp_out)
             print(f'Wrote file for subject {subject} and {full_bundle_id}')
 
-        for ref in references:
-            if ref not in unique_refs:
-                df_ref = pd.DataFrame(tractometry_array[ref], columns=new_bundle_ids)
-                df_ref = df_ref.replace({100: 'grey', 101: 'white'})
-                save_df_remote(df_ref,tractometry_dic_path[ref], sftp_out)
+    for ref in references:
+        if ref not in unique_refs:
+            #df_ref = pd.DataFrame(tractometry_array[ref], columns=new_bundle_ids)
+            #df_ref = df_ref.replace({100: 'grey', 101: 'white'})
+            save_df_remote(df_ref[ref],tractometry_dic_path[ref], sftp_out)
 
     """
     if calc_BUAN and (not os.path.exists(bundle_compare_summary) or overwrite):
