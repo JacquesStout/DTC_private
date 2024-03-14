@@ -88,9 +88,10 @@ subjects = []
 # subjects.append(sys.argv[1])
 #subjects = ['J01277', 'J01402', 'J04472', 'J04129', 'J01257', 'J04300', 'J04086']
 subjects = ['J01277', 'J01402', 'J04472', 'J04129', 'J01257', 'J04300', 'J04086','J01501','J01516','J04602','J01541']
+#subjects = ['J01257', 'J01277', 'J01402', 'J04086', 'J04129', 'J04300', 'J04472','J01501','J01516','J01541','J04602']
 #subjects = ['J01501','J01516','J04602','J01541']
 
-#subjects = []
+subjects = ['J04472']
 #subjects.append(sys.argv[1])
 # subjects = ['ADRC0001']
 
@@ -267,6 +268,7 @@ for subj in subjects:
     assignments_parcels_csv3 = os.path.join(conn_folder_subj, subj + '_assignments_con_sift.csv')
     parcels_csv_3 = os.path.join(conn_folder_subj, subj + '_conn_sift.csv')
     mean_FA_per_streamline = os.path.join(subj_out_folder, subj + '_per_strmline_mean_FA.csv')
+    print(f'information outputted at {conn_folder_subj}')
 
     if not os.path.exists(distances_csv) or overwrite:
         os.system('tck2connectome ' + smallerTracks + ' ' + parcels_mif + ' ' + distances_csv +
