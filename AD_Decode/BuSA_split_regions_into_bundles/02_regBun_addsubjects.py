@@ -176,12 +176,18 @@ scene = None
 interactive = False
 overwrite = True
 
+
+"""
 if bundle_id_orig is None:
     sides = ['left', 'right']
 else:
     sides = ['all']
 
+"""
+
 centroids_sides = {}
+
+sides = ['left', 'right']
 
 for side in sides:
 
@@ -191,7 +197,8 @@ for side in sides:
         side_str = f'_{side}'
 
     if bundle_id_orig is not None:
-        bundle_id_orig_txt = side_str + '_'.join(bundle_id_orig) + '_'
+        #bundle_id_orig_txt = side_str + '_'.join(bundle_id_orig) + '_'
+        bundle_id_orig_txt = side_str + '_' + bundle_id_orig[0]
         side_mask_path = os.path.join(MDT_mask_folder, f'IITmean_RPI_MDT_mask.nii.gz')
     else:
         bundle_id_orig_txt = side_str
@@ -238,7 +245,10 @@ for side in sides:
         #trkpath_subj_right = os.path.join(trk_proj_path, f'{subject}_right_bundle_{bundle_id_orig_txt}.trk')
         #trkpath_subj_left = os.path.join(trk_proj_path, f'{subject}_left_bundle_{bundle_id_orig_txt}.trk')
 
-        trkpath_subj, _ = gettrkpath(path_TRK, subject, str_identifier, pruned=prune, verbose=False, sftp=sftp_in)
+        if bundle_id_orig is None:
+            trkpath_subj, _ = gettrkpath(path_TRK, subject, str_identifier, pruned=prune, verbose=False, sftp=sftp_in)
+        else:
+            trkpath_subj = os.path.join(trk_proj_path, f'{subject}_bundle{bundle_id_orig_txt}.trk')
 
         if 'header' not in locals():
             streamlines_data = load_trk_remote(trkpath_subj, 'same', sftp_in)

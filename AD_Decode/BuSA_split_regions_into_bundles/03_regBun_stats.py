@@ -50,10 +50,7 @@ parser.add_argument('--split', type=int, help='An integer for splitting')
 
 args = parser.parse_args()
 bundle_id_orig = args.id
-if bundle_id_orig is not None:
-    bundle_id_orig_txt = '_'.join(bundle_id_orig)
-else:
-    bundle_id_orig_txt = ''
+
 
 bundle_split = args.split
 project_summary_file = args.proj
@@ -199,7 +196,13 @@ for remove in removed_list:
     if remove in full_subjects_list:
         full_subjects_list.remove(remove)
 
-column_bundle_compare = ['Subject'] + [f'BUAN_{bundle_id_orig_txt}_{bundle_id}' for bundle_id in new_bundle_ids]
+
+if bundle_id_orig is not None:
+    bundle_col_id = '_' + '_'.join(bundle_id_orig)
+else:
+    bundle_col_id = ''
+
+column_bundle_compare = ['Subject'] + [f'BUAN{bundle_col_id}_{bundle_id}' for bundle_id in new_bundle_ids]
 
 calc_BUAN = True
 
@@ -217,7 +220,7 @@ for subject in full_subjects_list:
     for ref in references:
         if ref not in unique_refs:
             column_names += ([f'point_{ID}_{ref}' for ID in np.arange(points_resample)])
-            tractometry_dic_path[ref] = os.path.join(stat_folder, f'Tractometry_{ref}_{subject}.csv')
+            tractometry_dic_path[ref] = os.path.join(stat_folder, f'Tractometry_{ref}_{subject}{bundle_col_id}.csv')
             tractometry_array[ref] = np.zeros([points_resample, np.size(new_bundle_ids)*np.size(sides)])
             if sides == ['left','right']:
                 all_bundle_ids = [f'bundle_left_{bundle_id}' for bundle_id in new_bundle_ids] + [f'bundle_right_{bundle_id}' for bundle_id in new_bundle_ids]
@@ -232,6 +235,16 @@ for subject in full_subjects_list:
 
     stat_files_tocheck = []
     for side in sides:
+        if side == 'all':
+            side_str = ''
+        else:
+            side_str = f'_{side}'
+
+        if bundle_id_orig is not None:
+            bundle_id_orig_txt = side_str + '_' + bundle_id_orig[0]
+        else:
+            bundle_id_orig_txt = ''
+
         #checking whether we already have al stat files or not
         for id_order, new_bundle_id in enumerate(new_bundle_ids):
             full_bundle_id = bundle_id_orig_txt + f'_{new_bundle_id}'
@@ -258,7 +271,7 @@ for subject in full_subjects_list:
             side_str = f'_{side}'
 
         if bundle_id_orig is not None:
-            bundle_id_orig_txt = side_str + '_'.join(bundle_id_orig) + '_'
+            bundle_id_orig_txt = side_str + '_' + bundle_id_orig[0]
         else:
             bundle_id_orig_txt = side_str
 
@@ -284,7 +297,10 @@ for subject in full_subjects_list:
 
         for id_order,new_bundle_id in enumerate(new_bundle_ids):
 
+
             full_bundle_id = bundle_id_orig_txt + f'_{new_bundle_id}'
+
+            stat_path_subject = os.path.join(stat_folder, f'{subject}_bundle{full_bundle_id}.xlsx')
 
             dataf_subj = pd.DataFrame(columns=column_names)
 

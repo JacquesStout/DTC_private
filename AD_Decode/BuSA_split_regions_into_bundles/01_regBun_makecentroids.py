@@ -268,18 +268,29 @@ elif bundle_id_orig is None:
 else:
     trkpaths = {}
     for subject in template_subjects:
-        trkpaths[subject, 'right'] = os.path.join(trk_proj_path, f'{subject}_right_bundle_{bundle_id_orig}.trk')
-        trkpaths[subject, 'left'] = os.path.join(trk_proj_path, f'{subject}_left_bundle_{bundle_id_orig}.trk')
-
         for side in sides:
 
+            if side == 'all':
+                side_str = ''
+            else:
+                side_str = f'_{side}'
+
+            if bundle_id_orig is not None:
+                bundle_id_orig_txt = side_str + '_' + bundle_id_orig[0]
+            else:
+                bundle_id_orig_txt = side_str
+
+            #trkpaths[subject, 'right'] = os.path.join(trk_proj_path, f'{subject}_right_bundle_{bundle_id_orig}.trk')
+            #trkpaths[subject, 'left'] = os.path.join(trk_proj_path, f'{subject}_left_bundle_{bundle_id_orig}.trk')
+            trkpath_subj = os.path.join(trk_proj_path, f'{subject}_bundle{bundle_id_orig_txt}.trk')
+
             if 'header' not in locals():
-                streamlines_temp_data = load_trk_remote(trkpaths[subject, side], 'same', sftp_out)
+                streamlines_temp_data = load_trk_remote(trkpath_subj, 'same', sftp_out)
                 header = streamlines_temp_data.space_attributes
                 streamlines_temp = streamlines_temp_data.streamlines
                 del streamlines_temp_data
             else:
-                streamlines_temp = load_trk_remote(trkpaths[subject, side], 'same', sftp_out).streamlines
+                streamlines_temp = load_trk_remote(trkpath_subj, 'same', sftp_out).streamlines
 
             if side == 'left' or 'all':
                 streamlines_template.extend(streamlines_temp)
@@ -357,7 +368,8 @@ for side in sides:
         side_str = f'_{side}'
 
     if bundle_id_orig is not None:
-        bundle_id_orig_txt = side_str + '_'.join(bundle_id_orig) + '_'
+        #bundle_id_orig_txt = side_str + '_'.join(bundle_id_orig) + '_'
+        bundle_id_orig_txt = side_str + '_' + bundle_id_orig[0]
     else:
         bundle_id_orig_txt = side_str
 
