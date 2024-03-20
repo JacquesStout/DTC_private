@@ -173,6 +173,7 @@ roi_mask_left = nib.load(left_mask_path)
 
 scene = None
 interactive = False
+overwrite = True
 
 if bundle_id_orig is None:
     sides = ['left', 'right']
@@ -190,8 +191,10 @@ for side in sides:
 
     if bundle_id_orig is not None:
         bundle_id_orig_txt = side_str + '_'.join(bundle_id_orig) + '_'
+        side_mask_path = os.path.join(MDT_mask_folder, f'IITmean_RPI_MDT_mask{side_str}.nii.gz')
     else:
         bundle_id_orig_txt = side_str
+        side_mask_path = os.path.join(MDT_mask_folder, f'IITmean_RPI_MDT_mask.nii.gz')
 
     pickled_centroids = os.path.join(pickle_folder, f'bundles_centroids{bundle_id_orig_txt}.py')
     # pickled_centroids = os.path.join(pickle_folder, f'bundles_centroids_split_{bundle_split}.py')
@@ -206,11 +209,9 @@ for side in sides:
 
     bundles_num = np.shape(centroids_sides[side])[0]
 
-    side_mask_path = os.path.join(MDT_mask_folder, f'IITmean_RPI_MDT_mask{side_str}.nii.gz')
     roi_mask_side = nib.load(side_mask_path)
 
     for subject in full_subjects_list:
-
         streamline_bundle = {}
         for i in np.arange(bundles_num):
             full_bundle_id = bundle_id_orig_txt + f'_{i}'
@@ -246,28 +247,33 @@ for side in sides:
         else:
             streamlines = load_trk_remote(trkpath_subj, 'same', sftp_in).streamlines
 
-        if setpoints:
-            streamlines = set_number_of_points(streamlines, points_resample)
-
         streamlines_side = filter_streamlines(streamlines, roi_mask=roi_mask_side, world_coords=True,
                                               include=streamline_lr_inclusion,
                                               threshold=length_threshold)
 
-        for streamline in streamlines_side:
+        if setpoints:
+            streamlines_resampled = set_number_of_points(streamlines_side, points_resample)
+        else:
+            streamlines_resampled = streamlines_side
+
+        for s,streamline in enumerate(streamlines_resampled):
             dist_min = 1000000
             new_bundle_id = -1
+            if any(streamline[0] == [0,0,0]):
+                print('hi')
+                if not (list(length(streamlines))[s])==0:
+                    print('hi again')
 
             for i,centroid in enumerate(centroids_sides[side]):
                 dist = (mdf(streamline, centroid))
                 if dist<dist_min:
                     new_bundle_id = i
                     dist_min = dist
+
             if new_bundle_id!=-1:
-
                 full_bundle_id = bundle_id_orig_txt + f'_{new_bundle_id}'
-
-                streamline = set_number_of_points(streamline, points_resample)
-                streamline_bundle[full_bundle_id].append(streamline)
+                #streamline = set_number_of_points(streamline, points_resample)
+                streamline_bundle[full_bundle_id].append(streamlines_side[s])
             else:
                 print(dist)
 
@@ -303,6 +309,7 @@ for side in sides:
                                objectvals=None,
                                colorbar=colorbar, record=record_path, scene=scene, plane=plane,
                                interactive=interactive, value_range = (0,1))
+
         interactive = False
         print(f'Finished for subject {subject}')
 

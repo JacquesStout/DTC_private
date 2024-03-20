@@ -23,6 +23,46 @@ from DTC.wrapper_tools import parse_list_arg
 from DTC.tract_manager.tract_handler import gettrkpath
 
 
+def check_streamline(streamline):
+    for i in range(len(streamline) - 1):
+        point1 = streamline[i]
+        point2 = streamline[i + 1]
+
+        distance = np.linalg.norm(point2 - point1)
+
+        if distance > 10:
+
+            firstpart = streamline[:i + 1]
+            secondpart = streamline[i + 1:]
+            if np.linalg.norm(firstpart - firstpart[0]) < 0.5:
+                if len(firstpart)==1:
+                    secondpart = secondpart[1:]
+                    continue
+                else:
+                    return(secondpart)
+            elif np.linalg.norm(secondpart - secondpart[0]) < 0.5:
+                return(firstpart)
+            else:
+                streamline_1 = check_streamline(firstpart)
+                streamline_2 = check_streamline(secondpart)
+                if len(streamline_1)>len(streamline_2):
+                    return(streamline_1)
+                else:
+                    return(streamline_2)
+
+    return(streamline)
+
+
+def fix_badwarp_streamlines(streamlines):
+    streamlines_pruned = []
+    streamlines_onlypruned = []
+
+    for id, streamline in enumerate(streamlines):
+        streamline = check_streamline(streamline)
+        streamlines_pruned.append(streamline)
+    return streamlines_pruned
+
+
 parser = argparse.ArgumentParser(description='Process some integers.')
 parser.add_argument('--split', type=int, help='An integer for splitting')
 parser.add_argument('--proj', type=str, help='The project path or name')
@@ -96,7 +136,7 @@ else:
     trkroi = ["wholebrain"]
 
 str_identifier = get_str_identifier(stepsize, ratio, trkroi, type=streamline_type)
-str_identifier = '_streamlines'
+#str_identifier = '_streamlines'
 
 if 'santorini' in socket.gethostname().split('.')[0]:
     lab_folder = '/Volumes/Data/Badea/Lab'
@@ -147,8 +187,10 @@ streamlines_template = nib.streamlines.array_sequence.ArraySequence()
 
 timings.append(time.perf_counter())
 
+sides = ['left', 'right']
 
-if not checkfile_exists_remote(trktemplate_paths, sftp_out) \
+
+if bundle_id_orig is None and not checkfile_exists_remote(trktemplate_paths, sftp_out) \
         or not checkfile_exists_remote(streams_dict_picklepaths, sftp_out) or overwrite:
 
     num_streamlines_all = 0
@@ -168,24 +210,9 @@ if not checkfile_exists_remote(trktemplate_paths, sftp_out) \
         else:
             streamlines_temp = load_trk_remote(subj_trk, 'same', sftp_in).streamlines
 
-        #from dipy.tracking.utils import length as tract_length
-        """
-        result = []
-        tract_length_resampled = list(tract_length((set_number_of_points(streamlines_temp, points_resample))))
-        tract_length_orig = list(tract_length(streamlines_temp))
-        for i in tract_length_resampled:
-            for j in tract_length_orig:
-                result.append(i - j)
-        """
-
-        if setpoints:
-            streamlines_template.extend(set_number_of_points(streamlines_temp, points_resample))
-        else:
-            streamlines_template.extend(streamlines_temp)
 
         num_streamlines_subj = len(streamlines_temp)
 
-        del streamlines_temp
 
         streams_dict_side[subject] = np.arange(num_streamlines_all, num_streamlines_all + num_streamlines_subj)
 
@@ -196,19 +223,75 @@ if not checkfile_exists_remote(trktemplate_paths, sftp_out) \
         num_streamlines_all += num_streamlines_subj
         i += 1
 
-    save_trk_header(filepath=trktemplate_paths, streamlines=streamlines_template, header=header,
+
+        side_mask_path = os.path.join(MDT_mask_folder, f'IITmean_RPI_MDT_mask_left.nii.gz')
+        roi_mask_left = nib.load(side_mask_path)
+        streamlines_template.extend(filter_streamlines(streamlines_temp, roi_mask=roi_mask_left, world_coords=True,
+                                             include=streamline_lr_inclusion,
+                                             threshold=length_threshold))
+
+
+        side_mask_path = os.path.join(MDT_mask_folder, f'IITmean_RPI_MDT_mask_right.nii.gz')
+        roi_mask_right = nib.load(side_mask_path)
+        streamlines_right_rev = filter_streamlines(streamlines_temp, roi_mask=roi_mask_right, world_coords=True,
+                                                   include=streamline_lr_inclusion,
+                                                   threshold=length_threshold)
+
+        affine_flip = np.eye(4)
+        affine_flip[0, 0] = -1
+        affine_flip[0, 3] = 0
+
+        streamlines_right_rev = transform_streamlines(streamlines_right_rev, affine_flip,
+                                                      in_place=False)
+
+        streamlines_template.extend(streamlines_right_rev)
+
+        del streamlines_temp
+
+
+    #streamlines_template = fix_badwarp_streamlines(streamlines_template)
+
+    sg = lambda: (s for i, s in enumerate(streamlines_template))
+    save_trk_header(filepath=trktemplate_paths, streamlines=sg, header=header,
                     affine=np.eye(4), verbose=verbose, sftp=sftp_out)
     timings.append(time.perf_counter())
     print(f'Saved streamlines at {trktemplate_paths}, took {timings[-1] - timings[-2]} seconds')
     pickledump_remote(streams_dict_side, streams_dict_picklepaths, sftp_out)
     timings.append(time.perf_counter())
     print(f'Saved dictionary at {streams_dict_picklepaths}, took {timings[-1] - timings[0]} seconds')
-else:
+elif bundle_id_orig is None:
     print(f'already wrote {trktemplate_paths} and {streams_dict_picklepaths}')
     streamlines_template_main = load_trk_remote(trktemplate_paths, 'same', sftp_out)
     streamlines_template = streamlines_template_main.streamlines
     header = streamlines_template_main.space_attributes
     streams_dict_side = remote_pickle(streams_dict_picklepaths, sftp=sftp_out)
+else:
+    trkpaths = {}
+    for subject in template_subjects:
+        trkpaths[subject, 'right'] = os.path.join(trk_proj_path, f'{subject}_right_bundle_{bundle_id_orig}.trk')
+        trkpaths[subject, 'left'] = os.path.join(trk_proj_path, f'{subject}_left_bundle_{bundle_id_orig}.trk')
+
+        for side in sides:
+
+            if 'header' not in locals():
+                streamlines_temp_data = load_trk_remote(trkpaths[subject, side], 'same', sftp_out)
+                header = streamlines_temp_data.space_attributes
+                streamlines_temp = streamlines_temp_data.streamlines
+                del streamlines_temp_data
+            else:
+                streamlines_temp = load_trk_remote(trkpaths[subject, side], 'same', sftp_out).streamlines
+
+            if side == 'left' or 'all':
+                streamlines_template.extend(streamlines_temp)
+            elif side == 'right':
+                affine_flip = np.eye(4)
+                affine_flip[0, 0] = -1
+                affine_flip[0, 3] = 0
+                streamlines_template.extend(transform_streamlines(streamlines_temp, affine_flip,
+                                                               in_place=False))
+            else:
+                raise Exception('unrecognized side, this should never happen, fix sides to be either left and right, or all')
+
 
 feature2 = ResampleFeature(nb_points=bundle_points)
 metric2 = AveragePointwiseEuclideanMetric(feature=feature2)
@@ -218,69 +301,83 @@ num_streamlines = {}
 streams_dict_picklepaths = {}
 centroids_perside = {}
 
-sides = ['left', 'right']
+"""
+side = 'left'
 
-if bundle_id_orig is None:
+side_str = f'_{side}'
 
-    side = 'left'
+bundle_id_orig_txt = side_str
 
-    side_str = f'_{side}'
+side_mask_path = os.path.join(MDT_mask_folder, f'IITmean_RPI_MDT_mask_left.nii.gz')
+roi_mask_left = nib.load(side_mask_path)
+streamlines_all = filter_streamlines(streamlines_template, roi_mask=roi_mask_left, world_coords=True,
+                                      include=streamline_lr_inclusion,
+                                      threshold=length_threshold)
 
-    bundle_id_orig_txt = side_str
+side_mask_path = os.path.join(MDT_mask_folder, f'IITmean_RPI_MDT_mask_right.nii.gz')
+roi_mask_right = nib.load(side_mask_path)
+streamlines_right_rev = filter_streamlines(streamlines_template, roi_mask=roi_mask_right, world_coords=True,
+                                      include=streamline_lr_inclusion,
+                                      threshold=length_threshold)
 
-    side_mask_path = os.path.join(MDT_mask_folder, f'IITmean_RPI_MDT_mask_left.nii.gz')
-    roi_mask_left = nib.load(side_mask_path)
-    streamlines_all = filter_streamlines(streamlines_template, roi_mask=roi_mask_left, world_coords=True,
-                                          include=streamline_lr_inclusion,
-                                          threshold=length_threshold)
 
-    side_mask_path = os.path.join(MDT_mask_folder, f'IITmean_RPI_MDT_mask_right.nii.gz')
-    roi_mask_right = nib.load(side_mask_path)
-    streamlines_right_rev = filter_streamlines(streamlines_template, roi_mask=roi_mask_right, world_coords=True,
-                                          include=streamline_lr_inclusion,
-                                          threshold=length_threshold)
+streamlines_right_rev = transform_streamlines(streamlines_right_rev, affine_flip,
+                                                   in_place=False)
 
-    affine_flip = np.eye(4)
-    affine_flip[0, 0] = -1
-    affine_flip[0, 3] = 0
+streamlines_all.extend(streamlines_right_rev)
+"""
 
-    streamlines_right_rev = transform_streamlines(streamlines_right_rev, affine_flip,
-                                                       in_place=False)
+affine_flip = np.eye(4)
+affine_flip[0, 0] = -1
+affine_flip[0, 3] = 0
 
-    streamlines_all.extend(streamlines_right_rev)
+bundles = qb.cluster(streamlines_template)
+num_streamlines = bundles.clusters_sizes()
 
-    bundles = qb.cluster(streamlines_all)
-    num_streamlines = bundles.clusters_sizes()
+top_bundles = sorted(range(len(num_streamlines)), key=lambda i: num_streamlines[i], reverse=True)[:]
+ordered_bundles = []
+centroids_side = {}
+centroids_side['left'] = []
+centroids_side['right'] = []
 
-    top_bundles = sorted(range(len(num_streamlines)), key=lambda i: num_streamlines[i], reverse=True)[:]
-    ordered_bundles = []
-    centroids_side = {}
-    centroids_side['left'] = []
-    centroids_side['right'] = []
 
-    for bundle in top_bundles[:bundle_split]:
-        ordered_bundles.append(bundles.clusters[bundle])
-        centroids_side['left'].append(bundles.clusters[bundle].centroid)
+for bundle in top_bundles[:bundle_split]:
+    ordered_bundles.append(bundles.clusters[bundle])
+    centroids_side['left'].append(bundles.clusters[bundle].centroid)
 
-    for bundle_toflip in centroids_side['left']:
-        centroids_side['right'].append(np.array(transform_streamlines(bundle_toflip, affine_flip, in_place=False)))
+for bundle_toflip in centroids_side['left']:
+    centroids_side['right'].append(np.array(transform_streamlines(bundle_toflip, affine_flip, in_place=False)))
 
-    for side in sides:
-        pickled_centroids = os.path.join(pickle_folder, f'bundles_centroids_{side}.py')
-        if not checkfile_exists_remote(pickled_centroids, sftp_out) or overwrite:
-            # pickledump_remote(bundles.centroids,pickled_centroids,sftp_out)
-            pickledump_remote(centroids_side[side], pickled_centroids, sftp_out)
-            print(f'Saved centroids at {pickled_centroids}, took {timings[-1] - timings[-2]} seconds')
-        else:
-            print(f'Centroids at {pickled_centroids} already exist')
-        timings.append(time.perf_counter())
 
-        for bundle_id in np.arange(num_bundles):
-            sg = lambda: (s for i, s in enumerate(centroids_side[side][bundle_id:bundle_id+1]))
-            filepath_bundle = os.path.join(centroids_proj_path, f'centroid_{side}_bundle_{bundle_id}.trk')
-            save_trk_header(filepath=filepath_bundle, streamlines=sg, header=header, affine=np.eye(4), verbose=verbose,
-                            sftp=sftp_out)
+for side in sides:
 
+    if side == 'all':
+        side_str = ''
+    else:
+        side_str = f'_{side}'
+
+    if bundle_id_orig is not None:
+        bundle_id_orig_txt = side_str + '_'.join(bundle_id_orig) + '_'
+    else:
+        bundle_id_orig_txt = side_str
+
+    pickled_centroids = os.path.join(pickle_folder, f'bundles_centroids{bundle_id_orig_txt}.py')
+    if not checkfile_exists_remote(pickled_centroids, sftp_out) or overwrite:
+        # pickledump_remote(bundles.centroids,pickled_centroids,sftp_out)
+        pickledump_remote(centroids_side[side], pickled_centroids, sftp_out)
+        print(f'Saved centroids at {pickled_centroids}, took {timings[-1] - timings[-2]} seconds')
+    else:
+        print(f'Centroids at {pickled_centroids} already exist')
+    timings.append(time.perf_counter())
+
+    for bundle_id in np.arange(num_bundles):
+        full_bundle_id = bundle_id_orig_txt + f'_{bundle_id}'
+        sg = lambda: (s for i, s in enumerate(centroids_side[side][bundle_id:bundle_id+1]))
+        filepath_bundle = os.path.join(centroids_proj_path, f'centroid_bundle{full_bundle_id}.trk')
+        save_trk_header(filepath=filepath_bundle, streamlines=sg, header=header, affine=np.eye(4), verbose=verbose,
+                        sftp=sftp_out)
+
+"""
 else:
 
     for side in sides:
@@ -319,10 +416,11 @@ else:
             print(f'Centroids at {pickled_centroids} already exist')
         timings.append(time.perf_counter())
 
-        for new_bundle_id in np.arange(bundle_split):
+        for new_bundle_id in np.arange(num_bundles):
             full_bundle_id = bundle_id_orig_txt + side_str + f'{new_bundle_id}'
             sg = lambda: (s for i, s in enumerate(centroids[new_bundle_id:new_bundle_id+1]))
             filepath_bundle = os.path.join(centroids_proj_path, f'centroid_bundle{full_bundle_id}.trk')
             save_trk_header(filepath=filepath_bundle, streamlines=sg, header=header, affine=np.eye(4), verbose=verbose,
                             sftp=sftp_out)
         del bundles
+"""
