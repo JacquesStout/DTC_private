@@ -249,7 +249,7 @@ if bundle_id_orig is None and not checkfile_exists_remote(trktemplate_paths, sft
         del streamlines_temp
 
 
-    #streamlines_template = fix_badwarp_streamlines(streamlines_template)
+    streamlines_template = fix_badwarp_streamlines(streamlines_template)
 
     sg = lambda: (s for i, s in enumerate(streamlines_template))
     save_trk_header(filepath=trktemplate_paths, streamlines=sg, header=header,

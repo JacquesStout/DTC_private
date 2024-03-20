@@ -29,6 +29,7 @@ from dipy.tracking.streamline import set_number_of_points
 import pickle
 import argparse
 from DTC.wrapper_tools import parse_list_arg
+from dipy.tracking.utils import length
 
 
 parser = argparse.ArgumentParser(description='Process some integers.')
