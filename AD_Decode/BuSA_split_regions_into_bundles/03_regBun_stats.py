@@ -38,6 +38,7 @@ from dipy.segment.bundles import bundle_shape_similarity
 import argparse
 from DTC.wrapper_tools import parse_list_arg
 from DTC.file_manager.computer_nav import checkfile_exists_remote, get_mainpaths, load_nifti_remote, load_trk_remote
+from dipy.tracking.streamline import set_number_of_points
 
 
 parser = argparse.ArgumentParser(description='Process some integers.')
@@ -207,10 +208,10 @@ tractometry_array = {}
 
 references = ['mrtrixfa', 'Length', 'greywhite']
 
+sides = ['left','right']
 
 for subject in full_subjects_list:
     #        bundle_compare_summary = os.path.join(stat_folder, f'{subject}_bundle{bundle_id_orig_txt}_split_{bundle_split}_comparison.xlsx')
-
     column_names = ['Streamline_ID']
     df_ref = {}
     for ref in references:
@@ -218,7 +219,12 @@ for subject in full_subjects_list:
             column_names += ([f'point_{ID}_{ref}' for ID in np.arange(points_resample)])
             tractometry_dic_path[ref] = os.path.join(stat_folder, f'Tractometry_{ref}_{subject}.csv')
             tractometry_array[ref] = np.zeros([points_resample, np.size(new_bundle_ids)*np.size(sides)])
-            all_bundle_ids = [f'bundle_left_{bundle_id}' for bundle_id in new_bundle_ids] + [f'bundle_right_{bundle_id}' for bundle_id in new_bundle_ids]
+            if sides == ['left','right']:
+                all_bundle_ids = [f'bundle_left_{bundle_id}' for bundle_id in new_bundle_ids] + [f'bundle_right_{bundle_id}' for bundle_id in new_bundle_ids]
+            elif sides == ['all']:
+                all_bundle_ids = [f'bundle_{bundle_id}' for bundle_id in new_bundle_ids]
+            else:
+                raise Exception('Unrecognized sides')
             df_ref[ref] = pd.DataFrame(tractometry_array[ref], columns=all_bundle_ids)
 
         if ref in unique_refs:
@@ -284,17 +290,23 @@ for subject in full_subjects_list:
 
             filepath_bundle = os.path.join(trk_proj_path, f'{subject}_bundle{full_bundle_id}.trk')
             bundle_data = load_trk_remote(filepath_bundle, 'same', sftp_out)
-            bundle_data_dic[new_bundle_id] = bundle_data
             bundle_streamlines = bundle_data.streamlines
-            num_streamlines = np.shape(bundle_streamlines)[0]
+
+            num_streamlines = len(bundle_streamlines)
             header = bundle_data.space_attributes
 
+            if setpoints:
+                bundle_streamlines = set_number_of_points(bundle_streamlines, points_resample)
+
             dataf_subj['Streamline_ID'] = np.arange(num_streamlines)
+
+            bundle_data_dic[new_bundle_id] = bundle_streamlines
 
             # dataf_subj.set_index('Streamline_ID', inplace=True)
 
             # workbook = xlsxwriter.Workbook(stat_path_subject)
             # worksheet = workbook.add_worksheet()
+
 
             for ref in references:
 
@@ -360,7 +372,8 @@ for subject in full_subjects_list:
                         dataf_subj.iloc[row_index, column_indices] = label_values
 
                     if np.size(bundle_streamlines)>0:
-                        list_gw = list(dataf_subj.mode().iloc[0][column_indices])
+                        gw_cols = [col for col in dataf_subj.columns if 'greywhite' in col]
+                        list_gw = list(dataf_subj.mode().iloc[0][gw_cols])
                     else:
                         list_gw = [np.nan] * 50
 
