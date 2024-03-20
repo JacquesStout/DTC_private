@@ -192,10 +192,10 @@ for side in sides:
 
     if bundle_id_orig is not None:
         bundle_id_orig_txt = side_str + '_'.join(bundle_id_orig) + '_'
-        side_mask_path = os.path.join(MDT_mask_folder, f'IITmean_RPI_MDT_mask{side_str}.nii.gz')
+        side_mask_path = os.path.join(MDT_mask_folder, f'IITmean_RPI_MDT_mask.nii.gz')
     else:
         bundle_id_orig_txt = side_str
-        side_mask_path = os.path.join(MDT_mask_folder, f'IITmean_RPI_MDT_mask.nii.gz')
+        side_mask_path = os.path.join(MDT_mask_folder, f'IITmean_RPI_MDT_mask{side_str}.nii.gz')
 
     pickled_centroids = os.path.join(pickle_folder, f'bundles_centroids{bundle_id_orig_txt}.py')
     # pickled_centroids = os.path.join(pickle_folder, f'bundles_centroids_split_{bundle_split}.py')
