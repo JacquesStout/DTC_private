@@ -3,7 +3,7 @@ import argparse
 def parse_list_arg(arg):
     try:
         # Try to parse the argument as a single integer
-        return [str(int(arg))]
+        return [str((arg))]
     except ValueError:
         # If it's not a single integer, try to parse it as a list of integers
         try:
