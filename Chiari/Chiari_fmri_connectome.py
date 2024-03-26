@@ -156,8 +156,10 @@ SAMBA_path_results = '/Volumes/Data/Badea/Lab/mouse/VBM_21ADDecode03_IITmean_RPI
 slice_func = False #Do you want to split the functionnal time series into just the first three hundred points
 
 subjects = ['J01277', 'J01402', 'J04472', 'J04129', 'J01257', 'J04300', 'J04086','J01516','J04602','J01541','J01501']
-subjects = ['J01277', 'J01402', 'J04472', 'J04129', 'J01257', 'J04300', 'J04086','J01516','J04602','J01541']
-#subjects = ['J04129']
+subjects = ['J01277', 'J01402', 'J04472', 'J04129', 'J01257', 'J04300', 'J04086','J01516','J04602','J01541','J01501']
+
+
+#subjects = ['J04129','J04300']
 #subjects = ['J01402','J01501']
 
 check_label = True
@@ -174,7 +176,7 @@ for subj in subjects:
         continue
 
     flabel = os.path.join(conn_path, subj + '_new_labels_resampled.nii.gz')
-    new_label = os.path.join(conn_path, subj + '_new_labels.nii.gz')
+    label_new_path = os.path.join(conn_path, subj + '_new_labels.nii.gz')
 
     subj_temp = f'T{subj_strip}'
 
@@ -192,7 +194,7 @@ for subj in subjects:
 
 
     if not os.path.exists(flabel) or overwrite:
-        if not os.path.exists(new_label) or overwrite:
+        if not os.path.exists(label_new_path) or overwrite:
             label_path = os.path.join(SAMBA_path_results, subj_temp, subj_temp + '_IITmean_RPI_labels.nii.gz')
             label_nii = nib.load(label_path)
             labels_data = label_nii.get_fdata()
@@ -202,7 +204,7 @@ for subj in subjects:
 
             path_atlas_legend = os.path.join(root, 'atlases', 'IITmean_RPI', 'IITmean_RPI_index.xlsx')
             legend = pd.read_excel(path_atlas_legend)
-            new_label = os.path.join(conn_path, subj + '_new_labels.nii.gz')
+            label_new_path = os.path.join(conn_path, subj + '_new_labels.nii.gz')
 
             # index_csf = legend [ 'Subdivisions_7' ] == '8_CSF'
             # index_wm = legend [ 'Subdivisions_7' ] == '7_whitematter'
@@ -215,14 +217,16 @@ for subj in subjects:
                 label3d_index = np.where(labels_data == i)
                 label_nii_order[label3d_index] = ordered_num
 
-            file_result = nib.Nifti1Image(label_nii_order, label_nii.affine, label_nii.header)
-            new_label = os.path.join(conn_path, subj + '_new_labels.nii.gz')
-            nib.save(file_result, new_label)
+            label_nii_order = np.round(label_nii_order)
+            label_new_nii = nib.Nifti1Image(label_nii_order, label_nii.affine, label_nii.header)
+            label_new_path = os.path.join(conn_path, subj + '_new_labels.nii.gz')
+            nib.save(label_new_nii, label_new_path)
 
-        label_new_nii = nib.load(new_label)
+        label_new_nii = nib.load(label_new_path)
         label_spacing = label_new_nii.header.get_zooms()[0:3]
         label_shape = label_new_nii.shape
         label_new_data = label_new_nii.get_fdata()
+        label_new_data = np.round(label_new_data)
         fmri_spacing = fmri_nii.header.get_zooms()[0:3]
         fmri_shape = fmri_nii.shape
         #command = f'ResampleImage 3 {new_label} {flabel} {fmri_spacing[0]}x{fmri_spacing[1]}x{fmri_spacing[2]}x1'
@@ -230,7 +234,9 @@ for subj in subjects:
 
         target_nii = nib.load(fmri_path)
 
-        resampled_source_image = resample_to_output(label_new_nii, np.diagonal(target_nii.affine)[:3])
+        label_new_nii = nib.Nifti1Image(np.round(label_new_data), label_nii.affine, label_nii.header)
+
+        resampled_source_image = resample_to_output(label_new_nii, np.diagonal(target_nii.affine)[:3],order=1)
         nib.save(resampled_source_image, flabel)
 
         """
