@@ -231,12 +231,26 @@ for subject in full_subjects_list:
             column_names += ([f'point_{ID}_{ref}' for ID in np.arange(points_resample)])
             tractometry_dic_path[ref] = os.path.join(stat_folder, f'Tractometry_{ref}_{subject}{bundle_col_id}.csv')
             tractometry_array[ref] = np.zeros([points_resample, np.size(new_bundle_ids)*np.size(sides)])
+            all_bundle_ids = []
+            for side in sides:
+                if side == 'all':
+                    side_str = ''
+                else:
+                    side_str = f'_{side}'
+                if bundle_id_orig is not None:
+                    bundle_id_orig_txt = side_str + '_' + bundle_id_orig[0]
+                else:
+                    bundle_id_orig_txt = ''
+                all_bundle_ids += [f'bundle{bundle_id_orig_txt}_{bundle_id}' for bundle_id in new_bundle_ids]
+
+            """
             if sides == ['left','right']:
                 all_bundle_ids = [f'bundle_left_{bundle_id}' for bundle_id in new_bundle_ids] + [f'bundle_right_{bundle_id}' for bundle_id in new_bundle_ids]
             elif sides == ['all']:
                 all_bundle_ids = [f'bundle_{bundle_id}' for bundle_id in new_bundle_ids]
             else:
                 raise Exception('Unrecognized sides')
+            """
             df_ref[ref] = pd.DataFrame(tractometry_array[ref], columns=all_bundle_ids)
 
         if ref in unique_refs:
@@ -268,7 +282,7 @@ for subject in full_subjects_list:
 
     check_stats_all = checkfile_exists_all(stat_files_tocheck,sftp_out)
 
-    if check_stats_all:
+    if check_stats_all and not overwrite:
         print(f'Already created all relevant stats for subject {subject}')
         continue
 
@@ -403,7 +417,8 @@ for subject in full_subjects_list:
 
                     list_gw = [100 if color == 'grey' else 101 if color == 'white' else color for color in list_gw]
 
-                    df_ref[ref].loc[:, f'bundle_{side}_{new_bundle_id}'] = list_gw
+                    #df_ref[ref].loc[:, f'bundle_{side}_{new_bundle_id}'] = list_gw
+                    df_ref[ref].loc[:, f'bundle{full_bundle_id}'] = list_gw
 
                 else:
                     ref_img_path = get_diff_ref(ref_MDT_folder, subject, ref, sftp=None)
@@ -474,7 +489,7 @@ for subject in full_subjects_list:
                         column_indices = [dataf_subj.columns.get_loc(col) for col in column_names_ref]
                         dataf_subj.iloc[row_index, column_indices] = ref_values
 
-                    df_ref[ref].loc[:, f'bundle_{side}_{new_bundle_id}'] = sum_ref_values / np.shape(bundle_streamlines_transformed)[0]
+                    df_ref[ref].loc[:, f'bundle{full_bundle_id}'] = sum_ref_values / np.shape(bundle_streamlines_transformed)[0]
 
                     #tractometry_array[ref][:, new_bundle_id] /= 100
                         # dataf_subj.loc[dataf_subj[row_index],column_indices] = ref_values
