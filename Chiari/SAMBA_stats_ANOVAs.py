@@ -108,6 +108,18 @@ def eigenvector_centrality(matrix):
     return centrality / np.sum(centrality)
 
 
+def capitalize_words(input_string):
+    # Split the string into words
+    words = input_string.split()
+
+    # Capitalize each word
+    capitalized_words = [word.capitalize() for word in words]
+
+    # Join the words back into a string
+    output_string = ' '.join(capitalized_words)
+
+    return output_string
+
 root = '/Volumes/Data/Badea/Lab'
 
 ROI_legends = os.path.join(root,'atlases/IITmean_RPI/IITmean_RPI_index.xlsx')
@@ -161,7 +173,7 @@ VBM_folder = os.path.join(root, 'mouse','VBM_21ADDecode03_IITmean_RPI_fullrun-wo
 reg_stat_types = ['fa', 'rd', 'md', 'ad', 'volume', 'volume_prop']
 reg_stat_types = ['volume_prop', 'StConn_DC','fa', 'rd', 'md', 'ad', 'volume']
 reg_stat_types = ['FConn_eigenC','FConn_cluster','StConn_eigenC','Stconn_cluster','FConn_DC','StConn_DC']
-
+reg_stat_types = ['volume_prop']
 
 pair_stat_types = ['Struct','Func']
 #reg_stat_types = ['rd', 'md', 'ad']
@@ -177,6 +189,7 @@ group_column = 'Ambulatory'
 #group_column = 'Lesion'
 
 group_columns = ['Ambulatory', 'Genotype', 'Lesion']
+group_columns = ['Genotype']
 #group_columns = ['Ambulatory']
 
 
@@ -301,7 +314,8 @@ if region_stats:
 
                 grouped_data = [group[stat_type] for _, group in stat_ROI.dropna().groupby('Groups')]
                 f_statistic, p_value = stats.f_oneway(*grouped_data)
-
+                if index_to_struct[ROI] == 'left-amygdala_left':
+                    print('hi')
                 stat_ROIs[ROI] = stat_ROI
 
                 p_values.append(p_value)
@@ -316,11 +330,22 @@ if region_stats:
                 p_value = p_values[i]
                 corrected_p_value = corrected_p_values[i]
 
+                if 'amygdala' in index_to_struct[ROI]:
+                    plt.figure(dpi=1200)
+
                 ax = sns.boxplot(x='Groups', y=stat_type, data=stat_ROI, color='#99c2a2')
                 ax = sns.swarmplot(x='Groups', y=stat_type, data=stat_ROI, color='#7d0013')
                 #plt.xticks([0, 1], ['A', 'B'])
 
-                plt.title(f'ROI {index_to_struct[ROI]}')
+                plt.xlabel(group_column)
+
+                if stat_type=='volume_prop':
+                    plt.ylabel(f'{stat_type} (%)')
+
+                #plt.title(f'ROI {index_to_struct[ROI]}')
+                #plt.title(f'{" ".join(index_to_struct[ROI].split("_")[0].split("-"))}')
+                plt.title(f'{capitalize_words(" ".join(index_to_struct[ROI].split("_")[0].split("-")))} => {group_column} comparison')
+
 
                 p_value_text = plt.text(0.1, 0.9, f'pvalue = {"{:.2f}".format(p_value)}', transform=plt.gca().transAxes, fontsize=12, color='red')
 
@@ -332,6 +357,9 @@ if region_stats:
                     shutil.copy(stat_path, stat_path_sig)
 
                 if corrected_p_value<p_value_sig:
+                    #plt.title(f'ROI {index_to_struct[ROI]}')
+                    plt.title(f'Left Amygdala => genotype comparison')
+
                     mkcdir([stats_folder_results_fsig, stat_type_folder_fsig])
                     p_value_text.remove()
                     fp_value_text = plt.text(0.1, 0.9, f'fpvalue = {"{:.2f}".format(corrected_p_value)}', transform=plt.gca().transAxes, fontsize=12, color='red')

@@ -16,6 +16,19 @@ from scipy.sparse.linalg import eigsh
 from scipy.stats import spearmanr
 
 
+def capitalize_words(input_string):
+    # Split the string into words
+    words = input_string.split()
+
+    # Capitalize each word
+    capitalized_words = [word.capitalize() for word in words]
+
+    # Join the words back into a string
+    output_string = ' '.join(capitalized_words)
+
+    return output_string
+
+
 def get_group(subject, excel_path, subj_column = 'RUNNO', group_column = 'Risk'):
     df = pd.read_excel(excel_path)
     columns_subj = []
@@ -144,7 +157,8 @@ ROIs_type = 'subset'
 if ROIs_type == 'full':
     ROIs = list(index_to_struct.keys())
 if ROIs_type == 'subset':
-    ROIs = [17, 53, 18, 54, 1031, 2031, 1023, 2023, 1016, 2016]
+    ROIs = [8,47, 17, 53, 18, 54, 1031, 2031, 1023, 2023, 1016, 2016]
+    #ROIs = [8,47]
     #ROIs_comb = [(17,53), (18,54), (1031,2031), (1023,2023)]
 if ROIs_type == 'amygdala':
     ROIs = [18,54]
@@ -164,6 +178,7 @@ VBM_folder = os.path.join(root, 'mouse','VBM_21ADDecode03_IITmean_RPI_fullrun-wo
 #reg_stat_types = ['b0', 'dwi', 'fa', 'QSM', 'volume']
 reg_stat_types = ['fa', 'rd', 'md', 'ad', 'volume', 'volume_prop']
 reg_stat_types = ['volume_prop', 'volume','fa', 'rd', 'md', 'ad', 'volume']
+reg_stat_types = ['volume','volume_prop','fa']
 #reg_stat_types = ['fa','volume_prop','rd', 'md', 'ad', 'volume']
 
 #reg_stat_types = ['FConn_eigenC','FConn_cluster','StConn_eigenC','Stconn_cluster','FConn_DC','StConn_DC']'StConn_DC',
@@ -202,7 +217,8 @@ cog_df_stripped['RUNNO'] = cog_df_stripped['RUNNO'].replace(
 #cog_types_trimmed = ['ANART Tot Errors','MoCA Total','BVMT-R Total Recall','RAVLT Total Recall','Grooved Pegs (Dom) Time (sec)']
 #cog_types_trimmed = ['BDI-2 Total','STAI State (Y1)','STAI Trait (Y2)']
 
-cog_tests_means = ['Visual_Mem_Mean','Verbal_Mem_Mean','Working_Mem_Mean','Visuospatial_Mean','Attent_Mean','Psychomotor_Mean','Global_Cog_Ave']
+cog_tests_means = ['Visual_Mem_Mean', 'Verbal_Mem_Mean', 'Working_Mem_Mean', 'Visuospatial_Mean', 'Attent_Mean',
+                   'Psychomotor_Mean', 'Global_Cog_Ave']
 
 #cog_types_trimmed = ['MoCA Total']
 
@@ -409,8 +425,22 @@ for cog_type in cog_tests_means:
                     correlation_group, p_value_group = spearmanr(result_df_cleaned[cog_type],
                                                                      result_df_cleaned[stat_type])
 
-                    sns.scatterplot(x=cog_type, y=stat_type, data=result_df_cleaned)
+                    if p_value_group < p_value_sig:
+
+                        plt.figure(dpi=1200)
+                        #plt.figure()
+
+                    #sns.scatterplot(x=cog_type, y=stat_type, data=result_df_cleaned)
+
+                    APOE3_data = result_df[result_df['Groups'] == 'APOE3']
+                    APOE4_data = result_df[result_df['Groups'] == 'APOE4']
+                    APOE3_data_cleaned = APOE3_data.dropna(subset=[cog_type])
+                    APOE4_data_cleaned = APOE4_data.dropna(subset=[cog_type])
+
                     sns.regplot(x=cog_type, y=stat_type, data=result_df_stripped)
+                    plt.scatter(x=cog_type, y=stat_type, data=APOE3_data_cleaned, color = 'blue', label='APOE3')
+                    plt.scatter(x=cog_type, y=stat_type, data=APOE4_data_cleaned, color = 'red', label='APOE4')
+
                     # sns.regplot(x=cog_type, y=stat_type, data=APOE3_data_cleaned, label='APOE3')
                     # sns.regplot(x=cog_type, y=stat_type, data=APOE4_data_cleaned, label='APOE4')
 
@@ -421,14 +451,28 @@ for cog_type in cog_tests_means:
                     y_min = np.min(result_df[stat_type])
                     y_max = np.max(result_df[stat_type])
 
-                    plt.text(x_min, y_min + (y_max - y_min) / 5,
+
+                    if correlation_group <0:
+                        yloc = y_min + (y_max - y_min) / 5
+                    else:
+                        yloc = y_max - (y_max - y_min) / 5
+
+                    plt.text(x_min, yloc,
                              f'Correlation: {correlation_group:.2f}, p-value: {p_value_group:.4f}',
                              fontsize=myfontsize)
 
                     # Set labels and title
                     plt.xlabel(cog_type)
-                    plt.ylabel(stat_type)
-                    plt.title(f'Scatter Plot of {index_to_struct[ROI]} for {stat_type} vs {cog_type}')
+                    #plt.ylabel(stat_type)
+                    if stat_type == 'volume':
+                        plt.ylabel(f'Grey matter {stat_type.replace("v","V")} (mm³)')
+                    if stat_type == 'fa':
+                        plt.ylabel(f'Grey matter {stat_type}')
+                    if stat_type == 'volume_prop':
+                        plt.ylabel(f'Grey matter proportional volume (%)')
+
+
+                    plt.title(f'Scatter Plot of {capitalize_words(" ".join(index_to_struct[ROI].split("_")[0].split("-")))} \nfor {stat_type} vs {cog_type}')
 
                     # Show the plot
                     #plt.legend()
