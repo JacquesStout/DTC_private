@@ -94,6 +94,11 @@ path_TRK = params['path_trk']
 
 unique_refs = ['Length', 'CCI']
 
+if bundle_id_orig is None:
+    bundle_split = int(params['num_bundles'])
+elif bundle_id_orig is not None and bundle_split is None:
+    raise Exception('Must specify the number of bundles to subsplit into')
+
 
 if full_subjects_list is None:
     full_subjects_list = template_subjects + added_subjects
@@ -213,10 +218,14 @@ references = ['mrtrixfa', 'Length', 'greywhite']
 
 sides = ['left','right']
 
+bundle_compare_summary = os.path.join(stat_folder, f'allsubj_bundle_{bundle_id_orig[0]}_comparison.xlsx')
+
 for subject in full_subjects_list:
-    #        bundle_compare_summary = os.path.join(stat_folder, f'{subject}_bundle{bundle_id_orig_txt}_split_{bundle_split}_comparison.xlsx')
+    bundle_compare_summary_subj = os.path.join(stat_folder, f'{subject}_bundle_{bundle_id_orig[0]}_comparison.xlsx')
     column_names = ['Streamline_ID']
     df_ref = {}
+    bundle_data_dic = {}
+
     for ref in references:
         if ref not in unique_refs:
             column_names += ([f'point_{ID}_{ref}' for ID in np.arange(points_resample)])
@@ -254,8 +263,8 @@ for subject in full_subjects_list:
     for ref in references:
         if ref not in unique_refs:
             stat_files_tocheck.append(tractometry_dic_path[ref])
-    #if calc_BUAN:
-    #    stat_files_tocheck.append(bundle_compare_summary)
+    if calc_BUAN:
+        stat_files_tocheck.append(bundle_compare_summary_subj)
 
     check_stats_all = checkfile_exists_all(stat_files_tocheck,sftp_out)
 
@@ -291,7 +300,6 @@ for subject in full_subjects_list:
             continue
 
         print(f'Files will be saved at {stat_folder}')
-        bundle_data_dic = {}
 
         dataf = pd.DataFrame(columns=new_bundle_ids)
 
@@ -316,7 +324,7 @@ for subject in full_subjects_list:
 
             dataf_subj['Streamline_ID'] = np.arange(num_streamlines)
 
-            bundle_data_dic[new_bundle_id] = bundle_streamlines
+            bundle_data_dic[full_bundle_id] = bundle_streamlines
 
             # dataf_subj.set_index('Streamline_ID', inplace=True)
 
@@ -478,16 +486,11 @@ for subject in full_subjects_list:
             save_df_remote(dataf_subj, stat_path_subject, sftp_out)
             print(f'Wrote file for subject {subject} and {full_bundle_id}')
 
-    for ref in references:
-        if ref not in unique_refs:
-            #df_ref = pd.DataFrame(tractometry_array[ref], columns=new_bundle_ids)
-            #df_ref = df_ref.replace({100: 'grey', 101: 'white'})
-            save_df_remote(df_ref[ref],tractometry_dic_path[ref], sftp_out)
 
-    """
-    if calc_BUAN and (not os.path.exists(bundle_compare_summary) or overwrite):
+    if calc_BUAN and (not os.path.exists(bundle_compare_summary_subj) or overwrite):
         BUANs = []
-        column_names_ref = [f'BUAN_{bundle_id_orig_txt + f"_{new_bundle_id}"}' for new_bundle_id in new_bundle_ids]
+
+        column_names_ref = [f'BUAN_{bundle_id_orig[0] + f"_{new_bundle_id}"}' for new_bundle_id in new_bundle_ids]
 
         BUAN_ids = {}
 
@@ -498,23 +501,37 @@ for subject in full_subjects_list:
         for new_bundle_id in new_bundle_ids:
             rng = np.random.RandomState()
             clust_thr = [5, 3, 1.5]
-            threshold = 12
+            threshold = 6
 
-            streamlines_left = bundle_data_dic['left', new_bundle_id].streamlines
-            streamlines_right = bundle_data_dic['right', new_bundle_id].streamlines
+            if bundle_id_orig is not None:
+                bundle_id_orig_txt = '_left' + '_' + bundle_id_orig[0]
+            else:
+                bundle_id_orig_txt = '_left'
+
+            full_bundle_id = bundle_id_orig_txt + f'_{new_bundle_id}'
+
+            streamlines_left = bundle_data_dic[full_bundle_id]
+            streamlines_right = bundle_data_dic[full_bundle_id.replace('left','right')]
             streamlines_right_flipped = transform_streamlines(streamlines_right, affine_flip,
                                                               in_place=False)
             BUAN_id = bundle_shape_similarity(streamlines_left, streamlines_right_flipped, rng, clust_thr, threshold)
 
             BUAN_ids[new_bundle_id] = (BUAN_id)
 
-        subj_data = {'Subject': subject, **{f'BUAN_{bundle_id_orig_txt + f"_{new_bundle_id}"}': BUAN_ids[new_bundle_id] for new_bundle_id in new_bundle_ids}}
+        subj_data = {'Subject': subject, **{f'BUAN_{bundle_id_orig[0] + f"_{new_bundle_id}"}': BUAN_ids[new_bundle_id] for new_bundle_id in new_bundle_ids}}
+        BUAN_df_subj = pd.DataFrame.from_records([subj_data])
         if not 'BUAN_df' in locals():
             BUAN_df = pd.DataFrame.from_records([subj_data])
         else:
             BUAN_df = pd.concat([BUAN_df, pd.DataFrame.from_records([subj_data])], ignore_index=True)
-    """
-"""
+        save_df_remote(BUAN_df_subj, bundle_compare_summary_subj, sftp_out)
+    for ref in references:
+        if ref not in unique_refs:
+            #df_ref = pd.DataFrame(tractometry_array[ref], columns=new_bundle_ids)
+            #df_ref = df_ref.replace({100: 'grey', 101: 'white'})
+            save_df_remote(df_ref[ref],tractometry_dic_path[ref], sftp_out)
+
+
+
 if np.size(full_subjects_list) > 0 and calc_BUAN and (not os.path.exists(bundle_compare_summary) or overwrite):
     save_df_remote(BUAN_df, bundle_compare_summary, sftp_out)
-"""

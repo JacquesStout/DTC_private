@@ -77,7 +77,6 @@ setpoints = params['setpoints']
 figures_outpath = params['figures_outpath']
 distance = params['distance']
 removed_list = params['removed_list']
-num_bundles = int(params['num_bundles'])
 #num_points = int(params['num_points'])
 points_resample = int(params['points_resample'])
 bundle_points = int(params['bundle_points'])
@@ -88,6 +87,13 @@ length_threshold = int(params['length_threshold'])
 remote_input = bool(params['remote_input'])
 remote_output = bool(params['remote_output'])
 path_TRK = params['path_trk']
+
+
+if bundle_id_orig is None:
+    bundle_split = int(params['num_bundles'])
+elif bundle_id_orig is not None and bundle_split is None:
+    raise Exception('Must specify the number of bundles to subsplit into')
+
 
 if full_subjects_list is None:
     full_subjects_list = template_subjects + added_subjects

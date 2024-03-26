@@ -62,6 +62,7 @@ def fix_badwarp_streamlines(streamlines):
         streamlines_pruned.append(streamline)
     return streamlines_pruned
 
+#python3 01_regBun_makecentroids.py --proj /Volumes/Data/Badea/Lab/jacques/BuSA_headfiles/V_1_0_10template_100_6_interhe_majority.ini --id 0 --split 3
 
 parser = argparse.ArgumentParser(description='Process some integers.')
 parser.add_argument('--split', type=int, help='An integer for splitting')
@@ -109,15 +110,23 @@ length_threshold = int(params['length_threshold'])
 
 distance = int(params['distance'])
 bundle_points = int(params['bundle_points'])
-num_bundles = int(params['num_bundles'])
 path_TRK = params['path_trk']
 
+if bundle_id_orig is None:
+    bundle_split = int(params['num_bundles'])
+    bundle_id_txt = ''
+elif bundle_id_orig is not None and bundle_split is None:
+    raise Exception('Must specify the number of bundles to subsplit into')
+else:
+    bundle_id_txt = '_'+str(bundle_id_orig[0])
+
+"""
 if bundle_split is None:
     try:
         bundle_split = int(params['bundle_split'])
     except:
         bundle_split = 6
-
+"""
 
 overwrite=False
 verbose = False
@@ -181,7 +190,7 @@ pickle_folder = os.path.join(proj_path, 'pickle_roi'+ratiostr)
 mkcdir([proj_path,combined_trk_folder,pickle_folder,figures_proj_path,centroids_proj_path],sftp_out)
 
 
-trktemplate_paths = os.path.join(combined_trk_folder, f'streamlines_template.trk')
+trktemplate_paths = os.path.join(combined_trk_folder, f'streamlines_template{bundle_id_txt}.trk')
 streams_dict_picklepaths = os.path.join(combined_trk_folder, f'streams_dict.py')
 streamlines_template = nib.streamlines.array_sequence.ArraySequence()
 
@@ -259,7 +268,7 @@ if bundle_id_orig is None and not checkfile_exists_remote(trktemplate_paths, sft
     pickledump_remote(streams_dict_side, streams_dict_picklepaths, sftp_out)
     timings.append(time.perf_counter())
     print(f'Saved dictionary at {streams_dict_picklepaths}, took {timings[-1] - timings[0]} seconds')
-elif bundle_id_orig is None:
+elif checkfile_exists_remote(trktemplate_paths, sftp_out):
     print(f'already wrote {trktemplate_paths} and {streams_dict_picklepaths}')
     streamlines_template_main = load_trk_remote(trktemplate_paths, 'same', sftp_out)
     streamlines_template = streamlines_template_main.streamlines
@@ -267,18 +276,20 @@ elif bundle_id_orig is None:
     streams_dict_side = remote_pickle(streams_dict_picklepaths, sftp=sftp_out)
 else:
     trkpaths = {}
-    for subject in template_subjects:
-        for side in sides:
 
-            if side == 'all':
-                side_str = ''
-            else:
-                side_str = f'_{side}'
+    for side in sides:
 
-            if bundle_id_orig is not None:
-                bundle_id_orig_txt = side_str + '_' + bundle_id_orig[0]
-            else:
-                bundle_id_orig_txt = side_str
+        if side == 'all':
+            side_str = ''
+        else:
+            side_str = f'_{side}'
+
+        if bundle_id_orig is not None:
+            bundle_id_orig_txt = side_str + '_' + bundle_id_orig[0]
+        else:
+            bundle_id_orig_txt = side_str
+
+        for subject in template_subjects:
 
             #trkpaths[subject, 'right'] = os.path.join(trk_proj_path, f'{subject}_right_bundle_{bundle_id_orig}.trk')
             #trkpaths[subject, 'left'] = os.path.join(trk_proj_path, f'{subject}_left_bundle_{bundle_id_orig}.trk')
@@ -292,7 +303,7 @@ else:
             else:
                 streamlines_temp = load_trk_remote(trkpath_subj, 'same', sftp_out).streamlines
 
-            if side == 'left' or 'all':
+            if side == 'left' or side=='all':
                 streamlines_template.extend(streamlines_temp)
             elif side == 'right':
                 affine_flip = np.eye(4)
@@ -303,6 +314,15 @@ else:
             else:
                 raise Exception('unrecognized side, this should never happen, fix sides to be either left and right, or all')
 
+
+    sg = lambda: (s for i, s in enumerate(streamlines_template))
+    save_trk_header(filepath=trktemplate_paths, streamlines=sg, header=header,
+                    affine=np.eye(4), verbose=verbose, sftp=sftp_out)
+    timings.append(time.perf_counter())
+    print(f'Saved streamlines at {trktemplate_paths}, took {timings[-1] - timings[-2]} seconds')
+    #pickledump_remote(streams_dict_side, streams_dict_picklepaths, sftp_out)
+    #timings.append(time.perf_counter())
+    #print(f'Saved dictionary at {streams_dict_picklepaths}, took {timings[-1] - timings[0]} seconds')
 
 feature2 = ResampleFeature(nb_points=bundle_points)
 metric2 = AveragePointwiseEuclideanMetric(feature=feature2)
@@ -382,7 +402,7 @@ for side in sides:
         print(f'Centroids at {pickled_centroids} already exist')
     timings.append(time.perf_counter())
 
-    for bundle_id in np.arange(num_bundles):
+    for bundle_id in np.arange(bundle_split):
         full_bundle_id = bundle_id_orig_txt + f'_{bundle_id}'
         sg = lambda: (s for i, s in enumerate(centroids_side[side][bundle_id:bundle_id+1]))
         filepath_bundle = os.path.join(centroids_proj_path, f'centroid_bundle{full_bundle_id}.trk')
