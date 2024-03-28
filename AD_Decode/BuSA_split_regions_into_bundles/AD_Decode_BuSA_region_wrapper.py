@@ -5,7 +5,9 @@ from DTC.file_manager.BIAC_tools import send_mail
 import numpy as np
 import socket, glob, datetime, argparse
 from DTC.wrapper_tools import parse_list_arg
-
+from DTC.file_manager.computer_nav import checkfile_exists_remote, get_mainpaths
+from DTC.tract_manager.tract_handler import gettrkpath, filter_streamlines, ratio_to_str
+import re
 
 # create sbatch folder
 
@@ -55,6 +57,15 @@ def check_for_errors(start_time, folder_path):
     return True, 'allfine'  # Return True if no 'Error' is found in any file
 
 
+def find_matching_files(folder_path, pattern):
+    matching_files = []
+    # Iterate through all files in the folder
+    for filename in os.listdir(folder_path):
+        # Check if the filename matches the specified pattern
+        if re.match(pattern, filename):
+            matching_files.append(filename)
+    return matching_files
+
 print('0')
 
 if 'santorini' in socket.gethostname().split('.')[0]:
@@ -95,19 +106,23 @@ print('2')
 #python3 AD_Decode_BuSA_iterative_wrapper.py --split 4 --proj V0_9_10template_100_6_interhe_majority --id 4 --split 6 --parts 8
 
 parser = argparse.ArgumentParser(description='Process some integers.')
-parser.add_argument('--parts', type=parse_list_arg, help='A list of integers for the code sequences to run (7,8,9)')
+parser.add_argument('--parts', type=parse_list_arg, help='A list of integers for the code sequences to run (1,2,3)')
 parser.add_argument('--split', type=int, help='An integer for splitting')
 parser.add_argument('--proj', type=str, help='The project path or name')
 parser.add_argument('--id', type=parse_list_arg, help='An integer or a list of integers')
 
+
+bundle_id_looping = False
+
+overwrite = False
+
+qsub = False
+
+testmode = True
+
 args = parser.parse_args()
 bundle_id_orig = args.id
-if bundle_id_orig is not None:
-    bundle_id_qsub = ','.join(bundle_id_orig)
-    bundle_id_qsub_id = f' --id {bundle_id_qsub}'
-else:
-    bundle_id_qsub = ''
-    bundle_id_qsub_id = ''
+
 
 bundle_split = args.split
 project_run_identifier = args.proj
@@ -121,7 +136,7 @@ if parts is None:
 subjects = []
 if os.path.exists(project_run_identifier):
     project_summary_file = project_run_identifier
-    project = os.path.basename(project_run_identifier).split('.ini')[0]
+    project_name = os.path.basename(project_run_identifier).split('.ini')[0]
 else:
     project_summary_file = os.path.join(project_headfile_folder, project_run_identifier + '.ini')
 print(project_summary_file)
@@ -138,84 +153,118 @@ print('4')
 full_subjects_list = template_subjects + added_subjects
 
 sides = ['left', 'right']
-bundle_ids = np.arange(num_bundles)
 
-bundle_id_looping = False
 
-overwrite = False
+if '*' in bundle_id_orig:
 
-qsub = False
+    ratio = params['ratio']
 
-testmode = True
+    remote_input = bool(params['remote_input'])
+    remote_output = bool(params['remote_output'])
+    ratiostr = ratio_to_str(ratio, spec_all=False)
+
+    if remote_input or remote_output:
+        username, passwd = getfromfile(os.path.join(os.environ['HOME'], 'remote_connect.rtf'))
+    else:
+        username = None
+        passwd = None
+
+    project = params['project']
+    outpath, _, _, sftp_out = get_mainpaths(remote_output, project=project, username=username, password=passwd)
+    outpath_all = os.path.join(outpath, 'TRK_bundle_splitter')
+    proj_path = os.path.join(outpath_all, project_name)
+
+    trk_proj_path = os.path.join(proj_path, 'trk_roi' + ratiostr)
+
+    added_subjects = params['added_subjects']
+    bundle_id_orig_new = bundle_id_orig[0].replace("*","\d+")
+    #bundle_ids = glob.glob(os.path.join(trk_proj_path,f'{added_subjects[1]}_bundle_left_{bundle_id_orig_new}.trk'))
+    bundle_ids = find_matching_files(trk_proj_path, f'{added_subjects[1]}_bundle_left_{bundle_id_orig_new}.trk')
+    bundle_ids = [bundle_name.split('left_')[1].split('.trk')[0] for bundle_name in bundle_ids]
+
+    #bundle_ids = np.arange(num_bundles)
+else:
+    bundle_ids = [bundle_id_orig]
+
+
 code_specific_folder = os.path.join(code_folder,'AD_Decode','BuSA_split_regions_into_bundles')
 
-print('hi')
 
-if '1' in parts:
-    python_command = f"python3 {os.path.join(code_specific_folder,'01_regBun_makecentroids.py')} --proj {project_summary_file} --split {bundle_split} {bundle_id_qsub_id}"
-    job_name = job_descrp + "_job01"
-    command = os.path.join(GD,
-                           "submit_sge_cluster_job.bash") + " " + sbatch_folder_path + " " + job_name + " 0 0 '" + python_command + "'"
-    if testmode:
-        print(python_command)
+for bundle_id_orig in bundle_ids:
+
+    if bundle_id_orig is not None:
+        bundle_id_qsub = ','.join(bundle_id_orig)
+        bundle_id_qsub_id = f' --id {bundle_id_qsub}'
     else:
+        bundle_id_qsub = ''
+        bundle_id_qsub_id = ''
+
+
+    if '1' in parts:
+        python_command = f"python3 {os.path.join(code_specific_folder,'01_regBun_makecentroids.py')} --proj {project_summary_file} --split {bundle_split} {bundle_id_qsub_id}"
+        job_name = job_descrp + "_job01"
+        command = os.path.join(GD,
+                               "submit_sge_cluster_job.bash") + " " + sbatch_folder_path + " " + job_name + " 0 0 '" + python_command + "'"
+        if testmode:
+            print(python_command)
+        else:
+            if qsub:
+                os.system(command)
+            else:
+                os.system(python_command)
         if qsub:
-            os.system(command)
-        else:
-            os.system(python_command)
-    if qsub:
-        pause_jobs()
-        error_status, error_filepath = check_for_errors(start_time, sbatch_folder_path)
-        if error_status is False:
-            txt = f'Error found on qstat runs, details found at {error_filepath}'
-            raise Exception(txt)
+            pause_jobs()
+            error_status, error_filepath = check_for_errors(start_time, sbatch_folder_path)
+            if error_status is False:
+                txt = f'Error found on qstat runs, details found at {error_filepath}'
+                raise Exception(txt)
 
-if '2' in parts:
-    for subj in full_subjects_list:
-        python_command = f"python3 {os.path.join(code_specific_folder,'02_regBun_addsubjects.py')} --proj {project_summary_file}  --split {bundle_split} {bundle_id_qsub_id} --subj {subj}"
+    if '2' in parts:
+        for subj in full_subjects_list:
+            python_command = f"python3 {os.path.join(code_specific_folder,'02_regBun_addsubjects.py')} --proj {project_summary_file}  --split {bundle_split} {bundle_id_qsub_id} --subj {subj}"
 
-        job_name = job_descrp + "_job02_" + subj
-        command = os.path.join(GD,
-                               "submit_sge_cluster_job.bash") + " " + sbatch_folder_path + " " + job_name + " 0 0 '" + python_command + "'"
-        if testmode:
-            if qsub:
-                print(python_command)
-            else:
-                print(python_command.split('--subj')[0])
-                break
+            job_name = job_descrp + "_job02_" + subj
+            command = os.path.join(GD,
+                                   "submit_sge_cluster_job.bash") + " " + sbatch_folder_path + " " + job_name + " 0 0 '" + python_command + "'"
+            if testmode:
+                if qsub:
+                    print(python_command)
+                else:
+                    print(python_command.split('--subj')[0])
+                    break
 
-        else:
-            if qsub:
-                os.system(command)
             else:
-                os.system(python_command)
-    if qsub:
-        pause_jobs()
-        error_status, error_filepath = check_for_errors(start_time, sbatch_folder_path)
-        if error_status is False:
-            txt = f'Error found on qstat runs, details found at {error_filepath}'
-            raise Exception(txt)
+                if qsub:
+                    os.system(command)
+                else:
+                    os.system(python_command)
+        if qsub:
+            pause_jobs()
+            error_status, error_filepath = check_for_errors(start_time, sbatch_folder_path)
+            if error_status is False:
+                txt = f'Error found on qstat runs, details found at {error_filepath}'
+                raise Exception(txt)
 
-if '3' in parts:
-    for subj in full_subjects_list:
-        python_command = f"python3 {os.path.join(code_specific_folder,'03_regBun_stats.py')} --proj {project_summary_file}  --split {bundle_split} {bundle_id_qsub_id} --subj {subj}"
-        job_name = job_descrp + "_job03_" + subj
-        command = os.path.join(GD,
-                               "submit_sge_cluster_job.bash") + " " + sbatch_folder_path + " " + job_name + " 0 0 '" + python_command + "'"
-        if testmode:
-            if qsub:
-                print(python_command)
+    if '3' in parts:
+        for subj in full_subjects_list:
+            python_command = f"python3 {os.path.join(code_specific_folder,'03_regBun_stats.py')} --proj {project_summary_file}  --split {bundle_split} {bundle_id_qsub_id} --subj {subj}"
+            job_name = job_descrp + "_job03_" + subj
+            command = os.path.join(GD,
+                                   "submit_sge_cluster_job.bash") + " " + sbatch_folder_path + " " + job_name + " 0 0 '" + python_command + "'"
+            if testmode:
+                if qsub:
+                    print(python_command)
+                else:
+                    print(python_command.split('--subj')[0])
+                    break
             else:
-                print(python_command.split('--subj')[0])
-                break
-        else:
-            if qsub:
-                os.system(command)
-            else:
-                os.system(python_command)
-    if qsub:
-        pause_jobs()
-        error_status, error_filepath = check_for_errors(start_time, sbatch_folder_path)
-        if error_status is False:
-            txt = f'Error found on qstat runs, details found at {error_filepath}'
-            raise Exception(txt)
+                if qsub:
+                    os.system(command)
+                else:
+                    os.system(python_command)
+        if qsub:
+            pause_jobs()
+            error_status, error_filepath = check_for_errors(start_time, sbatch_folder_path)
+            if error_status is False:
+                txt = f'Error found on qstat runs, details found at {error_filepath}'
+                raise Exception(txt)
