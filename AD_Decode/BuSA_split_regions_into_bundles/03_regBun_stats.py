@@ -218,10 +218,10 @@ references = ['mrtrixfa', 'Length', 'greywhite']
 
 sides = ['left','right']
 
-bundle_compare_summary = os.path.join(stat_folder, f'allsubj_bundle_{bundle_id_orig[0]}_comparison.xlsx')
+bundle_compare_summary = os.path.join(stat_folder, f'allsubj_bundle{bundle_col_id}_comparison.xlsx')
 
 for subject in full_subjects_list:
-    bundle_compare_summary_subj = os.path.join(stat_folder, f'{subject}_bundle_{bundle_id_orig[0]}_comparison.xlsx')
+    bundle_compare_summary_subj = os.path.join(stat_folder, f'{subject}_bundle{bundle_col_id}_comparison.xlsx')
     column_names = ['Streamline_ID']
     df_ref = {}
     bundle_data_dic = {}
@@ -238,9 +238,9 @@ for subject in full_subjects_list:
                 else:
                     side_str = f'_{side}'
                 if bundle_id_orig is not None:
-                    bundle_id_orig_txt = side_str + '_' + bundle_id_orig[0]
+                    bundle_id_orig_txt = side_str + bundle_col_id
                 else:
-                    bundle_id_orig_txt = ''
+                    bundle_id_orig_txt = side_str
                 all_bundle_ids += [f'bundle{bundle_id_orig_txt}_{bundle_id}' for bundle_id in new_bundle_ids]
 
             """
@@ -264,9 +264,9 @@ for subject in full_subjects_list:
             side_str = f'_{side}'
 
         if bundle_id_orig is not None:
-            bundle_id_orig_txt = side_str + '_' + bundle_id_orig[0]
+            bundle_id_orig_txt = side_str + bundle_col_id
         else:
-            bundle_id_orig_txt = ''
+            bundle_id_orig_txt = side_str
 
         #checking whether we already have al stat files or not
         for id_order, new_bundle_id in enumerate(new_bundle_ids):
@@ -294,7 +294,7 @@ for subject in full_subjects_list:
             side_str = f'_{side}'
 
         if bundle_id_orig is not None:
-            bundle_id_orig_txt = side_str + '_' + bundle_id_orig[0]
+            bundle_id_orig_txt = side_str + bundle_col_id
         else:
             bundle_id_orig_txt = side_str
 
@@ -505,7 +505,7 @@ for subject in full_subjects_list:
     if calc_BUAN and (not os.path.exists(bundle_compare_summary_subj) or overwrite):
         BUANs = []
 
-        column_names_ref = [f'BUAN_{bundle_id_orig[0] + f"_{new_bundle_id}"}' for new_bundle_id in new_bundle_ids]
+        column_names_ref = [f'BUAN{bundle_col_id + f"_{new_bundle_id}"}' for new_bundle_id in new_bundle_ids]
 
         BUAN_ids = {}
 
@@ -519,7 +519,7 @@ for subject in full_subjects_list:
             threshold = 6
 
             if bundle_id_orig is not None:
-                bundle_id_orig_txt = '_left' + '_' + bundle_id_orig[0]
+                bundle_id_orig_txt = '_left' + bundle_col_id
             else:
                 bundle_id_orig_txt = '_left'
 
@@ -533,7 +533,7 @@ for subject in full_subjects_list:
 
             BUAN_ids[new_bundle_id] = (BUAN_id)
 
-        subj_data = {'Subject': subject, **{f'BUAN_{bundle_id_orig[0] + f"_{new_bundle_id}"}': BUAN_ids[new_bundle_id] for new_bundle_id in new_bundle_ids}}
+        subj_data = {'Subject': subject, **{f'BUAN{bundle_col_id + f"_{new_bundle_id}"}': BUAN_ids[new_bundle_id] for new_bundle_id in new_bundle_ids}}
         BUAN_df_subj = pd.DataFrame.from_records([subj_data])
         if not 'BUAN_df' in locals():
             BUAN_df = pd.DataFrame.from_records([subj_data])
