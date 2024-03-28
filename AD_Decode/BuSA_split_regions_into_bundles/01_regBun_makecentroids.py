@@ -63,6 +63,7 @@ def fix_badwarp_streamlines(streamlines):
     return streamlines_pruned
 
 #python3 01_regBun_makecentroids.py --proj /Volumes/Data/Badea/Lab/jacques/BuSA_headfiles/V_1_0_10template_100_6_interhe_majority.ini --id 0 --split 3
+#--proj /Volumes/Data/Badea/Lab/jacques/BuSA_headfiles/V_1_0_10template_100_6_interhe_majority.ini --id 0 --split 3
 
 parser = argparse.ArgumentParser(description='Process some integers.')
 parser.add_argument('--split', type=int, help='An integer for splitting')
@@ -163,7 +164,6 @@ _, _, _, sftp_in = get_mainpaths(remote_input,project = project, username=userna
 outpath, _, _, sftp_out = get_mainpaths(remote_output,project = project, username=username,password=passwd)
 
 ratiostr = ratio_to_str(ratio,spec_all=False)
-
 
 outpath_all = os.path.join(outpath, 'TRK_bundle_splitter')
 proj_path = os.path.join(outpath_all,project_run_identifier)
