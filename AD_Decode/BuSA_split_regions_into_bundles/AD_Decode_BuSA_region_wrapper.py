@@ -55,6 +55,8 @@ def check_for_errors(start_time, folder_path):
     return True, 'allfine'  # Return True if no 'Error' is found in any file
 
 
+print('0')
+
 if 'santorini' in socket.gethostname().split('.')[0]:
     #project_headfile_folder = '/Users/jas/bass/gitfolder/DTC_private/BuSA_headfiles'
     project_headfile_folder = '/Volumes/Data/Badea/Lab/jacques/BuSA_headfiles'
@@ -78,6 +80,8 @@ if 'BD' not in locals():
 
 start_time = datetime.datetime.now()
 
+print('1')
+
 job_descrp = "BuSAreg"
 sbatch_folder_path = os.path.join(BD, job_descrp + '_sbatch/')
 mkcdir(sbatch_folder_path)
@@ -86,6 +90,7 @@ GD = '/mnt/clustertmp/common/rja20_dev/gunnies/'
 
 # project_run_identifier = '202311_10template_test01'
 
+print('2')
 
 #python3 AD_Decode_BuSA_iterative_wrapper.py --split 4 --proj V0_9_10template_100_6_interhe_majority --id 4 --split 6 --parts 8
 
@@ -108,6 +113,8 @@ bundle_split = args.split
 project_run_identifier = args.proj
 parts = args.parts
 
+print('3')
+
 if parts is None:
     parts = ['1','2','3']
 
@@ -117,6 +124,7 @@ if os.path.exists(project_run_identifier):
     project = os.path.basename(project_run_identifier).split('.ini')[0]
 else:
     project_summary_file = os.path.join(project_headfile_folder, project_run_identifier + '.ini')
+print(project_summary_file)
 if not os.path.exists(project_summary_file):
     raise Exception('Could not find project file')
 params = read_parameters_from_ini(project_summary_file)
@@ -124,6 +132,8 @@ params = read_parameters_from_ini(project_summary_file)
 template_subjects = params['template_subjects']
 added_subjects = params['added_subjects']
 num_bundles = int(params['num_bundles'])
+
+print('4')
 
 full_subjects_list = template_subjects + added_subjects
 
@@ -138,6 +148,8 @@ qsub = False
 
 testmode = True
 code_specific_folder = os.path.join(code_folder,'AD_Decode','BuSA_split_regions_into_bundles')
+
+print('hi')
 
 if '1' in parts:
     python_command = f"python3 {os.path.join(code_specific_folder,'01_regBun_makecentroids.py')} --proj {project_summary_file} --split {bundle_split} {bundle_id_qsub_id}"
