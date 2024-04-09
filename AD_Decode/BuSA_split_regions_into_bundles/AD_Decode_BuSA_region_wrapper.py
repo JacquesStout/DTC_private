@@ -116,14 +116,14 @@ bundle_id_looping = False
 
 overwrite = False
 
-qsub = False
+qsub = True
 
-testmode = True
-
+testmode = False
+print('3_0')
 args = parser.parse_args()
 bundle_id_orig = args.id
-
-
+print('3_1')
+print(bundle_id_orig)
 bundle_split = args.split
 project_run_identifier = args.proj
 parts = args.parts
@@ -139,6 +139,7 @@ if os.path.exists(project_run_identifier):
     project_name = os.path.basename(project_run_identifier).split('.ini')[0]
 else:
     project_summary_file = os.path.join(project_headfile_folder, project_run_identifier + '.ini')
+    project_name = project_run_identifier
 print(project_summary_file)
 if not os.path.exists(project_summary_file):
     raise Exception('Could not find project file')
@@ -154,7 +155,7 @@ full_subjects_list = template_subjects + added_subjects
 
 sides = ['left', 'right']
 
-
+bundle_id_orig = bundle_id_orig[0].replace('all','*')
 if '*' in bundle_id_orig:
 
     ratio = params['ratio']
@@ -177,24 +178,24 @@ if '*' in bundle_id_orig:
     trk_proj_path = os.path.join(proj_path, 'trk_roi' + ratiostr)
 
     added_subjects = params['added_subjects']
-    bundle_id_orig_new = bundle_id_orig[0].replace("*","\d+")
+    bundle_id_orig_new = bundle_id_orig.replace("*","\d+")
     #bundle_ids = glob.glob(os.path.join(trk_proj_path,f'{added_subjects[1]}_bundle_left_{bundle_id_orig_new}.trk'))
+    print(bundle_id_orig_new)
     bundle_ids = find_matching_files(trk_proj_path, f'{added_subjects[1]}_bundle_left_{bundle_id_orig_new}.trk')
+    print(bundle_ids)
     bundle_ids = [bundle_name.split('left_')[1].split('.trk')[0] for bundle_name in bundle_ids]
-
+    print(bundle_ids)
     #bundle_ids = np.arange(num_bundles)
 else:
     bundle_ids = [bundle_id_orig]
 
-
 code_specific_folder = os.path.join(code_folder,'AD_Decode','BuSA_split_regions_into_bundles')
-
 
 for bundle_id_orig in bundle_ids:
 
     if bundle_id_orig is not None:
         bundle_id_qsub = ','.join(bundle_id_orig)
-        bundle_id_qsub_id = f' --id {bundle_id_qsub}'
+        bundle_id_qsub_id = f'--id {bundle_id_orig}'
     else:
         bundle_id_qsub = ''
         bundle_id_qsub_id = ''
