@@ -110,6 +110,7 @@ streamline_lr_inclusion = params['streamline_lr_inclusion']
 length_threshold = int(params['length_threshold'])
 
 distance = int(params['distance'])
+
 bundle_points = int(params['bundle_points'])
 path_TRK = params['path_trk']
 
@@ -120,6 +121,8 @@ elif bundle_id_orig is not None and bundle_split is None:
     raise Exception('Must specify the number of bundles to subsplit into')
 else:
     bundle_id_txt = '_'+str(bundle_id_orig[0])
+    if np.size((bundle_id_orig[0]).split('_')) >= 3:
+        distance = distance / 3
 
 """
 if bundle_split is None:

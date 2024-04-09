@@ -93,6 +93,9 @@ if bundle_id_orig is None:
     bundle_split = int(params['num_bundles'])
 elif bundle_id_orig is not None and bundle_split is None:
     raise Exception('Must specify the number of bundles to subsplit into')
+else:
+    if np.size((bundle_id_orig[0]).split('_')) >= 3:
+        distance = distance / 3
 
 
 if full_subjects_list is None:
@@ -164,7 +167,6 @@ combined_trk_folder = os.path.join(proj_path, 'combined_TRK')
 centroids_sidedic = {}
 centroids_all = []
 centroid_all_side_tracker = {}
-
 
 save_img = False
 
