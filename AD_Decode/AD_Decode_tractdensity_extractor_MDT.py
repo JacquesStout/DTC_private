@@ -9,20 +9,26 @@ import pandas as pd
 from dipy.segment.bundles import bundle_shape_similarity
 from dipy.tracking.streamline import transform_streamlines, cluster_confidence
 from dipy.tracking.utils import length as tract_length
-
+import warnings, socket
 
 #volume_excel_path = '/Volumes/Data/Badea/Lab/AD_Decode/TRK_bundle_splitter/V_1_0_10template_100_6_interhe_majority/density_maps/volume_tract_summary.xlsx'
 #volume_excel_path = '/Volumes/Data/Badea/Lab/AD_Decode/TRK_bundle_splitter/V_1_0_10template_100_6_interhe_majority/stats/Tractometry_'
 
+computer_name = socket.gethostname()
 
-trk_folder = '/Volumes/Data/Badea/Lab/AD_Decode/TRK_bundle_splitter/V_1_0_10template_100_6_interhe_majority/trk_roi_ratio_100/'
-densitymap_folder = '/Volumes/Data/Badea/Lab/AD_Decode/TRK_bundle_splitter/V_1_0_10template_100_6_interhe_majority/density_maps/'
+if 'santorini' in computer_name:
+    root_folder = '/Volumes/Data/Badea/Lab/'
+if 'blade' in computer_name:
+    root_folder = '/mnt/munin2/Badea/Lab/'
 
-stats_summary_folder = '/Volumes/Data/Badea/Lab/AD_Decode/TRK_bundle_splitter/V_1_0_10template_100_6_interhe_majority/stats/excel_summary'
+trk_folder = os.path.join(root_folder,'AD_Decode/TRK_bundle_splitter/V_1_0_10template_100_6_interhe_majority/trk_roi_ratio_100/')
+densitymap_folder = os.path.join(root_folder,'AD_Decode/TRK_bundle_splitter/V_1_0_10template_100_6_interhe_majority/density_maps/')
+
+stats_summary_folder = os.path.join(root_folder,'AD_Decode/TRK_bundle_splitter/V_1_0_10template_100_6_interhe_majority/stats/excel_summary')
 
 mkcdir(densitymap_folder)
 
-label_file = '/Volumes/Data/Badea/Lab/mouse/VBM_21ADDecode03_IITmean_RPI_fullrun-work/dwi/SyN_0p5_3_0p5_fa/faMDT_NoNameYet_n37_i6/median_images/labels_MDT/MDT_IITmean_RPI_labels.nii.gz'
+label_file = os.path.join(root_folder,'mouse/VBM_21ADDecode03_IITmean_RPI_fullrun-work/dwi/SyN_0p5_3_0p5_fa/faMDT_NoNameYet_n37_i6/median_images/labels_MDT/MDT_IITmean_RPI_labels.nii.gz')
 
 label_nii = nib.load(label_file)
 label_shape = label_nii.shape
@@ -52,6 +58,7 @@ BUAN_summary_path = os.path.join(stats_summary_folder,f'BUAN_summary{trk_pattern
 numsl_df = pd.DataFrame(columns=['Subj'])
 lensl_df = pd.DataFrame(columns=['Subj'])
 
+#matching_files = matching_files[5227:]
 
 print(matching_files)
 print(pattern)
@@ -118,7 +125,11 @@ for file_name in matching_files:
 
                 row_index = lensl_df.index[lensl_df['Subj'] == subj_name]
                 col_index = lensl_df.columns.get_loc(bundle_name)
-                lensl_df.iloc[row_index, col_index] = int(np.round(avg_streamlines))
+                if len(streamlines)==0:
+                    warnings.warn(f'Empty file {trk_file_path}')
+                    lensl_df.iloc[row_index, col_index] = 0
+                else:
+                    lensl_df.iloc[row_index, col_index] = int(np.round(avg_streamlines))
 
 
 if not os.path.exists(num_streamlines_path) or overwrite:
