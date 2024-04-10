@@ -123,6 +123,11 @@ else:
     bundle_id_txt = '_'+str(bundle_id_orig[0])
     if np.size((bundle_id_orig[0]).split('_')) >= 3:
         distance = distance / 3
+        removed_list = params['removed_list']
+        template_subjects = template_subjects + params['added_subjects']
+        for remove in removed_list:
+            if remove in template_subjects:
+                template_subjects.remove(remove)
 
 """
 if bundle_split is None:
@@ -201,9 +206,10 @@ timings.append(time.perf_counter())
 
 sides = ['left', 'right']
 
+overwrite=True
 
-if bundle_id_orig is None and not checkfile_exists_remote(trktemplate_paths, sftp_out) \
-        or not checkfile_exists_remote(streams_dict_picklepaths, sftp_out) or overwrite:
+if bundle_id_orig is None and (not checkfile_exists_remote(trktemplate_paths, sftp_out) \
+        or not checkfile_exists_remote(streams_dict_picklepaths, sftp_out) or overwrite):
 
     num_streamlines_all = 0
     i = 1
@@ -271,7 +277,7 @@ if bundle_id_orig is None and not checkfile_exists_remote(trktemplate_paths, sft
     pickledump_remote(streams_dict_side, streams_dict_picklepaths, sftp_out)
     timings.append(time.perf_counter())
     print(f'Saved dictionary at {streams_dict_picklepaths}, took {timings[-1] - timings[0]} seconds')
-elif checkfile_exists_remote(trktemplate_paths, sftp_out):
+elif checkfile_exists_remote(trktemplate_paths, sftp_out) and not overwrite:
     print(f'already wrote {trktemplate_paths} and {streams_dict_picklepaths}')
     streamlines_template_main = load_trk_remote(trktemplate_paths, 'same', sftp_out)
     streamlines_template = streamlines_template_main.streamlines
