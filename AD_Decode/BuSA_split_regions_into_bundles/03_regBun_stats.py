@@ -280,11 +280,12 @@ for subject in full_subjects_list:
     if calc_BUAN:
         stat_files_tocheck.append(bundle_compare_summary_subj)
 
-    check_stats_all = checkfile_exists_all(stat_files_tocheck,sftp_out)
+    if not overwrite:
+        check_stats_all = checkfile_exists_all(stat_files_tocheck,sftp_out)
 
-    if check_stats_all and not overwrite:
-        print(f'Already created all relevant stats for subject {subject}')
-        continue
+        if check_stats_all:
+            print(f'Already created all relevant stats for subject {subject}')
+            continue
 
     for side in sides:
 
