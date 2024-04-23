@@ -21,10 +21,13 @@ if 'santorini' in computer_name:
 if 'blade' in computer_name:
     root_folder = '/mnt/munin2/Badea/Lab/'
 
-trk_folder = os.path.join(root_folder,'AD_Decode/TRK_bundle_splitter/V_1_0_10template_100_6_interhe_majority/trk_roi_ratio_100/')
-densitymap_folder = os.path.join(root_folder,'AD_Decode/TRK_bundle_splitter/V_1_0_10template_100_6_interhe_majority/density_maps/')
+proj_folders = os.path.join(root_folder,'AD_Decode/TRK_bundle_splitter/')
+proj_folder = os.path.join(proj_folders,'V_1_0_10template_100_6_interhe_majority')
 
-stats_summary_folder = os.path.join(root_folder,'AD_Decode/TRK_bundle_splitter/V_1_0_10template_100_6_interhe_majority/stats/excel_summary')
+trk_folder = os.path.join(proj_folder,'trk_roi_ratio_100/')
+densitymap_folder = os.path.join(proj_folder,'density_maps/')
+
+stats_summary_folder = os.path.join(proj_folder,'stats/excel_summary')
 
 mkcdir(densitymap_folder)
 
@@ -32,15 +35,15 @@ label_file = os.path.join(root_folder,'mouse/VBM_21ADDecode03_IITmean_RPI_fullru
 
 label_nii = nib.load(label_file)
 label_shape = label_nii.shape
-#trk_pattern = '_\d+'
-trk_pattern = '_\d+_\d+_\d+'
+trk_pattern = '_\d+'
+#trk_pattern = '_\d+_\d+_\d+'
 #trk_pattern = '_\d+_\d+_\d+'
 
 files = os.listdir(trk_folder)
 
 pattern = 'S\d{5}_bundle_[a-zA-Z0-9]{3,5}'+trk_pattern+'.trk'
 
-overwrite=True
+overwrite=False
 overwrite_denmaps = False
 
 matching_files = [filename for filename in files if re.match(pattern, filename)]
@@ -63,6 +66,7 @@ lensl_df = pd.DataFrame(columns=['Subj'])
 print(matching_files)
 print(pattern)
 
+"""
 for file_name in matching_files:
 
     streamline_name = file_name.split('.trk')[0]
@@ -130,6 +134,80 @@ for file_name in matching_files:
                     lensl_df.iloc[row_index, col_index] = 0
                 else:
                     lensl_df.iloc[row_index, col_index] = int(np.round(avg_streamlines))
+"""
+
+label_data = label_nii.get_fdata()
+labels = np.unique(label_data)
+density_maps_all = os.listdir(densitymap_folder)
+dm_pattern = '_\d+'
+dm_pattern = '_0'
+
+list1 = ['_0','_1','_2','_3','_4','_5']
+list2 = ['_0','_1','_2']
+dm_patterns = ['_0','_1','_2','_3','_4','_5','_0_0','_0_1','_0_2','_1_0','_1_1','_1_2','_2_0','_2_1','_2_2','_3_0','_3_1','_3_2','_4_0','_4_1','_4_2','_5_0','_5_1','_5_2']
+dm_patterns = [(x + y + z) for x in list1 for y in list2 for z in list2]
+
+
+for dm_pattern in dm_patterns:
+
+    #pattern = 'S\d{5}_bundle_[a-zA-Z0-9]{3,5}' + dm_pattern + '_dm.nii.gz'
+    left_pattern = 'S\d{5}_bundle_left' + dm_pattern + '_dm.nii.gz'
+    right_pattern = 'S\d{5}_bundle_left' + dm_pattern + '_dm.nii.gz'
+
+    density_map_paths = [filename for filename in density_maps_all if re.match(left_pattern, filename)]
+    label_summary_path = os.path.join(stats_summary_folder, f'label_summary{dm_pattern}.xlsx')
+
+    labelsl_df = pd.DataFrame()
+
+    trk_pattern_name = re.sub(r'\d', 'all', dm_pattern)
+    num_streamlines_path = os.path.join(stats_summary_folder, f'numstreamlines_summary{trk_pattern_name}.xlsx')
+    len_streamlines_path = os.path.join(stats_summary_folder, f'lenstreamlines_summary{trk_pattern_name}.xlsx')
+
+    lensl_df = pd.read_excel(len_streamlines_path)
+    numsl_df = pd.read_excel(num_streamlines_path)
+
+    if not os.path.exists(label_summary_path) or overwrite:
+        for density_map_name in density_map_paths:
+
+            subj_name = re.search('S\d{5}', density_map_name)[0]
+
+            density_map_path = os.path.join(densitymap_folder,density_map_name)
+            dm = nib.load(density_map_path).get_fdata()
+            #dm = utils.density_map(streamlines, affine, label_shape)
+
+            labels_summary = {label: 0 for label in labels}
+
+            #if subj_name not in labelsl_df['Subj'].values:
+            #    labelsl_df = pd.concat([labelsl_df, pd.DataFrame({'Subj': [subj_name]})], ignore_index=True)
+
+            true_indices = np.argwhere(dm > 0)
+            for indices in true_indices:
+                indices = tuple(indices)
+                if dm[indices]>0 and label_data[indices]!=0:
+                    labels_summary[label_data[indices]] += dm[indices]
+
+            label_summary_df = pd.DataFrame([labels_summary])
+
+            label_summary_df['Subj'] = subj_name
+            column_order = ['Subj'] + [col for col in label_summary_df.columns if col != 'Subj']
+            label_summary_df = label_summary_df[column_order]
+
+            labelsl_df = pd.concat([labelsl_df, label_summary_df], axis=0)
+
+        subj_gt_0 = labelsl_df[labelsl_df.columns.difference(['Subj'])].gt(0).sum() * (100 / 80)
+        #average_subj_vals = labelsl_df[labelsl_df.columns.difference(['Subj'])].mean()
+        len_sl = list(lensl_df[lensl_df.Subj==subj_name][f'bundle_left{dm_pattern}'])[0]
+        num_sl = list(numsl_df[numsl_df.Subj==subj_name][f'bundle_left{dm_pattern}'])[0]
+
+        average_subj_vals = labelsl_df[labelsl_df.columns.difference(['Subj'])].mean() * (100/(num_sl*len_sl))
+
+        subj_gt_0_df = pd.DataFrame([subj_gt_0],index=['%subjgt0'])
+        average_subj_vals_df = pd.DataFrame([average_subj_vals], index=['Average_density'])
+
+        labelsl_df = pd.concat([labelsl_df, subj_gt_0_df, average_subj_vals_df],axis=0)
+
+        labelsl_df.to_excel(label_summary_path,index = False)
+
 
 
 if not os.path.exists(num_streamlines_path) or overwrite:
