@@ -137,7 +137,7 @@ if bundle_split is None:
         bundle_split = 6
 """
 
-overwrite=False
+overwrite=True
 verbose = False
 
 if remote_input or remote_output:
@@ -379,6 +379,18 @@ ordered_bundles = []
 centroids_side = {}
 centroids_side['left'] = []
 centroids_side['right'] = []
+
+bundle_split_used = bundle_split
+
+while min(num_streamlines)<np.mean(num_streamlines)/5:
+    bundle_split_used += 1
+    qb = QuickBundles(threshold=distance, metric=metric2, max_nb_clusters=bundle_split_used)
+    bundles = qb.cluster(streamlines_template)
+    num_streamlines = bundles.clusters_sizes()
+
+    top_bundles = sorted(range(len(num_streamlines)), key=lambda i: num_streamlines[i], reverse=True)[:bundle_split]
+
+    num_streamlines = sorted(num_streamlines,reverse=True)[:bundle_split]
 
 
 for bundle in top_bundles[:bundle_split]:
