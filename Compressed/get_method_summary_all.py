@@ -10,6 +10,7 @@ results_path = '/Volumes/dusom_mousebrains/All_Staff/jacques/CS_project/CS_Data_
 niftis_path = '/Volumes/dusom_mousebrains/All_Staff/jacques/CS_project/CS_Data_all/Bruker_niftis/'
 
 run_recon = False
+run_bruker_cmd = False
 
 if run_recon:
     import matlab.engine
@@ -141,7 +142,7 @@ for subject in subjects:
 
         else:
             cmd = f'/Users/jas/bass/gitfolder/nanconvert/Scripts/nanbruker -z -v -l -o {niftis_path} {subject_path}/'
-            if not os.path.isdir(os.path.join(niftis_path, subject)):
+            if run_bruker_cmd and not os.path.isdir(os.path.join(niftis_path, subject)):
                 print(f'No results detected for {subject}; attempting to generate Niftis with nanconvert:')
                 print('Command:')
                 print(cmd)
