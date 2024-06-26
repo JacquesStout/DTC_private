@@ -716,7 +716,10 @@ def setup_view(trk_object, colors=None, world_coords=False, show=True, fname=Non
                     for s in range(len(bundle)):
                         stream = bundle[s]
                         for idx in range(len(stream)):
-                            colors_points.append(vals[s][idx])
+                            try:
+                                colors_points.append(vals[s][idx])
+                            except:
+                                print('hi')
                     try:
                         object_actor = actor.line(bundle, colors_points, linewidth=linewidth, lookup_colormap=colors) #default linewidth was 0.2
                     except:
@@ -731,9 +734,15 @@ def setup_view(trk_object, colors=None, world_coords=False, show=True, fname=Non
                     scene.add(object_actor)
                     object_actors_toremove.append(object_actor)
         else:
-            object_actor = actor.line(trk_object)
-            scene.add(object_actor)
-            object_actors_toremove.append(object_actor)
+            if isinstance(trk_object, list):
+                for bundle,color in zip(trk_object,colors):
+                    object_actor = actor.line(bundle, color, linewidth=linewidth)
+                    scene.add(object_actor)
+                    object_actors_toremove.append(object_actor)
+            else:
+                object_actor = actor.line(trk_object)
+                scene.add(object_actor)
+                object_actors_toremove.append(object_actor)
     else:
         raise Exception('Unindentified object')
 
