@@ -152,7 +152,7 @@ if not os.path.exists(len_streamlines_path) or overwrite:
             lensl_df[col].astype(int)
 
     lensl_df.to_excel(len_streamlines_path, index=False)
-"""
+
 
 if not os.path.exists(volume_excel_path) or overwrite:
     vol_df = pd.DataFrame(columns=['Subj'])
@@ -193,7 +193,7 @@ if not os.path.exists(volume_excel_path) or overwrite:
             vol_df[col].astype(int)
 
     vol_df.to_excel(volume_excel_path, index=False)
-
+"""
 
 if not os.path.exists(BUAN_summary_path) or overwrite:
 
@@ -253,5 +253,7 @@ if not os.path.exists(BUAN_summary_path) or overwrite:
             row_index = BUAN_df.index[BUAN_df['Subj'] == subj_name]
             col_index = BUAN_df.columns.get_loc(ROI_name)
             BUAN_df.iloc[row_index, col_index] = (np.round(BUAN_id, 3))
+
+        print(f'Finished for subj {subj_name}')
 
     BUAN_df.to_excel(BUAN_summary_path, index=False)
