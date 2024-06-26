@@ -30,6 +30,8 @@ method_tofind = '3D Ax T1 MPRAGE'
 list_toview = []
 list_notfound = []
 
+subjects = ['20210122_02410']
+
 for subject in subjects:
     subject_path = os.path.join(data_path, subject)
 

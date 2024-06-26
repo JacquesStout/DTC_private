@@ -174,6 +174,7 @@ alloutputs_found = checkfile_exists_all(list_outputs_all)
 coreg_T1 = True
 skip_T1 = False
 dwigradchecking = True
+make_fod = True
 
 label_whitematter_path = os.path.join(orig_subj_path, f'{subj}_labels_whitematter.nii.gz')
 
@@ -420,7 +421,7 @@ else:
         else:
             trk_already_made = True
 
-    if not trk_already_made:
+    if not trk_already_made or make_fod:
         if act:
             subjspace_mask_mif = os.path.join(subj_path,f'{subj}_subjspace_mask.mif')
             if not os.path.exists(subjspace_mask_mif) or overwrite:
@@ -469,11 +470,11 @@ else:
             if not os.path.exists(gmwmSeed_coreg_mif) or overwrite:
                 os.system( '5tt2gmwmi ' +  fivett_coreg_mif+ ' '+ gmwmSeed_coreg_mif + ' -force')
 
-            if not os.path.exists(tracks_10M_tck) or overwrite:
-                os.system('tckgen -act ' + fivett_coreg_mif + '  -backtrack -seed_gmwmi '+ gmwmSeed_coreg_mif + ' -maxlength 250 -cutoff 0.06 -select 10000000 ' + wmfod_norm_mif + ' ' + tracks_10M_tck + ' -force')
+            #if not os.path.exists(tracks_10M_tck) or overwrite:
+            #    os.system('tckgen -act ' + fivett_coreg_mif + '  -backtrack -seed_gmwmi '+ gmwmSeed_coreg_mif + ' -maxlength 250 -cutoff 0.06 -select 10000000 ' + wmfod_norm_mif + ' ' + tracks_10M_tck + ' -force')
 
             cmd = 'tckgen -act ' + fivett_coreg_mif + '  -backtrack -seed_gmwmi ' + gmwmSeed_coreg_mif + ' -maxlength 250 -cutoff 0.06 -select 10000000 ' + wmfod_norm_mif + ' ' + tracks_10M_tck + ' -force'
-            if not os.path.exists(tracks_10M_tck) or overwrite:
+            if not trk_already_made or overwrite:
                 os.system(cmd)
             else:
                 num_streamlines = get_num_streamlines(tracks_10M_tck)
