@@ -31,7 +31,8 @@ def outlier_removal(values, qsep=3):
 remote=False
 
 if len(sys.argv)<2:
-    project = 'V0_9_10template_100_6_interhe_majority'
+    #project = 'V0_9_10template_100_6_interhe_majority'
+    project = 'V_1_0_10template_100_6_interhe_majority'
 else:
     project = sys.argv[1]
 

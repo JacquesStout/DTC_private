@@ -58,18 +58,20 @@ def outlier_removal(values, qsep=3):
 
 if 'santorini' in socket.gethostname().split('.')[0]:
     root = '/Users/jas/Downloads/Busa_analysis/AD_decode_bundles/'
-    master = '/Users/jas/jacques/AD_Decode_excels/AD_DECODE_data_stripped.csv'
+    #master = '/Users/jas/jacques/AD_Decode_excels/AD_DECODE_data_stripped.csv'
+    master = '/Users/jas/jacques/AD_Decode_excels/AD_DECODE_data3_zscores.xlsx'
     figures_path = '/Users/jas/jacques/AD_Decode/BuSA_analysis/Figures'
     excel_path = '/Users/jas/jacques/AD_Decode/BuSA_analysis/Excels'
 else:
     root = '/Users/ali/Desktop/Dec23/BuSA/AD_decode_bundles/stats/'
-    master = '/Users/ali/Desktop/Dec23/BuSA/AD_DECODE_data_stripped.csv'
+    #master = '/Users/ali/Desktop/Dec23/BuSA/AD_DECODE_data_stripped.csv'
+    master = '/Users/jas/jacques/AD_Decode_excels/AD_DECODE_data3_zscores.xlsx'
     excel_path = '/Users/ali/Desktop/Dec23/BuSA/AD_decode_bundles/Excels'
     figures_path = '/Users/ali/Desktop/Dec23/BuSA/AD_decode_bundles/Figures'
 
 
 if len(sys.argv)<2:
-    project = 'V0_9_10template_100_6_interhe_majority'
+    project = 'V_1_0_10template_100_6_interhe_majority'
 else:
     project = sys.argv[1]
 
@@ -80,9 +82,10 @@ if loc=='kos':
 elif loc=='munin':
     root = f'/Volumes/Data/Badea/Lab/AD_Decode/TRK_bundle_splitter/{project}'
 
-master_df = pd.read_csv(master)
+#master_df = pd.read_csv(master)
+master_df = pd.read_excel(master)
 
-length_cut = 40
+length_cut = None
 if length_cut is None:
     length_str = ''
 else:
@@ -96,23 +99,38 @@ mkcdir(excel_path)
 
 all_subj_bundles = os.listdir(stats_path)
 
-ref_subj = 'S02224'
-bundles = [i for i in all_subj_bundles if ref_subj in i]
-bundles = [ i[6:] for i in bundles]
 
-bundles_new = []
-for bundle in bundles:
-    if 'comparison' not in bundle:
-        bundles_new.append(bundle)
-bundles = bundles_new
+list1 = ['_0','_1','_2','_3','_4','_5']
+list2 = ['_0','_1','_2']
+
+pattern_lvl = '_1'
+
+if pattern_lvl=='_1':
+    dm_patterns = [x for x in list1]
+elif pattern_lvl == '_2':
+    dm_patterns = [(x + y) for x in list1 for y in list2]
+elif pattern_lvl == '_3':
+    dm_patterns = [(x + y + z) for x in list1 for y in list2 for z in list2]
+elif pattern_lvl == '_4':
+    dm_patterns = [(x + y + z + k) for x in list1 for y in list2 for z in list2 for k in list2]
+elif pattern_lvl == '_4':
+    dm_patterns = [x for x in list1] + [(x + y) for x in list1 for y in list2] + [(x + y + z) for x in list1 for y in
+                                                                                  list2 for z in list2] + [
+                      (x + y + z + k) for x in list1 for y in list2 for z in list2 for k in list2]
+    pattern_lvl = ''
+else:
+    raise Exception('Unrecognized')
+
+
+ref_subj = 'S02224'
+
+bundles_left = [f'_bundle_left{dm_pattern}.xlsx' for dm_pattern in dm_patterns]
+bundles_right = [f'_bundle_right{dm_pattern}.xlsx' for dm_pattern in dm_patterns]
+bundles = bundles_left + bundles_right
 
 num_groups = 6
 
-tr_list = [0] + [np.quantile(master_df['age'],(i+1)*(1/num_groups)) for i in np.arange(num_groups)] + [1+ np.max(master_df['age'])]
-#tr1 = np.quantile(master_df['age'], 0.3)
-#tr2 = np.quantile(master_df['age'], 0.66)
-#tr3 = np.quantile(master_df['age'], 1)
-
+tr_list = [np.min(master_df['age'])] + [np.quantile(master_df['age'],(i+1)*(1/num_groups)) for i in np.arange(num_groups)] #+ [1+ np.max(master_df['age'])]
 
 #bundle = bundles[0] #
 #sds = np.zeros([num_groups,12])
@@ -124,6 +142,7 @@ allmeans = {}
 
 contrast = 'mrtrixfa'
 
+removed_subj = ['S01621','S04696','S04491','S03890','S03048','S03017','S02987','S02967','S02670']
 
 grid_var_path = os.path.join(figures_path,f'grid_var_{contrast}')
 
@@ -152,24 +171,32 @@ for bundle in bundles:
 
     this_bundle_subjs = [i for i in all_subj_bundles if bundle in i]
     this_bundle_subjs = sorted(this_bundle_subjs)
+
     if test:
         this_bundle_subjs = [this_bundle_subjs[0]]
+
+    for subj_r in removed_subj:
+        for bundle in this_bundle_subjs:
+            if subj_r in bundle:
+                this_bundle_subjs.remove(bundle)
+                break
 
     column_names = []
     for i in range(0,50):
         column_names.append("point_"+str(i)+"_mrtrixfa")
 
-    
+    allvars[bundle_num]= {}
+    allmeans[bundle_num]= {}
     for subj in this_bundle_subjs:
         bundle_df = pd.read_excel(os.path.join(stats_path, subj))
         #temp = pd.DataFrame()
         bundle_df['Subject']=subj[2:6]
-        index = master_df["MRI_Exam"] == int(subj[2:6])
+        index = master_df["MRI_Exam"] == f'S0{(subj[2:6])}'
         try:
             bundle_df['age'] = master_df[index]['age'].iloc[0]
             #temp['sex'] = master_df[index]['sex']
         except:
-            print(f'Subject {subj} is missing')
+            print(f'Subject {subj} is missing from master data')
         #temp = temp.to_numpy()
 
         if length_cut is not None:
@@ -202,17 +229,32 @@ for bundle in bundles:
             if verbose:
                 print(f'Saved figure at {figs_bundle_subj_path}')
             plt.close()
-
+        allvars[bundle_num] = {
+            subj[2:6]: {side+'_mean': FDataBasis.coefficients, 'column2': 'A'},
+            'row2': {'column1': 2, 'column2': 'B'},
+            'row3': {'column1': 3, 'column2': 'C'},
+            'row4': {'column1': 4, 'column2': 'D'}
+        }
         #var_coefs[subj[2:6], bundle_num] = var.coefficients
-        allvars[subj[2:6], side, bundle_num] = var
-        allmeans[subj[2:6], side, bundle_num] = mean
+        allvars[bundle_num][subj[2:6], side+ bundle_num] = var
+        allmeans[bundle_num][subj[2:6], side+ bundle_num] = mean
 
     if verbose:
         print(f'Finished bundle {bundle_num} side {side}')
+    path_excel_bundle_norm_summary = os.path.join(figures_path,f'sum_{bundle.split("_")[1]}')
 
-#pickle.dump(var_coefs, os.path.join(pickle_path, 'var_coefs.py'))
+
+    'S02670_bundle_left_1.xlsx'
+
+data = {
+    'row1': {'column1': 1, 'column2': 'A'},
+    'row2': {'column1': 2, 'column2': 'B'},
+    'row3': {'column1': 3, 'column2': 'C'},
+    'row4': {'column1': 4, 'column2': 'D'}
+}
 
 
+'S02670_bundle_left_1.xlsx'
 metadf = master_df[['MRI_Exam','age','sex','Risk','genotype']]
 
 distance_var_FAbundle_array = np.zeros([np.size(this_bundle_subjs),int(total_num_bundles)])
