@@ -57,7 +57,11 @@ project_summary_file = args.proj
 full_subjects_list = args.subj
 sides = [args.side]
 
-project_headfile_folder = '/Volumes/Data/Badea/Lab/jacques/BuSA_headfiles/'
+if 'santorini' in socket.gethostname():
+    project_headfile_folder = '/Volumes/Data/Badea/Lab/jacques/BuSA_headfiles/'
+if 'blade' in socket.gethostname():
+    project_headfile_folder = '/mnt/munin2/Badea/Lab/jacques/BuSA_headfiles/'
+
 
 if project_summary_file is None:
     project_headfile_folder = '/Volumes/Data/Badea/Lab/jacques/BuSA_headfiles/'
