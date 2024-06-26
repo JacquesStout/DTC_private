@@ -11,6 +11,11 @@ import pickle
 import tempfile
 import statsmodels.api as sm
 import warnings
+import re
+
+
+def remove_brackets(s):
+    return re.sub(r'\[.*?\]', '', s)
 
 
 def capitalize_words(input_string):
@@ -102,7 +107,7 @@ else:
 
 #cog_types_trimmed = ['MoCA Total']
 
-group_columns = ['sex']
+group_columns = ['genotype']
 
 subjects = cog_df['MRI_Exam']
 
@@ -129,7 +134,7 @@ col_col_types = ['age']
 
 reg_stat_types = ['meanfa','num_sl','vol_sl','sdfa','len_sl']
 reg_stat_types = ['num_sl','vol_sl','len_sl']
-reg_stat_types = ['meanfa','sdfa','num_sl','vol_sl','len_sl','BUAN']
+reg_stat_types = ['sdfa','num_sl','vol_sl','len_sl','BUAN']
 #reg_stat_types = ['meanfa']
 #reg_stat_types = ['num_sl','vol_sl','sdfa','len_sl']
 #reg_stat_types = ['num_sl']
@@ -146,6 +151,8 @@ sub_bundling_levels = [1,2,3,4]
 #sub_bundling_levels = [4]
 
 combined = True
+
+sex_included = True
 
 #sub_bundling_levels = [4]
 
@@ -202,7 +209,6 @@ for sub_bundling_level in sub_bundling_levels:
         full_stat_db.rename(columns=x_cols_rename, inplace=True)
         full_stat_db.drop(columns=y_cols_del, inplace=True)
 
-
     for group_column in group_columns:
 
         if group_column == 'genotype':
@@ -213,7 +219,7 @@ for sub_bundling_level in sub_bundling_levels:
         output_path = os.path.join(main_output_path,group_column)
         mkcdir(output_path)
         if combined:
-            lm_path = os.path.join(output_path,'lm_age_combined')
+            lm_path = os.path.join(output_path,'lm_age_wsex_combined')
         else:
             lm_path = os.path.join(output_path,'lm_age')
         mkcdir(lm_path)
@@ -316,11 +322,13 @@ for sub_bundling_level in sub_bundling_levels:
                         #formula = f'{bundle_stat} ~ {col_type}*{col_type} * {group_column}'
                         #formula = f'{bundle_stat} ~ {col_type}*{col_type} + {col_type}'
                         if formula_type == 'quadratic':
-                            formula = f'{bundle_stat} ~ I({col_type}**2)'
-                            #formula = f'{bundle_stat} ~ I({col_type}**2) + {col_type}'
-                            #formula = f'{bundle_stat} ~ {col_type}*{col_type} + {col_type}'
+                            #formula = f'{bundle_stat} ~ I({col_type}**2)'
+                            formula = f'{bundle_stat} ~ I({col_type}**2) * {group_column}'
                         else:
                             formula = f'{bundle_stat} ~ {col_type} * {group_column}'
+
+                        if sex_included:
+                            formula += f' * sex'
 
                         model = sm.formula.ols(formula=formula, data=full_stat_db).fit()
 
@@ -335,11 +343,13 @@ for sub_bundling_level in sub_bundling_levels:
                         #formula = f'{bundle_stat} ~ {col_type} * {col_type} * {col_type}'
                         #print(sm.formula.ols(formula=formula, data=full_stat_db).fit().pvalues['age'])
 
-                        if formula_type != 'quadratic':
-                            group_key = [key for key in model.pvalues.keys() if group_column in key and bundle_stat not in key][0]
-                            interact_key = [key for key in model.pvalues.keys() if group_column in key and col_type in key][0]
+                        group_key = [key for key in model.pvalues.keys() if group_column in key and bundle_stat not in key and 'sex' not in key and col_type not in key][0]
+                        if sex_included:
+                            interact_key = [key for key in model.pvalues.keys() if group_column in key and col_type in key and 'sex' in key][0]
+                        else:
+                            interact_key = [key for key in model.pvalues.keys() if group_column in key and col_type in key and not 'sex' in key][0]
 
-                        col_key = [key for key in model.pvalues.keys() if group_column not in key and col_type in key][0]
+                        col_key = [key for key in model.pvalues.keys() if group_column not in key and col_type in key and 'sex' not in key][0]
 
                         correlation_col = model.params[col_key]
 
@@ -349,7 +359,6 @@ for sub_bundling_level in sub_bundling_levels:
 
                         group_corr['col'] = model.params[col_key]
 
-                        #group_corr['r2score'] = r2_score(full_stat_db[col_type], model.predict(full_stat_db))
                         group_corr['r2score'] = model.rsquared
 
                         if formula_type != 'quadratic':
@@ -362,18 +371,22 @@ for sub_bundling_level in sub_bundling_levels:
                             group_corr['interact'] = model.params[interact_key]
 
                             group_corr['r2score_group'] = sm.stats.anova_lm(model)['sum_sq'][group_column] / model.ess
-                            group_corr['r2score_interact'] = sm.stats.anova_lm(model)['sum_sq'][
-                                                                 f'{col_type}:{group_column}'] / model.ess
+                            group_corr['r2score_interact'] = sm.stats.anova_lm(model)['sum_sq'][f'{col_type}:{group_column}'] / model.ess
                         else:
 
-                            p_values_group.append(1)
-                            p_values_interact.append(1)
+                            p_values_group.append(model.pvalues[group_key])
+                            p_values_interact.append(model.pvalues[interact_key])
 
-                            group_corr['group'] = 0
-                            group_corr['interact'] = 0
+                            group_corr['group'] = model.params[group_key]
+                            group_corr['interact'] = model.params[interact_key]
 
-                            group_corr['r2score_group'] = 0
-                            group_corr['r2score_interact'] = 0
+                            group_corr['r2score_group'] = sm.stats.anova_lm(model)['sum_sq'][group_column] / model.ess
+                            #group_corr['r2score_interact'] = 0
+                            #group_corr['r2score_interact'] = sm.stats.anova_lm(sm.formula.ols(formula=formula, data=full_stat_db).fit())['sum_sq'][f'I(age ** 2):{group_column}:sex']/ model.ess
+                            group_corr['r2score_interact'] = \
+                            sm.stats.anova_lm(model)['sum_sq'][remove_brackets(interact_key)] / model.ess
+
+                            #group_corr['r2score_stat'] = model.rsquared
                             group_corr['r2score_stat'] = model.rsquared
 
                         group_corrs.append(group_corr)
@@ -462,7 +475,7 @@ for sub_bundling_level in sub_bundling_levels:
 
                         if formula_type == 'quadratic':
                             x_pred = np.linspace(full_stat_db[col_type].min(), full_stat_db[col_type].max(), 100)
-                            y_pred = model.predict(pd.DataFrame({col_type: x_pred, f'I({col_type}**2)': x_pred ** 2}))
+                            y_pred = model.predict(pd.DataFrame({col_type: x_pred, formula: x_pred ** 2}))
 
                             #x_pred = np.linspace(full_stat_db[col_type].min(), full_stat_db[col_type].max(), 100)
                             df_pred = pd.DataFrame({
