@@ -378,8 +378,9 @@ def create_backport_labels(subject, mainpath, project_name, prep_folder, atlas_l
 
     symbolic_ref = os.path.join(out_dir,f"{subject}_Reg_LPCA_nii4D.nii.gz")
     if final_labels is None:
-        final_labels = os.path.join(out_dir,f"{subject}_{file_name}_labels.nii.gz")
-    final_labels_backup = os.path.join(dirty_dir,f"{subject}_{file_name}_labels.nii.gz")
+        final_labels = os.path.join(out_dir,f"{subject}_{file_name}.nii.gz")
+        #final_labels = os.path.join(out_dir,f"{subject}_{file_name}_labels.nii.gz")
+    final_labels_backup = os.path.join(dirty_dir,f"{subject}_{file_name}.nii.gz")
     superpose=True
 
 
