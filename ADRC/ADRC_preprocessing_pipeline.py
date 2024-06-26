@@ -145,9 +145,9 @@ mkcdir(data_path_output)
 
 #subjects to run
 subjects = []
-subjects.append(sys.argv[1])
-#subjects = ['ADRC0001']
-
+#subjects.append(sys.argv[1])
+subjects = ['ADRC0111','ADRC0112','ADRC0113','ADRC0116','ADRC0117','ADRC0118','ADRC0119','ADRC0123','ADRC0127','ADRC0129','ADRC0130','ADRC0134','ADRC0136','ADRC0139','ADRC0147']
+subjects = ['ADRC0112']
 index_gz = '.gz'
 overwrite = False
 
