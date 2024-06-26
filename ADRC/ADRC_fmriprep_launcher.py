@@ -52,7 +52,7 @@ else:
 list_folders_path = os.listdir(data_path)
 list_of_subjs_long = [i for i in list_folders_path if 'ADRC' in i and not '.' in i]
 subjects = sorted(list_of_subjs_long)
-
+subjects = subjects[92:]
 output_BIDS = os.path.join(root_proj,'ADRC_BIDS')
 fmriprep_output = os.path.join(root_proj,'fmriprep_output')
 
@@ -65,6 +65,7 @@ overwrite=False
 datatype_fix = True
 
 for subj in subjects:
+    print(f'Starting subject {subj}')
     subj_folder_orig = os.path.join(data_path, subj,'visit1')
 
     subj_folder = os.path.join(output_BIDS, f'sub-{subj}')
@@ -123,7 +124,7 @@ for subj in subjects:
                 with open(t1_json_path, 'w') as file:
                     file.writelines(lines)
             else:
-                print('to investigate')
+                print('Datatype not specified, fix presumably unnecessary')
 
     func_nii_orig = glob.glob(os.path.join(subj_folder_orig,'resting_state.nii.gz'))
     if np.size(func_nii_orig)==1:
@@ -141,7 +142,7 @@ for subj in subjects:
         shutil.copy(func_nii_orig,func_nii_path)
 
     # save dict in 'header.json'
-    if not os.path.exists(func_json_path) or overwrite:
+    if not os.path.exists(func_json_path) or True:
         """
         if not os.path.exists(func_json_orig):
             # read image
@@ -179,21 +180,23 @@ for subj in subjects:
                 # Open the file for writing and overwrite its contents
                 with open(func_bxh_orig_2, 'w') as file:
                     file.writelines(lines)
-            #elif new_line_index is not None:
-            #    print(f'Already did file {bxh_file_path}')
+
+                command = f'bxh2json --input {func_bxh_orig_2}'
+                os.system(command)
+                shutil.move(func_json_orig_2, func_json_orig)
+
             elif spacing_index is None:
                 print("'<spacing>' line not found in the file.")
-
-            command = f'bxh2json --input {func_bxh_orig_2}'
-            os.system(command)
-
-            if not os.path.exists(func_json_orig):
+            else:
                 command = f'bxh2json --input {func_bxh_orig}'
                 os.system(command)
-            shutil.move(func_json_orig_2,func_json_orig)
 
         shutil.copy(func_json_orig, func_json_path)
+        if datatype_fix:
+            with open(func_json_path, 'r') as file:
+                lines = file.readlines()
 
+run_fmriprep = True
 for subj in subjects:
 
     if run_fmriprep:
