@@ -1,10 +1,6 @@
-# Project Title
+# Compressed Sensing preprocessing and handling
 
-Compressed Sensing preprocessing and handling
-
-## Description
-
-This folder contians all codes pertaining to the compressed sensing project
+## Contains all codes pertaining to compressed sensing conversion to images and analysis
 
 ## Details
 
