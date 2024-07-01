@@ -1,3 +1,13 @@
+# Project Title
+
+Compressed Sensing preprocessing and handling
+
+## Description
+
+This folder contians all codes pertaining to the compressed sensing project
+
+## Details
+
 Details on Compressed Sensing data and project:
 
 CS_mse_compare.py
