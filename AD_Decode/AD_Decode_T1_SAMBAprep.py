@@ -9,16 +9,12 @@ from ants.utils.iMath import multiply_images
 contrast = 'T1'
 overwrite=False
 
-#input_folder = f'/Volumes/dusom_mousebrains/All_Staff/Nariman_mrtrix_ad_decode/{contrast}_nii_gz'
 input_folder = f'/Volumes/Data/Badea/ADdecode.01/Analysis/DWI/'
 SAMBA_folder = '/Volumes/Data/Badea/Lab/mouse/ADDeccode_symlink_pool2'
 temp_folder = f'/Volumes/Data/Badea/ADdecode.01/Analysis/T1_transforms/'
 
 subj_files_list = glob.glob(os.path.join(input_folder,f'*{contrast}.nii.gz'))
 subj_list = [os.path.basename(subj_file)[:6] for subj_file in subj_files_list]
-
-target_path = f'/Volumes/Data/Badea/Lab/mouse/ADDeccode_shortcut_pool/S02654_{contrast}.nii.gz'
-target_path = f'/Volumes/Data/Badea/Lab/mouse/ADDeccode_shortcut_pool/S02654_fa.nii.gz'
 
 base_image_folder = f'/Volumes/Data/Badea/Lab/mouse/VBM_21ADDecode03_IITmean_RPI_fullrun-work/preprocess/base_images/'
 
@@ -42,9 +38,7 @@ for subj in subj_list:
     baseimage_T1unmasked_path = os.path.join(temp_folder, f'{subj}_T1_baseimg_unmasked.nii.gz')
     baseimage_T1masked_path = os.path.join(base_image_folder, f'{subj}_T1_masked.nii.gz')
 
-
     if not os.path.exists(baseimage_T1masked_path) or overwrite:
-        # fixed_image = ants.image_read(SAMBA_init)
 
         fa_subj_path = f'/Volumes/Data/Badea/ADdecode.01/Analysis/DWI/{subj}_subjspace_fa.nii.gz'
         fa_init_path = f'/Volumes/Data/Badea/Lab/mouse/VBM_21ADDecode03_IITmean_RPI_fullrun-work/preprocess/base_images/{subj}_fa_masked.nii.gz'

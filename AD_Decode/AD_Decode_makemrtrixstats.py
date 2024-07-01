@@ -145,16 +145,13 @@ else:
 
 if munin:
     gunniespath = "~/wuconnectomes/gunnies"
-    mainpath = "/mnt/munin2/Badea/ADdecode.01/"
     outpath = "/mnt/munin2/Badea/Lab/human/AD_Decode/diffusion_prep_locale/"
     SAMBA_inputs_folder = "/mnt/munin6/Badea/Lab/mouse/ADDeccode_symlink_pool/"
     shortcuts_all_folder = "/mnt/munin6/Badea/Lab/human/ADDeccode_symlink_pool_allfiles/"
 
 else:
     gunniespath = "/Users/alex/bass/gitfolder/wuconnectomes/gunnies/"
-    mainpath="/Volumes/Data/Badea/ADdecode.01/"
     outpath = "/Volumes/Data/Badea/Lab/human/AD_Decode/diffusion_prep_locale/"
-    #bonusshortcutfolder = "/Volumes/Data/Badea/Lab/mouse/ADDeccode_symlink_pool/"
     SAMBA_inputs_folder = None
     shortcuts_all_folder = None
 
