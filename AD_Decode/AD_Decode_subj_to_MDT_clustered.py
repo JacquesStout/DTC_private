@@ -88,7 +88,7 @@ def load_matrix_in_any_format(filepath):
 
 project = 'AD_Decode'
 
-test_mode = False
+test_mode = True
 
 #subj = 'S02670'
 
@@ -102,20 +102,23 @@ else:
     subj = sys.argv[1]
 
 if test_mode:
-    erase=True
+    erase=False
     save_temp_trk_files = True
     save_temp_nii_files = True
     overwrite = True
-    ratio = 100
+    ratio = 1
     mainpath = '/Volumes/Data/Badea/Lab/'
-
+    nii_to_MDT=True
+    del_orig_files = False
 else:
-    erase = False
+    erase = True
     save_temp_trk_files = False
     save_temp_nii_files = False
     overwrite = False
     ratio = 1
     mainpath = '/mnt/munin2/Badea/Lab/'
+    nii_to_MDT = False
+    del_orig_files = True
 
 if 'santorini' in socket.gethostname():
     mainpath = '/Volumes/Data/Badea/Lab/'
@@ -157,9 +160,6 @@ cleanup = False
 verbose = True
 recenter = True
 
-del_orig_files = True
-
-
 contrasts = ['fa', 'md', 'rd', 'ad']
 contrasts = ['fa']
 # contrast = 'fa'
@@ -192,7 +192,6 @@ SAMBA_ref = os.path.join(SAMBA_inits, f'reference_image_native_S01912.nii.gz')
 MDT_median_img = os.path.join(final_template_run, "median_images", f'MDT_fa.nii.gz')
 MDT_median_mif = os.path.join(final_template_run, "median_images", f'MDT_fa.mif')
 
-nii_to_MDT = False
 trk_to_MDT = True
 
 if save_temp_trk_files:
@@ -408,6 +407,10 @@ if trk_to_MDT and (not final_img_exists or overwrite):
     trk_preprocess_init = '/Volumes/Data/Badea/Lab/human/AD_Decode_trk_transfer/TRK_transition/S01912_smallerTracks20000_trk_init_test.trk'
     """
 
+    #print(not checkfile_exists_remote(trk_preprocess_init, sftp))
+    #print(overwrite)
+    #print(save_temp_trk_files)
+    #print((not checkfile_exists_remote(trk_preprocess_init, sftp) or overwrite) and save_temp_trk_files)
     if (not checkfile_exists_remote(trk_preprocess_init, sftp) or overwrite) and save_temp_trk_files:
         save_trk_header(filepath=trk_preprocess_init, streamlines=streamlines_init, header=header,
                         affine=np.eye(4), verbose=verbose, sftp=sftp)

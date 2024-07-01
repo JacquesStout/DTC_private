@@ -21,9 +21,14 @@ overwrite=False
 test_mode = False
 check_MDT = False
 
+#special_list = ['S02227','S02230','S02386','S02410','S02421','S02490','S02523','S02654','S02666','S02745','S02877','S02987','S03890','S01620']
+special_list = ['S02227','S02230','S02386','S02410','S02421','S02490','S02523','S02654','S02666','S02745','S02877','S02987','S01620']
+
 for tck_file in tck_files:
     found=0
     subj = os.path.basename(tck_file)[:6]
+    if subj not in special_list:
+        continue
     reference_file = os.path.join(reference_folder,f'{subj}_subjspace_fa.nii.gz')
     trk_file = os.path.join(trk_folder,os.path.basename(tck_file).replace('.tck','.trk'))
     trk_MDT_file = os.path.join(trk_MDT_folder,f'{subj}*')

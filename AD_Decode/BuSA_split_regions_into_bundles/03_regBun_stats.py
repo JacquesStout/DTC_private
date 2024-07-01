@@ -116,7 +116,7 @@ for remove in removed_list:
 
 new_bundle_ids = np.arange(bundle_split)
 
-overwrite = True
+overwrite = False
 verbose = False
 
 if remote_output:

@@ -182,7 +182,7 @@ roi_mask_left = nib.load(left_mask_path)
 
 scene = None
 interactive = False
-overwrite = True
+overwrite = False
 
 
 """

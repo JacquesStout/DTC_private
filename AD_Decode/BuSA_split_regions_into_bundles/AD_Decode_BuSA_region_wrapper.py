@@ -66,7 +66,7 @@ def find_matching_files(folder_path, pattern):
             matching_files.append(filename)
     return matching_files
 
-print('0')
+#print('0')
 
 if 'santorini' in socket.gethostname().split('.')[0]:
     #project_headfile_folder = '/Users/jas/bass/gitfolder/DTC_private/BuSA_headfiles'
@@ -91,7 +91,7 @@ if 'BD' not in locals():
 
 start_time = datetime.datetime.now()
 
-print('1')
+#print('1')
 
 job_descrp = "BuSAreg"
 sbatch_folder_path = os.path.join(BD, job_descrp + '_sbatch/')
@@ -101,7 +101,7 @@ GD = '/mnt/clustertmp/common/rja20_dev/gunnies/'
 
 # project_run_identifier = '202311_10template_test01'
 
-print('2')
+#print('2')
 
 #python3 AD_Decode_BuSA_iterative_wrapper.py --split 4 --proj V0_9_10template_100_6_interhe_majority --id 4 --split 6 --parts 8
 
@@ -119,16 +119,15 @@ overwrite = False
 qsub = True
 
 testmode = False
-print('3_0')
+
+
 args = parser.parse_args()
 bundle_id_orig = args.id
-print('3_1')
-print(bundle_id_orig)
+
+#print(bundle_id_orig)
 bundle_split = args.split
 project_run_identifier = args.proj
 parts = args.parts
-
-print('3')
 
 if parts is None:
     parts = ['1','2','3']
@@ -150,9 +149,9 @@ added_subjects = params['added_subjects']
 num_bundles = int(params['num_bundles'])
 
 print('4')
-
+print(parts)
 full_subjects_list = template_subjects + added_subjects
-
+full_subjects_list = ['S02227','S02386','S02410','S02421','S02666','S02877']
 sides = ['left', 'right']
 
 bundle_id_orig = bundle_id_orig[0].replace('all','*')
@@ -181,6 +180,8 @@ if '*' in bundle_id_orig:
     bundle_id_orig_new = bundle_id_orig.replace("*","\d+")
     #bundle_ids = glob.glob(os.path.join(trk_proj_path,f'{added_subjects[1]}_bundle_left_{bundle_id_orig_new}.trk'))
     print(bundle_id_orig_new)
+    print(trk_proj_path)
+    print(os.path.join(trk_proj_path, f'{added_subjects[1]}_bundle_left_{bundle_id_orig_new}.trk'))
     bundle_ids = find_matching_files(trk_proj_path, f'{added_subjects[1]}_bundle_left_{bundle_id_orig_new}.trk')
     print(bundle_ids)
     bundle_ids = [bundle_name.split('left_')[1].split('.trk')[0] for bundle_name in bundle_ids]
@@ -190,6 +191,8 @@ else:
     bundle_ids = [bundle_id_orig]
 
 code_specific_folder = os.path.join(code_folder,'AD_Decode','BuSA_split_regions_into_bundles')
+
+#print(bundle_ids)
 
 for bundle_id_orig in bundle_ids:
 
