@@ -183,20 +183,8 @@ if not os.path.exists(excel_path_zscores) or rewrite_cog:       #Begin writing t
             cog_col_list = [float(i) for i in cog_df[cog_col]]
             cog_df[cog_col + '_zscore'] = zscore(cog_col_list*sig)
 
-    """
-    ['MOCA_TOTAL'] = 'None'
-    ['Composite_Familiarity','Composite_Nameability','PrecentCorrectRecall_outof3','Recognized_outof6'] = 'Olfactive_Mem_Mean'
-    ['AVLT_Trial6','AVLT_Trial7','RAVLT_LEARNING','RAVLT_FORGETTING'] = 'Verbal_Mem_Mean'
-    ['Story_Immediate_verbatim, Story_Immediate_paraphrase','Delayed_verbatim', 'Delayed_paraphrase'] = 'Story_Mean' #Verbal_Mem_Mean
-    ['fwd_total_correct','fwd_max_length'] = 'fwd_mean' #Verbal_Mem_Mean
-    ['bckwds_total_correct','bckwds_max_length'] = 'Working_Mem_Mean'
-    ['fluency_4x','letter_fluency'] = 'Verbal_Fluency_Mean'
-    ['Digit Symbol'] = 'Cognition_Mean'
-    ['trailA','trailB'] = 'Visual_attention_Mean'
-    ['ufov2','ufov3'] = 'Visuospatial_Mean'
-    """
-
     columns_toavg = {}
+    """
     #columns_toavg['Olfactive_Mem_Mean'] = ['Composite_Familiarity','Composite_Nameability','PrecentCorrectRecall_outof3','Recognized_outof6']
     columns_toavg['Olfactive_Mem_Mean'] = ['Composite_Familiarity', 'Composite_Nameability', 'Recognized_outof6']
     columns_toavg['Verbal_Mem_Mean'] = ['AVLT_Trial6','AVLT_Trial7','RAVLT_LEARNING','RAVLT_FORGETTING','RAVLT_IMMEDIATE']
@@ -205,8 +193,18 @@ if not os.path.exists(excel_path_zscores) or rewrite_cog:       #Begin writing t
     columns_toavg['Working_Mem_Mean']= ['bckwds_total_correct','bckwds_max_length','trailB']
     columns_toavg['Verbal_Fluency_Mean'] = ['fluency_4x','letter_fluency']
     #columns_toavg['Cognition_Mean'] = ['Digit Symbol']
-    columns_toavg['Visual_attention_Mean'] = ['trailA','trailB']
+    columns_toavg['Visual_attention_Mean'] = ['trailA','Digit_Symbol']
     columns_toavg['Visuospatial_Mean'] = ['ufov2','ufov3']
+    """
+    columns_toavg['Olfactory_Memory'] = ['Composite_Familiarity', 'Composite_Nameability', 'Recognized_outof6']
+    columns_toavg['Word_List_learning_and_Verbal_Memory'] = ['AVLT_Trial6','AVLT_Trial7','RAVLT_LEARNING','RAVLT_FORGETTING','RAVLT_IMMEDIATE']
+    columns_toavg['Narrative_Learning_and_Verbal_attention'] = ['Story_Immediate_verbatim', 'Story_Immediate_paraphrase','Delayed_verbatim', 'Delayed_paraphrase']
+    columns_toavg['Verbal_Attention'] = ['fwd_total_correct','fwd_max_length']
+    columns_toavg['Working_Memory_and_Mental_Flexibility']= ['bckwds_total_correct','bckwds_max_length','trailB']
+    columns_toavg['Verbal_Fluency'] = ['fluency_4x','letter_fluency']
+    columns_toavg['Graphomotor_and_Visual_scanning_speed'] = ['trailA','Digit_Symbol']
+    columns_toavg['Visual_Attention'] = ['ufov2','ufov3']
+
 
     for key in columns_toavg.keys():
         # Calculate the average along the columns and store it in a new column
@@ -235,7 +233,6 @@ p_value_sig = 0.05   #pvalue cutoff
 bundle_sub_select = None #If bundle_sub_select has a specified bundle, ex:'bundle_4', run over the bundle and/or all its descendants only.
 # If None, run over all bundles
 
-make_spider_graph = True    #Make the radar plots
 group_corr_compare = False  #If True, on top of getting group influence, also compare the plots of groupA vs groupB directly
 quadratic = False
 
@@ -325,114 +322,7 @@ for sub_bundling_level in sub_bundling_levels:
             elif col_col_type == 'blood_pressure':
                 col_tests = ['Diastolic','Systolic']
 
-
-
             output_type = ''
-
-            if col_col_type == 'cog_mean' and make_spider_graph:        #Run the radar plot creatuib
-
-                categories = col_tests
-                categories.remove('MOCA_TOTAL')
-
-                mid_age = np.quantile(full_stat_db['age'], (1 / 3))
-                old_age = np.quantile(full_stat_db['age'], (2 / 3))
-
-                spiderfig_groups = ['young','mid','old','all']  #All radar plot groupings
-
-                spider_graph_folder = os.path.join(lm_path, f'spider_graph') #radar plot output path
-                mkcdir(spider_graph_folder)
-
-                for spiderfig_group in spiderfig_groups:
-
-                    if spiderfig_group =='all':
-                        temp_db = full_stat_db
-                    elif spiderfig_group == 'young':
-                        temp_db = full_stat_db[full_stat_db['age']<mid_age]
-                    elif spiderfig_group == 'mid':
-                        temp_db = full_stat_db[(full_stat_db['age']>mid_age) & (full_stat_db['age']<old_age)]
-                    elif spiderfig_group == 'old':
-                        temp_db = full_stat_db[full_stat_db['age']>old_age]
-                    else:
-                        raise Exception('Option unrecolnized')
-
-                    rvals_dic = {}
-
-                    max = 0
-                    min = 10
-                    fig = go.Figure()
-
-                    for group in np.unique(temp_db[group_column]):
-                        rvals_dic[group] = []
-                        for category in categories:
-                            category_val = np.mean(temp_db[temp_db[group_column] == group][category])
-                            rvals_dic[group].append(category_val)
-
-                        if group == 'APOE3':
-                            color = 'blue'
-                        elif group == 'APOE4':
-                            color = 'red'
-                        elif group == 'APOE2':
-                            color = 'green'
-                        else:
-                            color = None
-
-                        #color = None
-
-                        fig['layout']['yaxis']['autorange'] = "reversed"
-
-                        #r0 = math.ceil(np.max(rvals_dic[group])*10)/10
-                        #rend = math.ceil(np.abs(np.min(rvals_dic[group]))*10)/10
-                        #dr = np
-                        categories_clean = []
-                        for category in categories:
-                            categories_clean.append(category.replace('_Mean','').replace('_',' ').replace('Mem','Memory').replace('short term','short'))
-
-                        if color is None:
-                            fig.add_trace(go.Scatterpolar(
-                                r=rvals_dic[group],
-                                theta=categories_clean,
-                                fill='toself',
-                                name=group,
-                            ))
-                        else:
-                            fig.add_trace(go.Scatterpolar(
-                                r=rvals_dic[group],
-                                theta=categories_clean,
-                                fill='toself',
-                                name=group,
-                                fillcolor=color,
-                                opacity = 0.5
-                            ))
-
-                        if max < np.max(rvals_dic[group]):
-                            max = np.max(rvals_dic[group])
-                        if min > np.min(rvals_dic[group]):
-                            min = np.min(rvals_dic[group])
-
-                    if spiderfig_group == 'all':
-                        showlegend=True
-                    else:
-                        showlegend=False
-
-
-                    fig.update_layout(
-                        polar=dict(
-                            radialaxis=dict(
-                                visible=True,
-                                #range=[max, min]
-                                range=[0.5, -0.9],  #This range helps specify that low score makes radar plotting bigger, not smaller
-                                ticktext = categories_clean
-                            ),
-                            angularaxis=dict(
-                                tickfont=dict(size=18),  # Change font size for category labels
-                                categoryarray=categories_clean,  # Specify the category array
-                                categoryorder='array'  # Use the order of categories provided
-                            )
-                        ),
-                        showlegend=showlegend
-                    )
-
-                    fig.write_image(os.path.join(spider_graph_folder,f'spider_{spiderfig_group}.png'))
 
             for stat_type in reg_stat_types:
 
