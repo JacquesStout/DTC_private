@@ -248,7 +248,6 @@ reg_stat_types = ['len_sl']
 
 #'cog_mean' or 'cog_cols' or 'phys_cols'
 
-sub_bundling_levels = [1,2,3,4]
 sub_bundling_levels = [1,2,3,4]  #The sub bundling levels to cover. FDR-wise. for each level,
 # all bundles of that level are grouped together unless specified otherwise byf bundle_sub_select
 

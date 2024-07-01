@@ -25,6 +25,7 @@ allowed_methods = ['cs_DtiStandard','nmrsuDtiStandardAlex']
 #allowed_methods = ['cs_DtiStandard']
 #allowed_methods = ['cs_DtiStandard','pCASL_FcFLASHv2']
 #subjects = ['20230830_142204_230605_20_apoe_18abb11_1_1']
+"""
 subjects = [folder_path.split('/')[-2] for folder_path in glob.glob(os.path.join(data_path,'*/'))]
 subjects = ['20230621_124300_230508_14_apoe_18abb11_1_1', '20230621_142852_230508_14_CStesting_18abb11_DEV_1_1', '20230621_143413_230508_14_CStesting_2_18abb11_DEV_1_1']
 subjects = ['20231011_091614_230925_6_18abb11_1_1','','20231011_155125_230925_11_apoe_18abb11_apoe_1_1']
@@ -36,6 +37,7 @@ subjects = [folder_path.split('/')[-2] for folder_path in glob.glob(os.path.join
 subjects = ['20231011_155125_230925_11_apoe_18abb11_apoe_1_1']
 subjects = ['20231107_101335_210222_17_exvivotestCS_v2_18abb11_DEV_1_1']
 subjects = [folder_path.split('/')[-2] for folder_path in glob.glob(os.path.join(data_path,'20221115*/'))]
+"""
 subjects = [folder_path.split('/')[-2] for folder_path in glob.glob(os.path.join(data_path,'20231107*/'))]
 #subjects = ['20231004_105847_230918_11_apoe_18abb11_APOE_1_1']
 
