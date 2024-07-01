@@ -41,22 +41,26 @@ def median_mask_make(inpath, outpath=None, outpathmask=None, median_radius=4, nu
 
 
 verbose=False
-overwrite=False
-masking = True
-cleanup = False
-checked_bvecs = True
+overwrite=False #create files even if they already exist
+masking = True  #create mask with median_otsu (dipy function)
+cleanup = False #cleanup defines if temp files should be removed afterwards
+checked_bvecs = True #check the orientation of bvecs with dwigradcheck (mrtrix functino)
 #
 subj = '20220905_14'
-orig_recon_nii = '/Volumes/dusom_mousebrains/All_Staff/Data/CS/MouseMRI_Duke_results/20220905_14/11/11_CS_DWI_bart_recon.nii.gz'
+orig_recon_nii = '/Volumes/dusom_mousebrains/All_Staff/Data/CS/MouseMRI_Duke_results/20220905_14/11/11_CS_DWI_bart_recon.nii.gz' #4D nifti file
 method_path = '/Volumes/dusom_mousebrains/All_Staff/Data/CS/MouseMRI_Duke/20220905_14/11/method'
 in_path = '/Volumes/dusom_mousebrains/All_Staff/Data/CS/MouseMRI_Duke_results/20220905_14/11/'
-out_path = os.path.join(in_path,'trks')
-temp_path = os.path.join(in_path,'temp')
+#out_path = os.path.join(in_path,'trks')
+out_path = os.path.join(in_path,'BJ_test_trks')
+
+#temp_path = os.path.join(in_path,'temp')
+temp_path = os.path.join(in_path,'BJ_test_temp')
+
 
 mkcdir([out_path,temp_path])
 
-orient_start = 'ARI'
-orient_end = 'RAS'
+orient_start = 'ARI'    #starting orientation of 4d nifti file
+orient_end = 'RAS'  #final orientation before creation of trk file
 
 basename = os.path.basename(orig_recon_nii)
 
@@ -83,23 +87,33 @@ bvec_path = os.path.join(temp_path,f'{subj}_bvec_fix.txt')
 bval_checked_path = os.path.join(temp_path,f'{subj}_checked.bval')
 bvec_checked_path = os.path.join(temp_path,f'{subj}_checked.bvec')
 
+fastrun = True
+
+keep_10mil = True
+
+denoise = True
+
+#if bvals and bvecs do not exist, extract them from method file
 if not os.path.exists(bvec_orig_path) or not os.path.exists(bvec_orig_path) or overwrite:
     extractbvals_from_method(method_path, outpath=os.path.join(in_path, f'{subj}'), tonorm=True, verbose=False)
 
+#if original orientation and desired orientation is different, rotate them
 if orient_start!=orient_end:
     bvecs_reoriented_path = os.path.join(temp_path,f'{subj}_{orient_end}.bvec')
     if not os.path.exists(bvecs_reoriented_path) or overwrite:
         reorient_bvecs_files(bvec_orig_path,bvecs_reoriented_path,orient_start,orient_end)
     bvec_orig_path = bvecs_reoriented_path
 
+#standardize bval/bvec format
 if not os.path.exists(bval_path) or not os.path.exists(bvec_path) or overwrite:
     fix_bvals_bvecs(bval_orig_path, bvec_orig_path, outpath=temp_path, b0_threshold=300,writeformat='mrtrix')
 
+#convert the 4d nifti to mif
 if not os.path.exists(recon_mif) or overwrite:
     os.system(
         'mrconvert ' + recon_nii + ' ' + recon_mif + ' -fslgrad ' + bvec_path + ' ' + bval_path + ' -bvalue_scaling false -force')  # turn off the scaling otherwise bvals becomes 0 4000 1000 instead of 2000
 
-
+#create the mask with median_otsu
 if not os.path.exists(mask_nii_path) or overwrite:
 
     median_radius = 4
@@ -127,19 +141,15 @@ if not os.path.exists(mask_nii_path) or overwrite:
         os.remove(b0_dwi_mif_temp)
         os.remove(b0_dwi_nii_temp)
 
-
+#run the grad check to guarantee that bvecs are in right orientation compared to image (mrtrix function)
 if not os.path.exists(bval_checked_path) or not os.path.exists(bvec_checked_path) and checked_bvecs:
     os.system(
         f'dwigradcheck ' + recon_mif + ' -fslgrad ' + bvec_path + ' ' + bval_path + ' -mask ' + mask_nii_path + ' -number 100000 -export_grad_fsl ' + bvec_checked_path + ' ' + bval_checked_path + ' -force')
 
 
-fastrun = False
-
-keep_10mil = True
-
-denoise = True
 
 
+#change the path depending on whether bvecs were checked
 if checked_bvecs:
     coreg_bvecs = bvec_checked_path
     coreg_bvals = bval_checked_path
