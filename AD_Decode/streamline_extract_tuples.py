@@ -83,88 +83,6 @@ def fix_badwarp_streamlines(streamlines):
     return streamlines_pruned
 
 
-def fix_badwarp_streamlines_old(streamlines):
-    streamlines_pruned = []
-    streamlines_onlypruned = []
-
-    for id, streamline in enumerate(streamlines):
-        pruned = 0
-        for i in range(len(streamline) - 1):
-            point1 = streamline[i]
-            point2 = streamline[i + 1]
-
-            distance = np.linalg.norm(point2 - point1)
-
-            if distance > 10:
-                # print(f"Distance between points {i} and {i + 1} is {distance:.2f}, which exceeds the threshold.")
-                """
-                if i+1>len(streamline)/2:
-                    streamlines_pruned.append(streamline[:i+1])
-                    kept_part = streamline[:i+1]
-                    cut_part = streamline[i+1:]
-                elif i+1<len(streamline)/2:
-                    streamlines_pruned.append(streamline[i+1:])
-                    cutpart = streamline[:i + 1]
-                else:
-                """
-                firstpart = streamline[:i + 1]
-                secondpart = streamline[i + 1:]
-                if np.linalg.norm(firstpart - firstpart[0]) < 0.5:
-                    kept_part = secondpart
-                    cut_part = firstpart
-                elif np.linalg.norm(secondpart - secondpart[0]) < 0.5:
-                    kept_part = firstpart
-                    cut_part = secondpart
-                else:
-                    point_pre = firstpart[0]
-                    found = 0
-                    for point in firstpart[1:]:
-                        if np.linalg.norm(point - point_pre) == 0:
-                            kept_part = secondpart
-                            cut_part = firstpart
-                            found = 1
-                            break
-                        point_pre = point
-                    if not found:
-                        point_pre = secondpart[0]
-                        for point in secondpart[1:]:
-                            if np.linalg.norm(point - point_pre) == 0:
-                                kept_part = firstpart
-                                cut_part = secondpart
-                                found = 1
-                                break
-                            point_pre = point
-                    if not found:
-                        if (len(firstpart) > 2 * len(secondpart)) or (len(streamline)<10 and len(firstpart)>(len(secondpart))):
-                            kept_part = firstpart
-                            cut_part = secondpart
-                        elif len(secondpart) > 2 * len(firstpart) or (len(streamline)<10 and len(secondpart)>(len(firstpart))):
-                            kept_part = secondpart
-                            cut_part = firstpart
-                        else:
-                            print('investigate')
-                pruned = 1
-                try:
-                    streamlines_pruned.append(kept_part)
-                except:
-                    streamlines_pruned.append(firstpart)
-                streamlines_onlypruned.append(streamline)
-
-                # if not np.all(np.linalg.norm(cutpart - cutpart[0]) == cutpart[0], axis=0).all():
-                #    print('investigate')
-                break
-        if not pruned:
-            streamlines_pruned.append(streamline)
-    return streamlines_pruned,streamlines_onlypruned
-
-
-"""
-'1 Cerebellum-Cortex_Right---Cerebellum-Cortex_Left 9 1 with weight of 3053.5005\n'
-    '2 inferiortemporal_Left---Cerebellum-Cortex_Left 24 1 with weight of 463.1322\n'
-    '3 inferiortemporal_Right---inferiorparietal_Right 58 57 with weight of 435.9886\n'
-    '4 middletemporal_Right---inferiorparietal_Right 64 57 with weight of 434.9106\n'
-    '5 fusiform_Left---Cerebellum-Cortex_Left 22 1 with weight of 402.0991\n'
-"""
 #target_tuple = (9, 1)
 #target_tuple = (64, 57)
 #target_tuple = (24, 1)
@@ -232,7 +150,7 @@ if 'samos' in computer_name:
     ROI_legends = "/mnt/paros_MRI/jacques/atlases/IITmean_RPI/IITmean_RPI_index.xlsx"
 elif 'santorini' in computer_name or 'hydra' in computer_name:
     #mainpath = '/Volumes/Data/Badea/Lab/human/'
-    mainpath = '/Volumes/Shared Folder/newJetStor/paros/paros_WORK/jacques/AD_Decode/'
+    mainpath = '/Volumes/newJetStor/newJetStor/paros/paros_DB/Projects/AD_Decode/Analysis'
     ROI_legends = "/Volumes/Data/Badea/ADdecode.01/Analysis/atlases/IITmean_RPI/IITmean_RPI_index.xlsx"
     #ref_MDT_folder = '/Volumes/Data/Badea/Lab/mouse/VBM_21ADDecode03_IITmean_RPI_fullrun-work/dwi/SyN_0p5_3_0p5_fa/faMDT_NoNameYet_n37_i6/reg_images/'
     ref_MDT_folder = '/Volumes/Data/Badea/Lab/mouse/VBM_21ADDecode03_IITmean_RPI_fullrun-work/dwi/SyN_0p5_3_0p5_fa/faMDT_NoNameYet_n37_i6/median_images/'
@@ -277,13 +195,15 @@ else:
 
 kos=False
 
-mainpath = '/Volumes/Shared Folder/newJetStor/paros/paros_WORK/jacques/AD_Decode/'
+#mainpath = '/Volumes/Shared Folder/newJetStor/paros/paros_WORK/jacques/AD_Decode/'
+mainpath = '/Volumes/newJetStor/newJetStor/paros/paros_DB/Projects/AD_Decode/Analysis'
 #TRK_folder = os.path.join(mainpath, f'TRK_MPCA_MDT_fixed{folder_ratio_str}')
 TRK_folder = os.path.join(mainpath, 'TRK_MDT'+ratio_str)
-TRK_folder = '/Volumes/Shared Folder/newJetStor/paros/paros_WORK/jacques/AD_Decode/TRK_MDT_act/'
-TCK_folder = '/Volumes/Shared Folder/newJetStor/paros/paros_WORK/jacques/AD_Decode/TCK_MDT_act/'
+TRK_folder = '/Volumes/newJetStor/newJetStor/paros/paros_DB/Projects/AD_Decode/Analysis/TRK_MDT_act/'
+TCK_folder = '/Volumes/newJetStor/newJetStor/paros/paros_DB/Projects/AD_Decode/Analysis/TCK_MDT_act/'
 
 if not kos:
+
     mainpath = '/Volumes/Data/Badea/Lab/human/AD_Decode/'
     TCK_folder = '/Volumes/Data/Badea/Lab/human/AD_Decode_trk_transfer/TCK_MDT'
     TRK_folder = '/Volumes/Data/Badea/Lab/human/AD_Decode_trk_transfer/TRK_MDT'

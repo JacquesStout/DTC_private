@@ -357,22 +357,7 @@ for subject in subjects:
         subjects_notdone.append(subject_notdone)
 
 print(f'subjects not done by SAMBA: {subjects_notdone}')
-"""
-txt2 = 'cp '
-txt1=''
-for subject in subjects_notdone:
-    txt1= txt1 + (f'diffusion_prep_{subject} ')
-    path1 = '/Volumes/Data/Badea/.snapshot/weekly.2023-02-05_0015/Lab/mouse/APOE_series/diffusion_prep_locale'
-    file1 = os.path.join(path1,f'diffusion_prep_{subject}/Reg_{subject}nii4D.nii.gz')
-    path2 = '/Volumes/Data/Badea/Lab/mouse/APOE_series/diffusion_prep_locale'
-    file2 = os.path.join(path2,f'diffusion_prep_{subject}/Reg_{subject}nii4D.nii.gz')
-    #txt2= txt2 + (f'diffusion_prep_{subject}/Reg_{subject}nii4D.nii.gz /Volumes/Data/Badea/Lab/mouse/APOE_series/diffusion_prep_locale/diffusion_prep_{subject}/')
-    try:
-        shutil.copy(file1, file2)
-    except:
-        print(f'cp {file1} {file2}')
-    #shutil.copy(file1, file2)
-    #print(f'cp {file1} {file2}')
+
 """
 
 mkcdir([DTC_DWI_folder,DTC_labels_folder],sftp)
@@ -684,7 +669,7 @@ for subject in subjects:
 
 if remote:
     sftp.close()
-
+"""
 """
     APOE
     subjects = ['N57437', 'N57442', 'N57446', 'N57447','N57449','N57451','N57496','N57498','N57500','N57502','N57504', 'N57513',

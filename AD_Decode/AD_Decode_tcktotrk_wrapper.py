@@ -38,7 +38,7 @@ for tck_file in tck_files:
         #print(f'found {subj}')
         continue
     if not os.path.exists(trk_file) or overwrite:
-        python_command = f"python3 ~/DTC_private/AD_Decode/AD_Decode_tcktotrk.py {tck_file} {trk_file} {reference_file} 2000000"
+        python_command = f"python3 ~/DTC_private/DTC/tcktotrk.py {tck_file} {trk_file} {reference_file} 2000000"
         # python_command = "python3 ~/DTC_private/AMD//AMD_subj_to_MDT_clustered.py " + subj
         job_name = job_descrp + "_" + subj
         command = GD + "submit_sge_cluster_job.bash " + sbatch_folder_path + " " + job_name + " 0 0 '" + python_command + "'"

@@ -214,6 +214,7 @@ def buildlink(real_file, linked_file):
         if os.path.islink(real_file):
             real_file = os.readlink(real_file)
         relpath = getrelativepath(real_file, linked_file)
+        #BJ, you can modify here to send the symbolic link command to munin
         link_cmd=f"ln -s ./{relpath} {linked_file}"
         os.system(link_cmd)
 

@@ -135,7 +135,7 @@ col_col_types = ['age']
 reg_stat_types = ['meanfa','num_sl','vol_sl','sdfa','len_sl']
 reg_stat_types = ['num_sl','vol_sl','len_sl']
 reg_stat_types = ['sdfa','num_sl','vol_sl','len_sl','BUAN']
-#reg_stat_types = ['meanfa']
+reg_stat_types = ['meanfa']
 #reg_stat_types = ['num_sl','vol_sl','sdfa','len_sl']
 #reg_stat_types = ['num_sl']
 #reg_stat_types = ['BUAN']
@@ -294,6 +294,7 @@ for sub_bundling_level in sub_bundling_levels:
                 p_values_col = []
                 p_values_interact = []
                 p_values_group_compare = []
+                p_values_sex = []
                 pickle_paths = []
                 group_corrs = []
 
@@ -346,6 +347,8 @@ for sub_bundling_level in sub_bundling_levels:
                         group_key = [key for key in model.pvalues.keys() if group_column in key and bundle_stat not in key and 'sex' not in key and col_type not in key][0]
                         if sex_included:
                             interact_key = [key for key in model.pvalues.keys() if group_column in key and col_type in key and 'sex' in key][0]
+                            sex_key = [key for key in model.pvalues.keys() if
+                                       group_column not in key and bundle_stat not in key and 'sex' in key and col_type not in key][0]
                         else:
                             interact_key = [key for key in model.pvalues.keys() if group_column in key and col_type in key and not 'sex' in key][0]
 
@@ -388,6 +391,13 @@ for sub_bundling_level in sub_bundling_levels:
 
                             #group_corr['r2score_stat'] = model.rsquared
                             group_corr['r2score_stat'] = model.rsquared
+
+                        if sex_included:
+                            p_values_sex.append(model.pvalues[sex_key])
+                            group_corr['sex'] = model.params[sex_key]
+                        else:
+                            p_values_sex.append(1)
+                            group_corr['sex'] = 0
 
                         group_corrs.append(group_corr)
 
@@ -475,7 +485,7 @@ for sub_bundling_level in sub_bundling_levels:
 
                         if formula_type == 'quadratic':
                             x_pred = np.linspace(full_stat_db[col_type].min(), full_stat_db[col_type].max(), 100)
-                            y_pred = model.predict(pd.DataFrame({col_type: x_pred, formula: x_pred ** 2}))
+                            #y_pred = model.predict(pd.DataFrame({col_type: x_pred, formula: x_pred ** 2}))
 
                             #x_pred = np.linspace(full_stat_db[col_type].min(), full_stat_db[col_type].max(), 100)
                             df_pred = pd.DataFrame({
@@ -519,7 +529,7 @@ for sub_bundling_level in sub_bundling_levels:
                 _, p_values_stat_corrected, _, _ = multipletests(p_values_col, method='bonferroni')
                 _, p_values_group_corrected, _, _ = multipletests(p_values_group, method='bonferroni')
                 _, p_values_interact_corrected, _, _ = multipletests(p_values_interact, method='bonferroni')
-
+                _, p_values_sex_corrected, _, _ = multipletests(p_values_sex, method='bonferroni')
 
                 def select_top_significant(pvals, num, sig_cutoff = 0.05):
                     pvals_sig = pvals[pvals < sig_cutoff]
