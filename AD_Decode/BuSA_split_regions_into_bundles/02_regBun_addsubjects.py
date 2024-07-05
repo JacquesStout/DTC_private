@@ -136,10 +136,16 @@ else:
     prune = True
     trkroi = ["wholebrain"]
 
-str_identifier = get_str_identifier(stepsize, ratio, trkroi, type='mrtrix')
-#str_identifier = '_streamlines'
-
-ratiostr = ratio_to_str(ratio,spec_all=False)
+try:
+    float(ratio)
+    ratiostr = ratio_to_str(ratio, spec_all=False)
+    str_identifier = get_str_identifier(stepsize, ratio, trkroi, type=streamline_type)
+except ValueError:
+    if ratio == 'edge':
+        ratiostr = ''
+        str_identifier = '_streamlines'
+    else:
+        raise Exception('Unrecognized condition for value of ratio in headfile')
 
 outpath_all = os.path.join(outpath, 'TRK_bundle_splitter')
 proj_path = os.path.join(outpath_all,project_run_identifier)

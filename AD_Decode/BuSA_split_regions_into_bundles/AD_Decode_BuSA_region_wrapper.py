@@ -118,7 +118,7 @@ overwrite = False
 
 qsub = True
 
-testmode = False
+testmode = True
 
 
 args = parser.parse_args()
@@ -195,8 +195,6 @@ else:
     bundle_ids = [None]
 
 code_specific_folder = os.path.join(code_folder,'AD_Decode','BuSA_split_regions_into_bundles')
-
-#print(bundle_ids)
 
 
 for bundle_id_orig in bundle_ids:

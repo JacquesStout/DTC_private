@@ -134,9 +134,18 @@ else:
     prune = True
     trkroi = ["wholebrain"]
 
-str_identifier = get_str_identifier(stepsize, ratio, trkroi, type='mrtrix')
 
-ratiostr = ratio_to_str(ratio, spec_all=False)
+try:
+    float(ratio)
+    ratiostr = ratio_to_str(ratio, spec_all=False)
+    str_identifier = get_str_identifier(stepsize, ratio, trkroi, type=streamline_type)
+except ValueError:
+    if ratio == 'edge':
+        ratiostr = ''
+        str_identifier = '_streamlines'
+    else:
+        raise Exception('Unrecognized condition for value of ratio in headfile')
+
 
 if 'santorini' in socket.gethostname().split('.')[0]:
     lab_folder = '/Volumes/Data/Badea/Lab'

@@ -153,8 +153,6 @@ else:
     prune = True
     trkroi = ["wholebrain"]
 
-str_identifier = get_str_identifier(stepsize, ratio, trkroi, type=streamline_type)
-#str_identifier = '_streamlines'
 
 if 'santorini' in socket.gethostname().split('.')[0]:
     lab_folder = '/Volumes/Data/Badea/Lab'
@@ -171,7 +169,17 @@ if project == 'AD_Decode':
 _, _, _, sftp_in = get_mainpaths(remote_input,project = project, username=username,password=passwd)
 outpath, _, _, sftp_out = get_mainpaths(remote_output,project = project, username=username,password=passwd)
 
-ratiostr = ratio_to_str(ratio,spec_all=False)
+try:
+    float(ratio)
+    ratiostr = ratio_to_str(ratio, spec_all=False)
+    str_identifier = get_str_identifier(stepsize, ratio, trkroi, type=streamline_type)
+except ValueError:
+    if ratio == 'edge':
+        ratiostr = ''
+        str_identifier = '_streamlines'
+    else:
+        raise Exception('Unrecognized condition for value of ratio in headfile')
+
 
 outpath_all = os.path.join(outpath, 'TRK_bundle_splitter')
 proj_path = os.path.join(outpath_all,project_run_identifier)
