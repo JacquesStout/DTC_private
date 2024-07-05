@@ -154,45 +154,50 @@ full_subjects_list = template_subjects + added_subjects
 full_subjects_list = ['S02227','S02386','S02410','S02421','S02666','S02877']
 sides = ['left', 'right']
 
-bundle_id_orig = bundle_id_orig[0].replace('all','*')
-if '*' in bundle_id_orig:
+if bundle_id_orig is not None:
+    bundle_id_orig = bundle_id_orig[0].replace('all','*')
 
-    ratio = params['ratio']
+    if '*' in bundle_id_orig:
 
-    remote_input = bool(params['remote_input'])
-    remote_output = bool(params['remote_output'])
-    ratiostr = ratio_to_str(ratio, spec_all=False)
+        ratio = params['ratio']
 
-    if remote_input or remote_output:
-        username, passwd = getfromfile(os.path.join(os.environ['HOME'], 'remote_connect.rtf'))
+        remote_input = bool(params['remote_input'])
+        remote_output = bool(params['remote_output'])
+        ratiostr = ratio_to_str(ratio, spec_all=False)
+
+        if remote_input or remote_output:
+            username, passwd = getfromfile(os.path.join(os.environ['HOME'], 'remote_connect.rtf'))
+        else:
+            username = None
+            passwd = None
+
+        project = params['project']
+        outpath, _, _, sftp_out = get_mainpaths(remote_output, project=project, username=username, password=passwd)
+        outpath_all = os.path.join(outpath, 'TRK_bundle_splitter')
+        proj_path = os.path.join(outpath_all, project_name)
+
+        trk_proj_path = os.path.join(proj_path, 'trk_roi' + ratiostr)
+
+        added_subjects = params['added_subjects']
+        bundle_id_orig_new = bundle_id_orig.replace("*","\d+")
+        #bundle_ids = glob.glob(os.path.join(trk_proj_path,f'{added_subjects[1]}_bundle_left_{bundle_id_orig_new}.trk'))
+        print(bundle_id_orig_new)
+        print(trk_proj_path)
+        print(os.path.join(trk_proj_path, f'{added_subjects[1]}_bundle_left_{bundle_id_orig_new}.trk'))
+        bundle_ids = find_matching_files(trk_proj_path, f'{added_subjects[1]}_bundle_left_{bundle_id_orig_new}.trk')
+        print(bundle_ids)
+        bundle_ids = [bundle_name.split('left_')[1].split('.trk')[0] for bundle_name in bundle_ids]
+        print(bundle_ids)
+        #bundle_ids = np.arange(num_bundles)
     else:
-        username = None
-        passwd = None
-
-    project = params['project']
-    outpath, _, _, sftp_out = get_mainpaths(remote_output, project=project, username=username, password=passwd)
-    outpath_all = os.path.join(outpath, 'TRK_bundle_splitter')
-    proj_path = os.path.join(outpath_all, project_name)
-
-    trk_proj_path = os.path.join(proj_path, 'trk_roi' + ratiostr)
-
-    added_subjects = params['added_subjects']
-    bundle_id_orig_new = bundle_id_orig.replace("*","\d+")
-    #bundle_ids = glob.glob(os.path.join(trk_proj_path,f'{added_subjects[1]}_bundle_left_{bundle_id_orig_new}.trk'))
-    print(bundle_id_orig_new)
-    print(trk_proj_path)
-    print(os.path.join(trk_proj_path, f'{added_subjects[1]}_bundle_left_{bundle_id_orig_new}.trk'))
-    bundle_ids = find_matching_files(trk_proj_path, f'{added_subjects[1]}_bundle_left_{bundle_id_orig_new}.trk')
-    print(bundle_ids)
-    bundle_ids = [bundle_name.split('left_')[1].split('.trk')[0] for bundle_name in bundle_ids]
-    print(bundle_ids)
-    #bundle_ids = np.arange(num_bundles)
+        bundle_ids = [bundle_id_orig]
 else:
-    bundle_ids = [bundle_id_orig]
+    bundle_ids = [None]
 
 code_specific_folder = os.path.join(code_folder,'AD_Decode','BuSA_split_regions_into_bundles')
 
 #print(bundle_ids)
+
 
 for bundle_id_orig in bundle_ids:
 
