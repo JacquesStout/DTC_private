@@ -1,0 +1,92 @@
+myaaic
+-poster
+
+
+
+Code summary, simplified, assumed to be on Santorini:
+
+Change line 127 => target_tuples = , to the tuple that should be studied (example: 84 6, aka insula_right_to_left-hippocampus)
+python3 /Users/jas/bass/gitfolder/DTC_private/AD_Decode/streamline_extract_tuples.py #Takes a couple hours
+
+Create a new headfile at:
+/Volumes/Data/Badea/Lab/jacques/BuSA_headfiles/V1_0_reg_insula_right_to_left-hippocampus.ini
+definte the path trk using the right folder outputtted by streamline_extract_tuples.py
+path_trk = /mnt/munin2/Badea/Lab/human/AD_Decode/Streamlines_tupled_MDT_mrtrix_act_non_inclusive_symmetric/ctx-rh-insula_right_to_left-hippocampus_left_MDT_all
+ratio = edge
+
+export PYTHONPATH=${PYTHONPATH}:/home/jas297/linux/DTC_private
+python3 AD_Decode_BuSA_region_wrapper.py --split 1 --proj V_1_0_reg_insula_right_to_left-hippocampus
+
+
+
+Full details
+
+step 1:
+
+
+Run 
+/Users/jas/MATLAB/popNet_HOPCA_ADDecode_2024/ourscripts/stepA_read_xlsx_ADDecode.m
+to go through connectomes and metadata, and generate .mat files with all connectomes and simplified metadata descriptions
+
+step 2:
+Run 
+/Users/jas/MATLAB/popNet_HOPCA_ADDecode_2024/ourscripts/stepBC_TNPCA_calculatevars_ADdecode.m
+which outputs the tables describing the top connections in
+/Users/jas/MATLAB/popNet_HOPCA_ADDecode_2024/results_conn_plain_act/myresults_genotype_comparison.txt
+/Users/jas/MATLAB/popNet_HOPCA_ADDecode_2024/results_famean_act/myresults_age_comparison.txt , etc
+
+step 3:
+
+Create the folders of trks for the desired edge
+mount munin (or paros if desired)
+run
+/Users/jas/bass/gitfolder/DTC_private/AD_Decode/streamline_extract_tuples.py
+target_tuples = [(78,40)]
+
+Mount to dusom is:
+Finder => Go => Connect to server: smb://duhs-comp-pri.dhe.duke.edu/dusom_mousebrains
+inputs in dusom are:
+/Volumes/dusom_mousebrains/All_Staff/Data/ADDECODE/TRK_MDT_fixed
+outputs to:
+Volumes/Data/Badea/Lab/human/AD_Decode/Streamlines_tupled_MDT_mrtrix_act_non_inclusive_symmetric/
+
+(the subject space version found in /Users/jas/bass/gitfolder/DTC_private/AD_Decode/streamline_extract_tuples_subjspace.py 
+will output in /Volumes/Data/Badea/Lab/human/AD_Decode/Streamlines_tupled_mrtrix_act_non_inclusive_symmetric
+subject space input of trk is in /Volumes/Data/Badea/Lab/mouse/mrtrix_ad_decode/perm_files)
+
+step 4:
+
+Extract FA out of bundles (by creating BuSA basic project)
+
+References are found in mouse/VBM_21ADDecode03_IITmean_RPI_fullrun-work/dwi/SyN_0p5_3_0p5_fa/faMDT_NoNameYet_n37_i6/reg_images
+
+all input trk /mnt/Data/Badea/Lab/human/AD_Decode_trk_transfer/TRK_MDT_fixed_ratio_100
+for example if the edge of interest is ctx-lh-superiorparietal_left_to_ctx-lh-precuneus
+definput pathb to mnt/munin2/Badea/Lab/human/AD_Decode/Streamlines_tupled_MDT_mrtrix_act_non_inclusive_symmetric/ctx-lh-superiorparietal_left_to_ctx-lh-precuneus_left_MDT_all
+
+this path needs to be definec in a headfile, examples found in /Volumes/Data/Badea/Lab/jacques/BuSA_headfiles/V1_0_reg_precuneusleft_superiorparietalleft.ini
+where it is defined as path_trk = /mnt/munin2/Badea/Lab/human/AD_Decode/Streamlines_tupled_MDT_mrtrix_act_non_inclusive_symmetric/ctx-lh-superiorparietal_left_to_ctx-lh-precuneus_left_MDT_all
+the output project folder will be found in:
+/Volumes/Data/Badea/Lab/AD_Decode/TRK_bundle_splitter/V1_0_reg_precuneusleft_superiorparietalleft
+
+This is then used as input for
+/Users/jas/bass/gitfolder/DTC_private/AD_Decode/BuSA_split_regions_into_bundles/regBun_stats_variant_direct.py
+
+ssh -Y jas297@cluster.biac.duke.edu
+/home/jas297/linux/DTC_private/AD_Decode/BuSA_split_regions_into_bundles
+add DTC_private/DTC to python path
+If you're using bash (on a Mac or GNU/Linux distro), add this to your ~/.bashrc
+export PYTHONPATH="${PYTHONPATH}:/path/DTC_private/DTC"
+
+munin: python3 regBun_stats_variant_direct.py --proj /mnt/munin2/Badea/Lab/jacques/BuSA_headfiles/V1_0_reg_superiorparietal_precuneus_intrah.ini --split 1
+
+all stats found in /Volumes/Data/Badea/Lab/AD_Decode/TRK_bundle_splitter/V1_0_reg_precuneusleft_superiorparietalleft/stats
+
+step 5:
+
+
+
+
+
+
+
