@@ -15,8 +15,8 @@ from nibabel.streamlines.array_sequence import ArraySequence
 #project = 'V0_9_10template_100_6_interhe_majority'
 #project = 'V0_9_reg_precuneusleft_precuneus_right_split_3'
 #project = 'V0_9_reg_precuneusleft_superiorparietalleft_split_3'
-#project = 'V0_9_reg_precuneusright_superiorparietalright_split_3'
-project = 'V_1_0_10template_100_6_interhe_majority'
+project = 'V0_9_reg_precuneusright_superiorparietalright_split_3'
+#project = 'V_1_0_10template_100_6_interhe_majority'
 project_summary_file = f'/Volumes/Data/Badea/Lab/jacques/BuSA_headfiles/{project}.ini'
 
 proj_path = f'/Volumes/Data/Badea/Lab/AD_Decode/TRK_bundle_splitter/{project}/'
@@ -105,6 +105,7 @@ bundle_full_list = [['0','1','2','3','4','5']]
 bundle_full_list = [['4']]
 #bundle_full_list = [['4_0_0_0'],['4_0_1_1'],['4_0_1_0'],['4_1_1_2']]
 bundle_full_list = [['4_0_0_0','4_0_1_1','4_0_1_0','4_1_1_2']]
+bundle_full_list = [['0']]
 
 pattern_lvl = '_4'
 

@@ -236,7 +236,7 @@ trk_files = glob.glob(os.path.join(TRK_folder,'*trk'))
 subjects = [os.path.basename(trk_file).split('_')[0] for trk_file in trk_files]
 subjects = sorted(subjects)
 
-removed_list = []
+removed_list = ['S02765'] #Need to check again as the current file does not have 2 million streamlines
 for remove in removed_list:
     if remove in subjects:
         subjects.remove(remove)
