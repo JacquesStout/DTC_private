@@ -121,6 +121,22 @@ This is used after usage of the streamline_extract_tuples.py code that extracts 
 
 #### fix_MDT_streamlines.py
 
+Goes through streamlines in a folder and tries to remove any issues such as disjointed streamlines in each files before writing them to a new folder
+Main variables are:
+TRK_folder = '/Volumes/dusom_mousebrains/All_Staff/Data/ADDECODE/TRK_MDT'
+TRK_folder_new = '/Volumes/dusom_mousebrains/All_Staff/Data/ADDECODE/TRK_MDT_fixed'
+
+
+#### grey_white_MDT_label_maker.py
+
+Code to create MDT atlas label differentiating between grey and white matter (used in BuSA and other statistics)
+creates => /Volumes/Data/Badea/Lab/mouse/VBM_21ADDecode03_IITmean_RPI_fullrun-results/atlas_to_MDT/gwm_labels_MDT.nii.gz
+
+#### make_spyder_plots.py
+
+creates the radar plots used for figure 6 of manuscript: 'Mapping the impact of age and APOE risk factors for late onset Alzheimer’s disease on long range brain connections through multiscale bundle analysis'
+
+
 
 
 
@@ -148,6 +164,13 @@ partial ancestor to bundlestat_to_age_compare.py, version that runs a corrected 
 
 Older code meant to run PCA on metadata associated with AD_Decode
 
+#### streamline_Yeh_reg.py
 
+Unsure anymore, seems to be aligning tracts associated with Yeh
+
+#### streamline_average_ADDecode_prep.py and streamlines_average_ADDecode.py
+
+Old version of essentially streamline_extract_tuples and the BuSA project, streamline_average_ADDecode_prep would create connectomes and associated groupings for the streamlines,
+streamlines_average_ADDecode.py would create streamline folders and associated statistics for later analysis
 
 

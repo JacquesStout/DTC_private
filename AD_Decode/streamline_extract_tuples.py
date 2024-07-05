@@ -124,7 +124,7 @@ target_tuples = [(78,74),(74,40),(44,40),(40,2),(74,2)]
 #target_tuples = [(77, 43)] #superior frontal right to superior frontal left
 target_tuples = [(74,2)]
 target_tuples = [(40,2),(74,10),(44,40),(78,74),(74,40)]
-target_tuples = [(44,40),(78,74),(74,40)]
+target_tuples = [(84, 6)]
 #target_tuples = [(40,2)]
 #target_tuples = np.arange(85,127)
 
@@ -193,20 +193,26 @@ if project=='AD_Decode':
 else:
     mainpath = os.path.join(mainpath, project)
 
-kos=False
+server = 'dusom' #dusom, kos, and munin are all options
 
-#mainpath = '/Volumes/Shared Folder/newJetStor/paros/paros_WORK/jacques/AD_Decode/'
-mainpath = '/Volumes/newJetStor/newJetStor/paros/paros_DB/Projects/AD_Decode/Analysis'
-#TRK_folder = os.path.join(mainpath, f'TRK_MPCA_MDT_fixed{folder_ratio_str}')
-TRK_folder = os.path.join(mainpath, 'TRK_MDT'+ratio_str)
-TRK_folder = '/Volumes/newJetStor/newJetStor/paros/paros_DB/Projects/AD_Decode/Analysis/TRK_MDT_act/'
-TCK_folder = '/Volumes/newJetStor/newJetStor/paros/paros_DB/Projects/AD_Decode/Analysis/TCK_MDT_act/'
+# TRK_folder = os.path.join(mainpath, f'TRK_MPCA_MDT_fixed{folder_ratio_str}')
+# TRK_folder = os.path.join(mainpath, 'TRK_MDT'+ratio_str)
+if server == 'kos':
+    mainpath = '/Volumes/newJetStor/newJetStor/paros/paros_DB/Projects/AD_Decode/Analysis'
+    TRK_folder = '/Volumes/newJetStor/newJetStor/paros/paros_DB/Projects/AD_Decode/Analysis/TRK_MDT_act/'
+    TCK_folder = '/Volumes/newJetStor/newJetStor/paros/paros_DB/Projects/AD_Decode/Analysis/TCK_MDT_act/'
 
-if not kos:
+elif server == 'munin':
 
     mainpath = '/Volumes/Data/Badea/Lab/human/AD_Decode/'
     TCK_folder = '/Volumes/Data/Badea/Lab/human/AD_Decode_trk_transfer/TCK_MDT'
     TRK_folder = '/Volumes/Data/Badea/Lab/human/AD_Decode_trk_transfer/TRK_MDT'
+
+elif server == 'dusom':
+
+    mainpath = '/Volumes/dusom_mousebrains/All_Staff/Data/ADDECODE/'
+    TCK_folder = '/Volumes/dusom_mousebrains/All_Staff/Data/ADDECODE/TCK_MDT'
+    TRK_folder = '/Volumes/dusom_mousebrains/All_Staff/Data/ADDECODE/TRK_MDT'
 
 label_folder = os.path.join(mainpath, 'DWI')
 if symmetric:
@@ -229,8 +235,7 @@ mkcdir([streamline_tupled_folders,TCK_folder])
 trk_files = glob.glob(os.path.join(TRK_folder,'*trk'))
 subjects = [os.path.basename(trk_file).split('_')[0] for trk_file in trk_files]
 subjects = sorted(subjects)
-#subjects = ['S02390']
-#removed_list = ['S02230', 'S02654', 'S02490', 'S02523', 'S02745']
+
 removed_list = []
 for remove in removed_list:
     if remove in subjects:

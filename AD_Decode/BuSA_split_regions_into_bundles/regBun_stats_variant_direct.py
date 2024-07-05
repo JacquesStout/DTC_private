@@ -199,7 +199,7 @@ for remove in removed_list:
 
 column_bundle_compare = ['Subject'] + [f'BUAN_{bundle_id_orig_txt}_{bundle_id}' for bundle_id in new_bundle_ids]
 
-calc_BUAN = True
+calc_BUAN = False
 
 for subject in full_subjects_list:
 
