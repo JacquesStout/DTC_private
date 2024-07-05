@@ -44,14 +44,19 @@ else
     end
 end
 
-variants = ["volweighted","fa"]; 
 
-size_var = size(variants);
+size_var = size(variant);
 if size_var(1)>1
-    variants_str = '_' + strjoin(variants,'_');
+    variant_str = '_' + strjoin(variant,'_');
 else
-    variants_str = '';
+    %variant_str = '';
+    if strcmp(variant,'plain')
+        variant_str = '';
+    else
+        variant_str = join(['_' variant],"");
+    end
 end
+
 
 if ~exist(datapath, 'dir')
    mkdir(datapath)
@@ -65,22 +70,22 @@ end
 subselect = ''; %subselect = '_genotype_4';  
 
 if test
-    getpath = join([connectomes_folder,'*',variants_str,'_connectomes.xlsx'],"");
+    getpath = join([connectomes_folder,'*',variant_str,'_connectomes.xlsx'],"");
 else
     if variant=='fa'
         getpath = join([connectomes_folder,'*','mean_FA_connectome.csv'],"");
     elseif variant == 'dist'
-        getpath = join([connectomes_folder,'*',variants_str,'distances.csv'],"");
+        getpath = join([connectomes_folder,'*',variant_str,'distances.csv'],"");
     elseif variant == 'plain'
-        getpath = join([connectomes_folder,'*',variants_str,'conn_plain.csv'],"");
+        getpath = join([connectomes_folder,'*',variant_str,'conn_plain.csv'],"");
     end
 end
 
 %Output paths, named differently if doing a subselection or on connectome
 %type
-response_array_path = join([datapath 'response_array' subselect variants_str '.mat'],"");
-response_table_path= join([datapath 'response_table' subselect variants_str '.mat'],""); 
-connectomes_path = join([datapath 'connectivity' '_ADDecode' '_mrtrix' subselect variants_str '.mat'],"");
+response_array_path = join([datapath 'response_array' subselect variant_str '.mat'],"");
+response_table_path= join([datapath 'response_table' subselect variant_str '.mat'],""); 
+connectomes_path = join([datapath 'connectivity' '_ADDecode' '_mrtrix' subselect variant_str '.mat'],"");
 
 %Read the metadata for this project
 allfiles_data = readtable(filename);
@@ -210,9 +215,9 @@ connectivity = connectivity(:,:,setdiff(1:n_elements, nan_indices));
 
 %Plain connectome is saved a bit differently and separately due to it being
 %used by other variants for connectome strip setup, recommended to run plain for everyone first
-connectomes_path_backup = join([plainpath 'connectivity' '_ADDecode' '_mrtrix' subselect variants_str '_backup.mat'],"");
+connectomes_path_backup = join([plainpath 'connectivity' '_ADDecode' '_mrtrix' subselect variant_str '_backup.mat'],"");
 if variant == 'plain' && ~isfile(connectomes_path_backup)
-    connectomes_path_backup = join([datapath 'connectivity' '_ADDecode' '_mrtrix' subselect variants_str '_backup.mat'],"");
+    connectomes_path_backup = join([datapath 'connectivity' '_ADDecode' '_mrtrix' subselect variant_str '_backup.mat'],"");
     save(connectomes_path_backup, 'connectivity', 'subjlist');
 end
 

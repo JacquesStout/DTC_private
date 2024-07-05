@@ -17,6 +17,8 @@ addpath('/Users/jas/MATLAB/tensor_toolbox')
 
 mainpath =  "/Users/jas/MATLAB/popNet_HOPCA_ADDecode_2024/";
 
+extended_analysis = 0;
+
 act = 1;
 
 %if act
@@ -29,7 +31,8 @@ act = 1;
 %variants = ['*'];
 
 %variant = ['plain'];
-variant = 'fa' ;
+variant = 'plain' ;
+analysis_type = 'age'; %genotype, sex, age
 
 %variants = ["volweighted","fa"];
 size_var = size(variant);
@@ -80,13 +83,11 @@ trial = '_1'; %today 1st try **important otherwise will overwrite other trials t
 %type = 1; %Please pick [1-'All', 2-'noYoung', 3-'onlyYoung']
 orth = 1; %Please pick [1-'V_orth', '2-U,V,W_orth']note:we usually orth = 1
 gen_type = 1;%Please pick [1-'All', 2-'gen3&4', 3-'only gen0']
-num_con = 152;
-k = 30; % # of factors to extract
+k = 15; % # of factors to extract
 date = datestr(now,30);
 
 %----------------Main Part of TensorPCA&Variation identify-----------------
 
-analysis_type = 'age'; %genotype, sex, age
 
 if strcmp(analysis_type,'genotype')
     name = 'genotype_comparison';
@@ -109,6 +110,7 @@ elseif data_source == 2
     %connectomes_path = join([datapath 'connectivity' '_ADDecode' '_mrtrix' subselect variant_str '.mat'],"");
     connectomes_path = join([datapath 'connectivity' '_ADDecode' '_mrtrix' subselect '.mat'],"");
     result_path = join([outpath '/myresults_' name subselect variant_str '.txt'],"");
+    variance_path = join([outpath '/myvariance_' name subselect variant_str '.txt'],"");
     %response_array_path = join([datapath 'response_array' subselect variant_str '.mat'],"");
     response_array_path = join([datapath 'response_array' subselect '.mat'],"");
     load(connectomes_path);
@@ -161,11 +163,20 @@ end
 PCs.U = U;
 PCs.V = V;
 percent_store = []; %help select # of PCs
+
+filevariance_ID = fopen(variance_path,'w');
+
 for i = 1:k
     [percent] = var_explained(X,i,PCs);
     percent_store = cat(2, percent_store, [i;percent]);
-    disp(['top ' num2str(i) '/' num2str(k) ' PCs explain ' num2str(percent) '% variance of X'])
+    %txt = (['top ' num2str(i) '/' num2str(k) ' PCs explain ' num2str(percent) '% variance of X' '\n']);
+    txt = (['top ' num2str(i) 'out of' num2str(k) ' PCs explain ' num2str(percent) ' percent variance of X' '\n']);
+    fprintf(filevariance_ID,txt);
+    disp(txt);
 end
+
+fclose(filevariance_ID);
+
 %datapath = join([outpath date(3:8) trial '_TNPCA_' orth_type '_' num2str(type) '_K' num2str(k) '_' name '_Outputs.mat'],"");
 datapath = join([outpath date(3:8) trial '_TNPCA_' orth_type '_K' num2str(k) '_' name '_Outputs.mat'],"");
 save(datapath,'U','V','D','percent_store','obj','connectivity');
@@ -232,9 +243,7 @@ mostcon_idx = mostcon_idx(1:2:k,:);
 
 %Autonomy_data = readtable('C:\Users\Jacques Stout\Documents\MATLAB\popNet_HOPCA_whiston_2\data\anatomyInfo_whiston_new.csv');
 Autonomy_data = readtable('/Users/alex/code/Matlab/popNet_HOPCA_whiston/data/anatomyInfo_whiston_new.csv');
-%disp(' ')
-%disp(' ')
-%disp(['the top' num2str(k/2) ' connected subnetwork contribute to distinguish gen3 and gen4 '])
+
 %disp(['the top' num2str(k/2) ' connected subnetwork contribute to distinguish old and young '])
 disp(['the top' num2str(k/2) ' connected subnetwork contribute to distinguish control and AMD '])
 
@@ -269,51 +278,53 @@ for h = 1:size(mostcon_idx,1)'
 end
 fclose(fileID);
 
-for h = 1:size(mostcon_idx,1)'
-    i1 = mostcon_idx(h,1);
-    i2 = mostcon_idx(h,2);
-    APOE4_mean = mean(connectivity(i1,i2,idx));
-    APOE3_mean = mean(connectivity(i1,i2,~idx));
-    diff_mean = APOE4_mean - APOE3_mean;
+
+if extended_analysis
+    for h = 1:size(mostcon_idx,1)'
+        i1 = mostcon_idx(h,1);
+        i2 = mostcon_idx(h,2);
+        APOE4_mean = mean(connectivity(i1,i2,idx));
+        APOE3_mean = mean(connectivity(i1,i2,~idx));
+        diff_mean = APOE4_mean - APOE3_mean;
+    end
+
+
+    maxcon_evened = maxcon(2:2:end);    
+    mostcon_idx_2 = [mostcon_idx, maxcon_evened];
+
+    unique_integers = unique(vertcat(unique(mostcon_idx_2(:, 1), 'rows'), unique(mostcon_idx_2(:, 2), 'rows')));
+    num_integers = size(unique_integers);
+
+    integer_weights = zeros(num_integers(1),2);
+    i=1;
+
+    for integer=unique_integers'
+        row_index = unique(vertcat(find(mostcon_idx_2(:,1) == integer),find(mostcon_idx_2(:,2) == integer)));
+        sumweights = sum(mostcon_idx_2(row_index,3));
+        integer_weights(i,1)=integer;
+        integer_weights(i,2)=sumweights;
+        i= i + 1;
+        %con = char(Autonomy_data(integer,2).Variables);
+        %d = char(Autonomy_data(integer,3).Variables);
+
+        %txt = ([con '_' d ' has total weight of ' num2str((sumweights/(0.01*s))) '\n']);
+        %display(txt);
+    end
+
+    integer_weights = sortrows(integer_weights, -2);
+
+    fileID = fopen(result_path_nodes,'w');
+
+    for i=1:size(integer_weights,1)
+        integer = integer_weights(i,1);
+        sumweights = integer_weights(i,2);
+        con = char(Autonomy_data(integer,2).Variables);
+        d = char(Autonomy_data(integer,3).Variables);
+
+        txt = ([con '_' d ' has total weight of ' num2str((sumweights/(0.01*s))) '\n']);
+        fprintf(fileID,txt);
+
+        display(txt);
+    end
+    fclose(fileID);
 end
-    
-
-maxcon_evened = maxcon(2:2:end);    
-mostcon_idx_2 = [mostcon_idx, maxcon_evened];
-
-unique_integers = unique(vertcat(unique(mostcon_idx_2(:, 1), 'rows'), unique(mostcon_idx_2(:, 2), 'rows')));
-num_integers = size(unique_integers);
-
-integer_weights = zeros(num_integers(1),2);
-i=1;
-
-for integer=unique_integers'
-    row_index = unique(vertcat(find(mostcon_idx_2(:,1) == integer),find(mostcon_idx_2(:,2) == integer)));
-    sumweights = sum(mostcon_idx_2(row_index,3));
-    integer_weights(i,1)=integer;
-    integer_weights(i,2)=sumweights;
-    i= i + 1;
-    %con = char(Autonomy_data(integer,2).Variables);
-    %d = char(Autonomy_data(integer,3).Variables);
-    
-    %txt = ([con '_' d ' has total weight of ' num2str((sumweights/(0.01*s))) '\n']);
-    %display(txt);
-end
-
-integer_weights = sortrows(integer_weights, -2);
-
-fileID = fopen(result_path_nodes,'w');
-
-for i=1:size(integer_weights,1)
-    integer = integer_weights(i,1);
-    sumweights = integer_weights(i,2);
-    con = char(Autonomy_data(integer,2).Variables);
-    d = char(Autonomy_data(integer,3).Variables);
-    
-    txt = ([con '_' d ' has total weight of ' num2str((sumweights/(0.01*s))) '\n']);
-    fprintf(fileID,txt);
-
-    display(txt);
-end
-fclose(fileID);
-
