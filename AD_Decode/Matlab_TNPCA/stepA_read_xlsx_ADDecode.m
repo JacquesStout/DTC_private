@@ -11,7 +11,7 @@ act = 1;
 
 mainpath =  "/Users/jas/MATLAB/popNet_HOPCA_ADDecode_2024/";
 
-variant = ["plain"]; %Variant can be 'plain': plain connectome, 'dist': distance connectome, or 'fa': fa connectome
+variant = ["fa"]; %Variant can be 'plain': plain connectome, 'dist': distance connectome, or 'fa': fa connectome
 %please separate folders for specific connectomes before use
 
 stripconnectivity=1; %True / False variable to determine whether connections with very low values should
@@ -215,7 +215,7 @@ connectivity = connectivity(:,:,setdiff(1:n_elements, nan_indices));
 
 %Plain connectome is saved a bit differently and separately due to it being
 %used by other variants for connectome strip setup, recommended to run plain for everyone first
-connectomes_path_backup = join([plainpath 'connectivity' '_ADDecode' '_mrtrix' subselect variant_str '_backup.mat'],"");
+connectomes_path_backup = join([plainpath 'connectivity' '_ADDecode' '_mrtrix' subselect '_plain_backup.mat'],"");
 if variant == 'plain' && ~isfile(connectomes_path_backup)
     connectomes_path_backup = join([datapath 'connectivity' '_ADDecode' '_mrtrix' subselect variant_str '_backup.mat'],"");
     save(connectomes_path_backup, 'connectivity', 'subjlist');
@@ -246,7 +246,7 @@ if stripconnectivity && variant~='plain'
     zero_count = sum(connectivity_plain == 0, 3);
 
     % Step 4: Identify indices where there are already 10 or more instances of ixj being 0
-    too_many_zeros_indices = zero_count >= 10;
+    too_many_zeros_indices = zero_count >= 2;
 
     % Step 5: Identify indices where either condition is true
     indices_to_remove = low_average_indices | too_many_zeros_indices;

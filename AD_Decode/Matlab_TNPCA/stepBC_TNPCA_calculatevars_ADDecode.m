@@ -19,6 +19,8 @@ mainpath =  "/Users/jas/MATLAB/popNet_HOPCA_ADDecode_2024/";
 
 extended_analysis = 0;
 
+strip_results = 1;
+
 act = 1;
 
 %if act
@@ -31,8 +33,8 @@ act = 1;
 %variants = ['*'];
 
 %variant = ['plain'];
-variant = 'plain' ;
-analysis_type = 'age'; %genotype, sex, age
+variant = 'fa' ;
+analysis_type = 'sex'; %genotype, sex, age
 
 %variants = ["volweighted","fa"];
 size_var = size(variant);
@@ -108,7 +110,7 @@ if data_source == 1
     load(connectomes_path);
 elseif data_source == 2
     %connectomes_path = join([datapath 'connectivity' '_ADDecode' '_mrtrix' subselect variant_str '.mat'],"");
-    connectomes_path = join([datapath 'connectivity' '_ADDecode' '_mrtrix' subselect '.mat'],"");
+    connectomes_path = join([datapath 'connectivity' '_ADDecode' '_mrtrix' subselect variant_str '.mat'],"");
     result_path = join([outpath '/myresults_' name subselect variant_str '.txt'],"");
     variance_path = join([outpath '/myvariance_' name subselect variant_str '.txt'],"");
     %response_array_path = join([datapath 'response_array' subselect variant_str '.mat'],"");
@@ -222,6 +224,11 @@ Net_change = s*Net_change;
 
 %remove diagnal
 Net_change = Net_change-diag(diag(Net_change));
+
+if strip_results
+    zero_count = sum(connectivity == 0, 3);
+    empty_indices = X == 0;
+end
 
 k = 200;
 maxcon = maxk(Net_change(:),k);
