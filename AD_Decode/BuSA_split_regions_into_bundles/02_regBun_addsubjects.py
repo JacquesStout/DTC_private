@@ -140,10 +140,12 @@ try:
     float(ratio)
     ratiostr = ratio_to_str(ratio, spec_all=False)
     str_identifier = get_str_identifier(stepsize, ratio, trkroi, type=streamline_type)
+    sides = ['left', 'right']
 except ValueError:
     if ratio == 'edge':
         ratiostr = ''
         str_identifier = '_streamlines'
+        sides = ['all']
     else:
         raise Exception('Unrecognized condition for value of ratio in headfile')
 
@@ -200,8 +202,6 @@ else:
 """
 
 centroids_sides = {}
-
-sides = ['left', 'right']
 
 for side in sides:
 

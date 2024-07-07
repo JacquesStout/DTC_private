@@ -173,10 +173,12 @@ try:
     float(ratio)
     ratiostr = ratio_to_str(ratio, spec_all=False)
     str_identifier = get_str_identifier(stepsize, ratio, trkroi, type=streamline_type)
+    sides = ['left', 'right']
 except ValueError:
     if ratio == 'edge':
         ratiostr = ''
         str_identifier = '_streamlines'
+        sides = ['all']
     else:
         raise Exception('Unrecognized condition for value of ratio in headfile')
 
@@ -212,7 +214,6 @@ streamlines_template = nib.streamlines.array_sequence.ArraySequence()
 
 timings.append(time.perf_counter())
 
-sides = ['left', 'right']
 
 overwrite=True
 
@@ -387,6 +388,7 @@ ordered_bundles = []
 centroids_side = {}
 centroids_side['left'] = []
 centroids_side['right'] = []
+centroids_side['all'] = []
 
 bundle_split_used = bundle_split
 
@@ -404,6 +406,7 @@ while min(num_streamlines)<np.mean(num_streamlines)/5:
 for bundle in top_bundles[:bundle_split]:
     ordered_bundles.append(bundles.clusters[bundle])
     centroids_side['left'].append(bundles.clusters[bundle].centroid)
+    centroids_side['all'].append(bundles.clusters[bundle].centroid)
 
 for bundle_toflip in centroids_side['left']:
     centroids_side['right'].append(np.array(transform_streamlines(bundle_toflip, affine_flip, in_place=False)))

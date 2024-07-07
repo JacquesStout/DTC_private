@@ -139,10 +139,14 @@ try:
     float(ratio)
     ratiostr = ratio_to_str(ratio, spec_all=False)
     str_identifier = get_str_identifier(stepsize, ratio, trkroi, type=streamline_type)
+    sides = ['left', 'right']
+    calc_BUAN = True
 except ValueError:
     if ratio == 'edge':
         ratiostr = ''
         str_identifier = '_streamlines'
+        sides = ['all']
+        calc_BUAN = False
     else:
         raise Exception('Unrecognized condition for value of ratio in headfile')
 
@@ -222,14 +226,10 @@ else:
 
 column_bundle_compare = ['Subject'] + [f'BUAN{bundle_col_id}_{bundle_id}' for bundle_id in new_bundle_ids]
 
-calc_BUAN = True
-
 tractometry_dic_path = {}
 tractometry_array = {}
 
 references = ['mrtrixfa', 'Length', 'greywhite']
-
-sides = ['left','right']
 
 bundle_compare_summary = os.path.join(stat_folder, f'allsubj_bundle{bundle_col_id}_comparison.xlsx')
 
