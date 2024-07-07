@@ -23,9 +23,10 @@ if 'blade' in computer_name:
     root_folder = '/mnt/munin2/Badea/Lab/'
 
 proj_folders = os.path.join(root_folder,'AD_Decode/TRK_bundle_splitter/')
-proj_folder = os.path.join(proj_folders,'V_1_0_10template_100_6_interhe_majority')
+proj_folder = os.path.join(proj_folders,'V1_0_reg_insula_right_to_left-hippocampus')
 
-trk_folder = os.path.join(proj_folder,'trk_roi_ratio_100/')
+#trk_folder = os.path.join(proj_folder,'trk_roi_ratio_100/')
+trk_folder = os.path.join(proj_folder,'trk_roi/')
 densitymap_folder = os.path.join(proj_folder,'density_maps/')
 
 stats_summary_folder = os.path.join(proj_folder,'stats/excel_summary')
@@ -56,6 +57,7 @@ pattern = 'S\d{5}_bundle_[a-zA-Z0-9]{3,5}'+trk_pattern+'.trk'
 overwrite=False
 overwrite_denmaps = False
 summarize_label_tract_interact = False
+write_BUAN = False
 
 matching_files = [filename for filename in files if re.match(pattern, filename)]
 
@@ -203,7 +205,7 @@ if not os.path.exists(volume_excel_path) or overwrite:
 
 matching_files_left = [matching_file for matching_file in matching_files if 'left' in matching_file]
 
-if not os.path.exists(BUAN_summary_path) or overwrite:
+if write_BUAN and not os.path.exists(BUAN_summary_path) or overwrite:
     BUAN_df = pd.DataFrame(columns=['Subj'])
 
     affine_flip = np.eye(4)
