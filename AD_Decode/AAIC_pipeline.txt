@@ -2,7 +2,6 @@ myaaic
 -poster
 
 
-
 Code summary, simplified, assumed to be on Santorini:
 
 Change line 127 => target_tuples = , to the tuple that should be studied (example: 84 6, aka insula_right_to_left-hippocampus)
@@ -16,7 +15,34 @@ ratio = edge
 
 export PYTHONPATH=${PYTHONPATH}:/home/jas297/linux/DTC_private
 python3 AD_Decode_BuSA_region_wrapper.py --split 1 --proj V_1_0_reg_insula_right_to_left-hippocampus
+If you need to split to 3 bundles eventually, I would use
+python3 AD_Decode_BuSA_region_wrapper.py --split 3 --proj V_1_0_reg_insula_right_to_left-hippocampus --id _all
 
+
+In local, go to /Users/jas/bass/gitfolder/DTC_private/AD_Decode/combine_stats_regions.R and change path_stats to the right project name:
+example:
+path_stats= "/Volumes/Data/Badea/Lab/AD_Decode/TRK_bundle_splitter/V1_0_reg_insularight_hippocampusright/stats/"
+path_stats_excel= "/Volumes/Data/Badea/Lab/AD_Decode/TRK_bundle_splitter/V1_0_reg_insularight_hippocampusright/stats/excel_summary"
+define a output path (will contain final excel files summarizing statistics)
+
+Go to 'bundlestat_to_age_compare.py'
+and change the appropriate input path to be the output_path of the previous code (combine_stats_regions.R)
+input_path = '/Users/jas/jacques/AD_Decode_bundles_figures/bundle_split_results/insularight_hippocampusright_excels'
+main_output_path = f'/Users/jas/jacques/AD_Decode_bundles_figures'
+
+You can also change the group_column to change whether the main variable will be genotype or sex
+
+The outputs will be in
+main_output_path = f'/Users/jas/jacques/AD_Decode_bundles_figures/{group_column}/lm_results_fsig_all/{stat}'
+example is:
+/Users/jas/jacques/AD_Decode_bundles_figures_AAICabstests/genotype/lm_age/lm_results_fsig_all/sdfa/lm_sdfa_age_bundle_0_sdfa_lowest.png
+To note that:
+fsig means fsignificant (sig would just be plain significant, irrelevant with one bundle)
+_quadratic differentiates whehter comparison was quadratic or not (only used for mean fa. Also the current state of the code is a bit )
+
+
+To generate views of the code, use:
+BuSA_bundle_visualizer.py
 
 
 Full details

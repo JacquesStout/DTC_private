@@ -23,7 +23,7 @@ if 'blade' in computer_name:
     root_folder = '/mnt/munin2/Badea/Lab/'
 
 proj_folders = os.path.join(root_folder,'AD_Decode/TRK_bundle_splitter/')
-proj_folder = os.path.join(proj_folders,'V1_0_reg_insula_right_to_left-hippocampus')
+proj_folder = os.path.join(proj_folders,'V1_0_reg_insularight_hippocampusright')
 
 #trk_folder = os.path.join(proj_folder,'trk_roi_ratio_100/')
 trk_folder = os.path.join(proj_folder,'trk_roi/')
@@ -31,7 +31,7 @@ densitymap_folder = os.path.join(proj_folder,'density_maps/')
 
 stats_summary_folder = os.path.join(proj_folder,'stats/excel_summary')
 
-mkcdir(densitymap_folder)
+mkcdir([densitymap_folder,stats_summary_folder])
 
 label_file = os.path.join(root_folder,'mouse/VBM_21ADDecode03_IITmean_RPI_fullrun-work/dwi/SyN_0p5_3_0p5_fa/faMDT_NoNameYet_n37_i6/median_images/labels_MDT/MDT_IITmean_RPI_labels.nii.gz')
 
@@ -52,7 +52,13 @@ for i in np.arange(sub_bundling_level):
 
 files = os.listdir(trk_folder)
 
-pattern = 'S\d{5}_bundle_[a-zA-Z0-9]{3,5}'+trk_pattern+'.trk'
+edge = True
+
+if edge:
+    pattern = 'S\d{5}_bundle'+trk_pattern+'.trk'
+else:
+    pattern = 'S\d{5}_bundle_[a-zA-Z0-9]{3,5}'+trk_pattern+'.trk'
+
 
 overwrite=False
 overwrite_denmaps = False

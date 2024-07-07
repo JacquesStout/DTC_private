@@ -111,7 +111,11 @@ group_columns = ['genotype']
 
 subjects = cog_df['MRI_Exam']
 
-main_output_path = f'/Users/jas/jacques/AD_Decode_bundles_figures'
+
+#input_path = '/Users/jas/jacques/AD_Decode_bundles_figures/bundle_split_results/bundles_6_100_excels'
+input_path = '/Users/jas/jacques/AD_Decode_bundles_figures/bundle_split_results/insularight_hippocampusright_excels'
+main_output_path = f'/Users/jas/jacques/AD_Decode_bundles_figures_AAICabstests'
+
 mkcdir(main_output_path)
 
 p_value_sig = 0.05
@@ -135,7 +139,7 @@ col_col_types = ['age']
 reg_stat_types = ['meanfa','num_sl','vol_sl','sdfa','len_sl']
 reg_stat_types = ['num_sl','vol_sl','len_sl']
 reg_stat_types = ['sdfa','num_sl','vol_sl','len_sl','BUAN']
-reg_stat_types = ['meanfa']
+reg_stat_types = ['meanfa','num_sl','vol_sl','sdfa','len_sl']
 #reg_stat_types = ['num_sl','vol_sl','sdfa','len_sl']
 #reg_stat_types = ['num_sl']
 #reg_stat_types = ['BUAN']
@@ -148,13 +152,17 @@ reg_stat_types = ['meanfa']
 #'cog_mean' or 'cog_cols' or 'phys_cols'
 
 sub_bundling_levels = [1,2,3,4]
-#sub_bundling_levels = [4]
+sub_bundling_levels = [1]
 
+sex_included = False
 combined = True
 
-sex_included = True
-
 #sub_bundling_levels = [4]
+
+edge=True
+
+if edge:
+    combined = False
 
 
 dpi_value = 1200
@@ -181,11 +189,9 @@ for sub_bundling_level in sub_bundling_levels:
             sub_bund_txt+='_all'
 
         if combined:
-            stats_excel_path = f'/Users/jas/jacques/AD_Decode_bundles_figures/bundle_split_results/bundles_6_100_excels' \
-                f'/master_df{sub_bund_txt}_combined.xlsx'
+            stats_excel_path = os.path.join(input_path,f'master_df{sub_bund_txt}_combined.xlsx')
         else:
-            stats_excel_path = f'/Users/jas/jacques/AD_Decode_bundles_figures/bundle_split_results/bundles_6_100_excels' \
-                f'/master_df{sub_bund_txt}.xlsx'
+            stats_excel_path = os.path.join(input_path,f'master_df{sub_bund_txt}.xlsx')
 
         #Bad warning complaining about no default style, this is done to suppress that useless warning
         with warnings.catch_warnings():
@@ -271,7 +277,7 @@ for sub_bundling_level in sub_bundling_levels:
                 stat_type_folder_fsig = os.path.join(stats_folder_results_fsig, stat_type)
                 stat_type_folder_fsig_interact = os.path.join(stats_folder_results_fsig_interact, stat_type)
 
-                if combined:
+                if combined or edge:
                     if bundle_sub_select is not None:
                         bundles = [col.split('_' + stat_type)[0] for col in full_stat_db.columns if
                                    stat_type in col and bundle_sub_select in col]
@@ -323,8 +329,8 @@ for sub_bundling_level in sub_bundling_levels:
                         #formula = f'{bundle_stat} ~ {col_type}*{col_type} * {group_column}'
                         #formula = f'{bundle_stat} ~ {col_type}*{col_type} + {col_type}'
                         if formula_type == 'quadratic':
-                            #formula = f'{bundle_stat} ~ I({col_type}**2)'
-                            formula = f'{bundle_stat} ~ I({col_type}**2) * {group_column}'
+                            formula = f'{bundle_stat} ~ I({col_type}**2)'
+                            #formula = f'{bundle_stat} ~ I({col_type}**2) * {group_column}'
                         else:
                             formula = f'{bundle_stat} ~ {col_type} * {group_column}'
 
@@ -344,13 +350,14 @@ for sub_bundling_level in sub_bundling_levels:
                         #formula = f'{bundle_stat} ~ {col_type} * {col_type} * {col_type}'
                         #print(sm.formula.ols(formula=formula, data=full_stat_db).fit().pvalues['age'])
 
-                        group_key = [key for key in model.pvalues.keys() if group_column in key and bundle_stat not in key and 'sex' not in key and col_type not in key][0]
-                        if sex_included:
-                            interact_key = [key for key in model.pvalues.keys() if group_column in key and col_type in key and 'sex' in key][0]
-                            sex_key = [key for key in model.pvalues.keys() if
-                                       group_column not in key and bundle_stat not in key and 'sex' in key and col_type not in key][0]
-                        else:
-                            interact_key = [key for key in model.pvalues.keys() if group_column in key and col_type in key and not 'sex' in key][0]
+                        if formula_type != 'quadratic':
+                            group_key = [key for key in model.pvalues.keys() if group_column in key and bundle_stat not in key and 'sex' not in key and col_type not in key][0]
+                            if sex_included:
+                                interact_key = [key for key in model.pvalues.keys() if group_column in key and col_type in key and 'sex' in key][0]
+                                sex_key = [key for key in model.pvalues.keys() if
+                                           group_column not in key and bundle_stat not in key and 'sex' in key and col_type not in key][0]
+                            else:
+                                interact_key = [key for key in model.pvalues.keys() if group_column in key and col_type in key and not 'sex' in key][0]
 
                         col_key = [key for key in model.pvalues.keys() if group_column not in key and col_type in key and 'sex' not in key][0]
 
@@ -377,19 +384,20 @@ for sub_bundling_level in sub_bundling_levels:
                             group_corr['r2score_interact'] = sm.stats.anova_lm(model)['sum_sq'][f'{col_type}:{group_column}'] / model.ess
                         else:
 
-                            p_values_group.append(model.pvalues[group_key])
-                            p_values_interact.append(model.pvalues[interact_key])
+                            #p_values_group.append(model.pvalues[group_key])
+                            p_values_group.append(1)
+                            #p_values_interact.append(model.pvalues[interact_key])
+                            p_values_interact.append(1)
 
-                            group_corr['group'] = model.params[group_key]
-                            group_corr['interact'] = model.params[interact_key]
+                            #group_corr['group'] = model.params[group_key]
+                            group_corr['group'] = 0
 
-                            group_corr['r2score_group'] = sm.stats.anova_lm(model)['sum_sq'][group_column] / model.ess
-                            #group_corr['r2score_interact'] = 0
-                            #group_corr['r2score_interact'] = sm.stats.anova_lm(sm.formula.ols(formula=formula, data=full_stat_db).fit())['sum_sq'][f'I(age ** 2):{group_column}:sex']/ model.ess
-                            group_corr['r2score_interact'] = \
-                            sm.stats.anova_lm(model)['sum_sq'][remove_brackets(interact_key)] / model.ess
+                            #group_corr['interact'] = model.params[interact_key]
+                            group_corr['interact'] = 0
 
-                            #group_corr['r2score_stat'] = model.rsquared
+                            #group_corr['r2score_group'] = sm.stats.anova_lm(model)['sum_sq'][group_column] / model.ess
+                            #group_corr['r2score_interact'] = sm.stats.anova_lm(model)['sum_sq'][remove_brackets(interact_key)] / model.ess
+
                             group_corr['r2score_stat'] = model.rsquared
 
                         if sex_included:
