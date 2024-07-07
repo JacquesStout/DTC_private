@@ -41,7 +41,7 @@ fsig means fsignificant (sig would just be plain significant, irrelevant with on
 _quadratic differentiates whehter comparison was quadratic or not (only used for mean fa. Also the current state of the code is a bit )
 
 
-To generate views of the code, use:
+To generate views of the brain, use:
 BuSA_bundle_visualizer.py
 
 
