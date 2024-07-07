@@ -151,7 +151,7 @@ num_bundles = int(params['num_bundles'])
 print('4')
 print(parts)
 full_subjects_list = template_subjects + added_subjects
-full_subjects_list = ['S02227','S02386','S02410','S02421','S02666','S02877']
+#full_subjects_list = ['S02227','S02386','S02410','S02421','S02666','S02877']
 sides = ['left', 'right']
 
 if bundle_id_orig is not None:
